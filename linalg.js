@@ -126,5 +126,68 @@ function gramSchmidt(vs){
   return out;
 }
 
-return {clone,shape,zeros,eye,matmul,matvec,transpose,add,scale,det,inv,rrefSteps,fmtNum,eig2,solve,gramSchmidt};
+/* LU decomposition with steps (Doolittle, partial pivot). */
+function luSteps(A0){
+  const n=A0.length; const U=clone(A0).map(r=>r.map(Number));
+  const L=eye(n); const steps=[];
+  const snap=desc=>steps.push({desc,L:clone(L),U:clone(U)});
+  snap('Start: U = A, L = I.');
+  for(let k=0;k<n;k++){
+    let p=k; for(let i=k+1;i<n;i++) if(Math.abs(U[i][k])>Math.abs(U[p][k])) p=i;
+    if(p!==k){[U[p],U[k]]=[U[k],U[p]];
+      for(let j=0;j<k;j++){const t=L[p][j];L[p][j]=L[k][j];L[k][j]=t;}
+      snap(`Pivot: swap rows ${k+1} and ${p+1}.`);}
+    if(Math.abs(U[k][k])<1e-12) continue;
+    for(let i=k+1;i<n;i++){const f=U[i][k]/U[k][k]; L[i][k]=f; for(let j=k;j<n;j++) U[i][j]-=f*U[k][j];}
+    snap(`Eliminate below pivot ${k+1} (multipliers → L).`);
+  }
+  return {L,U,steps};
+}
+
+/* characteristic polynomial coefficients (2x2, 3x3) */
+function charPoly(A){
+  const n=A.length;
+  if(n===2){const t=A[0][0]+A[1][1], d=det(A); return [1,-t,d];}
+  if(n===3){const t=A[0][0]+A[1][1]+A[2][2];
+    const m=(i,j)=>A[i][i]*A[j][j]-A[i][j]*A[j][i];
+    const c2=m(0,1)+m(0,2)+m(1,2); const d=det(A);
+    return [1,-t,c2,-d];}
+  return null;
+}
+
+/* nullspace basis via RREF */
+function nullspace(A){
+  const {rref,pivots}=rrefSteps(A); const [rows,cols]=shape(rref);
+  const pivotSet=new Set(pivots); const free=[]; for(let c=0;c<cols;c++) if(!pivotSet.has(c)) free.push(c);
+  const basis=[];
+  for(const fc of free){const v=Array(cols).fill(0); v[fc]=1;
+    pivots.forEach((pc,ri)=>{ v[pc]=-rref[ri][fc]; }); basis.push(v);}
+  return {basis, free, pivots, rank:pivots.length};
+}
+
+/* quadratic form value x^T A x (2D) */
+function quadForm(A,x,y){ return A[0][0]*x*x + (A[0][1]+A[1][0])*x*y + A[1][1]*y*y; }
+
+/* DFT magnitudes of first K components */
+function dftMags(samples,K){
+  const N=samples.length; const out=[];
+  for(let k=0;k<K;k++){let re=0,im=0;
+    for(let n=0;n<N;n++){const a=2*Math.PI*k*n/N; re+=samples[n]*Math.cos(a); im-=samples[n]*Math.sin(a);}
+    out.push(Math.hypot(re,im)/N*2);}
+  return out;
+}
+
+/* Cholesky: A = L L^T (lower L) or null if not SPD */
+function cholesky(A){
+  const n=A.length; const L=zeros(n,n);
+  for(let i=0;i<n;i++)for(let j=0;j<=i;j++){
+    let s=0; for(let k=0;k<j;k++) s+=L[i][k]*L[j][k];
+    if(i===j){const d=A[i][i]-s; if(d<=0) return null; L[i][j]=Math.sqrt(d);}
+    else L[i][j]=(A[i][j]-s)/L[j][j];
+  }
+  return L;
+}
+
+return {clone,shape,zeros,eye,matmul,matvec,transpose,add,scale,det,inv,rrefSteps,fmtNum,eig2,solve,gramSchmidt,
+        luSteps,charPoly,nullspace,quadForm,dftMags,cholesky};
 })();

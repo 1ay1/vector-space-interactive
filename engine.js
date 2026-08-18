@@ -1005,11 +1005,121 @@ function pcaCloud(){
   return wrap;
 }
 
+/* =========================================================
+   LUSTEPPER — shows A = LU forming step by step.
+   ========================================================= */
+function luStepper(){
+  const wrap=el('div');
+  const grid=matrixGrid({rows:3,cols:3,values:[[2,1,1],[4,3,3],[8,7,9]]});
+  const nar=narrate('Edit A, then factor it into L·U.');
+  const stepBox=el('div');stepBox.style.cssText='margin-top:10px';
+  const runBtn=el('button','btn','▶ factor A = LU');
+  let steps=[];
+  runBtn.onclick=()=>{const res=LA.luSteps(grid.get());steps=res.steps;stepBox.innerHTML='';
+    steps.forEach((s,i)=>{const row=el('div');row.style.cssText='display:flex;gap:14px;align-items:center;margin:8px 0;flex-wrap:wrap';
+      row.innerHTML=`<div style="font-size:.82rem;color:var(--muted);min-width:150px">${s.desc}</div>
+        <div>L = ${matrixHTML(s.L)}</div><div>U = ${matrixHTML(s.U)}</div>`;stepBox.append(row);});
+    nar.say(`<span class="g">Done.</span> A = L·U: a lower-triangular L (the elimination multipliers) times an upper-triangular U (the echelon form). This is exactly Gaussian elimination, <em>recorded</em> — and it lets you solve many systems with the same A cheaply.`);};
+  const ctr=el('div','controls');ctr.append(runBtn);
+  wrap.append(grid.el,ctr,stepBox,nar);return wrap;
+}
+
+/* =========================================================
+   QUADFORM — contour plot of x^T A x; classify definiteness.
+   ========================================================= */
+function quadFormPlot(){
+  const W=300,H=300;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  let M=[[1,0],[0,1]];const nar=narrate('');
+  function render(){
+    const img=ctx.createImageData(W,H);
+    const rng=3.2;
+    for(let py=0;py<H;py++)for(let px=0;px<W;px++){
+      const x=(px/W*2-1)*rng, y=-(py/H*2-1)*rng;
+      const v=LA.quadForm(M,x,y);
+      const idx=(py*W+px)*4;
+      // color: positive teal, negative orange, near-zero light
+      const t=Math.max(-1,Math.min(1,v/6));
+      const r=t<0?228:237-Math.round(60*t), g=t<0?237+Math.round(60*t):240-Math.round(80*t), b=t<0?230:230-Math.round(80*t);
+      // contour bands
+      const band=(Math.abs(v)%1)<0.06?200:255;
+      img.data[idx]=Math.min(r,band);img.data[idx+1]=Math.min(g,band);img.data[idx+2]=Math.min(b,band);img.data[idx+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+    const e=LA.eig2(M);const l=e.values;
+    let cls,col;
+    if(l[0]>1e-9&&l[1]>1e-9){cls='positive definite — a bowl (min at origin)';col='var(--accentc)';}
+    else if(l[0]<-1e-9&&l[1]<-1e-9){cls='negative definite — a dome (max at origin)';col='var(--accent)';}
+    else if(l[0]*l[1]<-1e-9){cls='indefinite — a saddle';col='var(--accentd)';}
+    else cls='semidefinite — a trough';
+    nar.say(`Eigenvalues (${l.map(x=>x.toFixed(2)).join(', ')}) → <b style="color:${col||'var(--ink)'}">${cls}</b>. <span class="g">The signs of the eigenvalues classify the shape.</span>`);
+  }
+  function mk(lbl,i,j,val){const r=el('div');r.style.cssText='display:flex;gap:6px;align-items:center';
+    const inp=el('input');inp.type='range';inp.min=-2;inp.max=2;inp.step=.1;inp.value=val;inp.style.width='130px';
+    const out=el('span','big');out.textContent=val.toFixed(1);
+    inp.addEventListener('input',()=>{M[i][j]=parseFloat(inp.value);if(i!==j)M[j][i]=M[i][j];out.textContent=(+inp.value).toFixed(1);render();});
+    r.append(el('span',null,lbl),inp,out);return r;}
+  const controls=el('div');controls.style.cssText='display:flex;flex-direction:column;gap:6px';
+  controls.append(mk('a (xx)',0,0,1),mk('b (xy)',0,1,0),mk('c (yy)',1,1,1));
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');g.append(controls);s.append(cv,g);wrap.append(s,nar);render();
+  return wrap;
+}
+
+/* =========================================================
+   COMPLEXPLANE — drag a complex number; show polar form and
+   what 'multiply by i' (rotate 90) does.
+   ========================================================= */
+function complexPlane(){
+  const W=300,H=300,unit=48;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;let z={re:2,im:1};const nar=narrate('Drag the point. Button rotates by i.');
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.soft;for(let g=ox%unit;g<W;g+=unit){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+    for(let g=oy%unit;g<H;g+=unit){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    ctx.fillStyle=C.muted;ctx.font='11px sans-serif';ctx.fillText('real',W-30,oy-5);ctx.fillText('imaginary',ox+5,12);
+    const ex=ox+z.re*unit,ey=oy-z.im*unit;
+    ctx.strokeStyle=C.accent;ctx.fillStyle=C.accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+    ctx.beginPath();ctx.arc(ex,ey,6,0,7);ctx.fill();
+    const r=Math.hypot(z.re,z.im),th=Math.atan2(z.im,z.re)*180/Math.PI;
+    nar.say(`z = ${z.re.toFixed(1)} ${z.im>=0?'+':'−'} ${Math.abs(z.im).toFixed(1)}i &nbsp; = &nbsp; magnitude <span class="k">${r.toFixed(2)}</span>, angle <span class="k">${th.toFixed(0)}°</span>. <span class="g">A complex number is a 2D vector with a built-in “rotate” multiplication.</span>`);
+  }
+  let drag=false;const ev=e=>{const rect=cv.getBoundingClientRect();return[(e.clientX-rect.left-ox)/unit,-(e.clientY-rect.top-oy)/unit];};
+  cv.addEventListener('pointerdown',e=>{drag=true;cv.setPointerCapture?.(e.pointerId);const[x,y]=ev(e);z={re:x,im:y};render();e.preventDefault();});
+  cv.addEventListener('pointermove',e=>{if(drag){const[x,y]=ev(e);z={re:x,im:y};render();}});
+  window.addEventListener('pointerup',()=>drag=false);
+  const btn=el('button','btn','× i  (rotate 90°)');btn.onclick=()=>{z={re:-z.im,im:z.re};render();};
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');const ctr=el('div','controls');ctr.append(btn);g.append(ctr,nar);s.append(cv,g);wrap.append(s);render();
+  return wrap;
+}
+
+/* =========================================================
+   FOURIERSYNTH — add sine waves (basis functions) to build a
+   signal; show it's a change of basis into frequency.
+   ========================================================= */
+function fourierSynth(){
+  const W=440,H=180;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const amps=[1,0,0.5,0,0.3];const nar=narrate('');
+  function render(){
+    ctx.clearRect(0,0,W,H);ctx.strokeStyle=C.softline;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+    // each harmonic faint
+    amps.forEach((a,k)=>{if(a===0)return;ctx.strokeStyle=['#e4572e55','#2a7de155','#17a39855','#9b5de555','#f2a90055'][k];ctx.lineWidth=1;
+      ctx.beginPath();for(let px=0;px<=W;px++){const x=px/W*2*Math.PI;const y=a*Math.sin((k+1)*x);ctx.lineTo(px,H/2-y*40);}ctx.stroke();});
+    // sum bold
+    ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.beginPath();
+    for(let px=0;px<=W;px++){const x=px/W*2*Math.PI;let y=0;amps.forEach((a,k)=>y+=a*Math.sin((k+1)*x));ctx.lineTo(px,H/2-y*40);}ctx.stroke();
+    nar.say(`This wave = ${amps.map((a,k)=>a?`${a.toFixed(1)}·sin(${k+1}x)`:'').filter(Boolean).join(' + ')}. <span class="g">The amplitudes ARE the coordinates of the signal in the Fourier basis.</span> Fourier = change of basis into pure frequencies.`);
+  }
+  const rows=el('div');rows.style.cssText='display:flex;flex-direction:column;gap:5px';
+  amps.forEach((a,k)=>{const r=rangeRow({label:`sin(${k+1}x)`,min:0,max:1,step:.1,value:a,fmt:v=>v.toFixed(1),onInput:v=>{amps[k]=v;render();}});rows.append(r);});
+  const wrap=el('div');wrap.append(cv,rows,nar);render();return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
         configSpace,possibilityCounter,morphPath,diffVector,webGraph,
         matrixGrid,matrixHTML,rrefStepper,systemLines,
         eigenExplorer,detArea,
-        leastSquares,pcaCloud};
+        leastSquares,pcaCloud,
+        luStepper,quadFormPlot,complexPlane,fourierSynth};
 })();
