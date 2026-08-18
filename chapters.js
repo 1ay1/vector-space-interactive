@@ -475,6 +475,17 @@ render(root){
       ro.innerHTML=`dot ≈ <b>${dot.toFixed(2)}</b> · angle ≈ ${deg.toFixed(0)}°`;
       nar.say(`<span class="sign ${cls}">${cls==='pos'?'＋':cls==='neg'?'－':'0'}</span> ${txt}.`);}});
   const L=lab('Rotate, watch the sign flip','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(h3('Where does that formula even come from?'));
+  root.append(p('We should never hand you \(\mathbf a\cdot\mathbf b = \lVert\mathbf a\rVert\lVert\mathbf b\rVert\cos\theta\) as magic. Here is exactly why it\'s true, from the length recipe you already own.'));
+  root.append(worked({title:'deriving dot = ‖a‖‖b‖cosθ from Pythagoras',
+    prompt:'Start from the Law of Cosines on the triangle formed by \(\mathbf a\), \(\mathbf b\), and the side \(\mathbf a-\mathbf b\).',
+    steps:[
+      'Law of cosines: \(\lVert\mathbf a-\mathbf b\rVert^2 = \lVert\mathbf a\rVert^2 + \lVert\mathbf b\rVert^2 - 2\lVert\mathbf a\rVert\lVert\mathbf b\rVert\cos\theta\).',
+      'But length is “sum of squares,” so expand the left side entry by entry: \(\lVert\mathbf a-\mathbf b\rVert^2 = \sum_i (a_i-b_i)^2 = \sum a_i^2 - 2\sum a_i b_i + \sum b_i^2\).',
+      'That is \(\lVert\mathbf a\rVert^2 - 2(\mathbf a\cdot\mathbf b) + \lVert\mathbf b\rVert^2\), where \(\mathbf a\cdot\mathbf b=\sum a_i b_i\) is just the multiply-and-add rule.',
+      'Set the two expressions equal. The \(\lVert\mathbf a\rVert^2\) and \(\lVert\mathbf b\rVert^2\) cancel, leaving \(-2(\mathbf a\cdot\mathbf b) = -2\lVert\mathbf a\rVert\lVert\mathbf b\rVert\cos\theta\).'],
+    result:'Divide by −2: \(\mathbf a\cdot\mathbf b = \lVert\mathbf a\rVert\lVert\mathbf b\rVert\cos\theta\). The “multiply matching numbers and add” rule and the geometric “lengths times cosine” are the SAME thing — proven, not asserted.'}));
+  root.append(box('key','so the sign is forced','Since \(\lVert\mathbf a\rVert,\lVert\mathbf b\rVert>0\), the sign of the dot product is exactly the sign of \(\cos\theta\): positive for \(\theta<90^\circ\) (agree), zero at \(90^\circ\) (perpendicular), negative beyond (clash). That\'s why the sign-flip you dragged happens precisely at a right angle — it\'s not a convention, it falls out of the algebra.'));
   root.append(worked({title:'do these two shoppers agree?',
     prompt:'Habits as (organic, budget, bulk): \\(\\mathbf p=(2,3,-1)\\), \\(\\mathbf q=(4,-1,2)\\). Compute the dot product and read its sign.',
     steps:[
@@ -874,6 +885,16 @@ render(root){
   root.append(p('Every 2×2 matrix turns the unit square into a parallelogram. The <span class="term">determinant</span> is <b>the area of that parallelogram</b> (with a sign for orientation). Slide the entries and watch area = det.'));
   const L=lab('det = how area scales','See','see');L.append(detArea());root.append(L);
   root.append(box('aha-box','what the number means','<b>|det| = 2</b> → the transform doubles areas. <b>det &lt; 0</b> → space was flipped (mirrored). <b>det = 0</b> → the square was squashed to a line: a whole dimension collapsed — which is exactly why det=0 means <em>not invertible</em> (Part VI). In 3D it\'s a volume factor; in n-D, an n-volume factor.'));
+  root.append(h3('Why is the area exactly ad − bc?'));
+  root.append(p('The formula shouldn\'t be memorized blind. Here\'s where \(ad-bc\) comes from — it\'s literally the area of the parallelogram spanned by the two columns.'));
+  root.append(worked({title:'deriving the parallelogram area',
+    prompt:'The columns \\((a,c)\\) and \\((b,d)\\) span a parallelogram. Find its area.',
+    steps:[
+      'Enclose it in an \\((a+b)\\times(c+d)\\) bounding rectangle, area \\((a+b)(c+d)=ac+ad+bc+bd\\).',
+      'Subtract the bits outside the parallelogram: two triangles of area \\(\\tfrac12 ac\\), two of area \\(\\tfrac12 bd\\), and two rectangles of area \\(bc\\).',
+      'Total removed: \\(ac + bd + 2bc\\).',
+      'Area \\(= (ac+ad+bc+bd) - (ac+bd+2bc) = ad - bc\\).'],
+    result:'The determinant \\(ad-bc\\) IS the parallelogram area — derived, not decreed. The sign tracks orientation: swap the two columns and area → \\(bc-ad\\), the negative.'}));
   root.append(worked({title:'2×2 determinant by hand',
     prompt:'Find \\(\\det\\begin{bmatrix}3&1\\\\2&4\\end{bmatrix}\\).',
     steps:['For \\(\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\), the determinant is \\(ad-bc\\).',
@@ -905,7 +926,18 @@ render(root){
   const ctr=el('div','controls');ctr.append(el('span',null,'<span style="font-size:.85rem;color:var(--muted)">try a matrix:</span>'),g.el,btn);
   L.append(ctr);root.append(L);
   root.append(math('A\\mathbf v = \\lambda \\mathbf v \\quad(\\text{output = a scalar multiple of the input})'));
-  root.append(box('aha-box','the defining equation','\\(A\\mathbf v=\\lambda\\mathbf v\\) says: the matrix acting on \\(\\mathbf v\\) is the <em>same</em> as just scaling \\(\\mathbf v\\) by \\(\\lambda\\). No rotation, no shear — pure stretch. Eigenvectors are the axes the transform is “built around.”'));
+  root.append(box('aha-box','the defining equation','\(A\mathbf v=\lambda\mathbf v\) says: the matrix acting on \(\mathbf v\) is the <em>same</em> as just scaling \(\mathbf v\) by \(\lambda\). No rotation, no shear — pure stretch. Eigenvectors are the axes the transform is “built around.”'));
+  root.append(h3('Why on earth does det(A − λI) = 0 find them?'));
+  root.append(p('That equation looks like it fell from the sky. It doesn\'t — it\'s forced, step by step, by the definition plus the Invertible Matrix Theorem. Follow the chain:'));
+  root.append(worked({title:'from the definition to the characteristic equation',
+    prompt:'We want nonzero \(\mathbf v\) with \(A\mathbf v = \lambda\mathbf v\). Turn that into a condition on \(\lambda\) alone.',
+    steps:[
+      'Move everything to one side: \(A\mathbf v - \lambda\mathbf v = \mathbf 0\).',
+      'Factor out \(\mathbf v\) using the identity \(I\) (so the sizes match): \((A - \lambda I)\mathbf v = \mathbf 0\).',
+      'This says the matrix \(A-\lambda I\) sends a <em>nonzero</em> \(\mathbf v\) to \(\mathbf 0\) — i.e. it has a nonzero kernel.',
+      'By the Invertible Matrix Theorem, a matrix with a nonzero kernel is <b>singular</b> — its determinant is 0.'],
+    result:'So \(\det(A-\lambda I)=0\). It\'s not a trick: it\'s the ONLY way a nonzero vector can be killed. Solving it gives the \(\lambda\)\'s; then \((A-\lambda I)\mathbf v=\mathbf 0\) gives each eigenvector.'}));
+  root.append(box('key','the characteristic polynomial','Expanding \(\det(A-\lambda I)\) gives a polynomial in \(\lambda\) (degree \(n\) for an \(n\times n\) matrix). Its roots are the eigenvalues — so an \(n\times n\) matrix has exactly \(n\) of them (counting repeats, and allowing complex ones — Part XVII). This is why eigenvalues exist at all.'));
   root.append(worked({title:'finding eigenvalues (2×2)',
     prompt:'Find the eigenvalues of \\(A=\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}\\).',
     steps:['Solve \\(\\det(A-\\lambda I)=0\\): \\(\\det\\begin{bmatrix}2-\\lambda&1\\\\1&2-\\lambda\\end{bmatrix}=0\\).',
@@ -957,6 +989,13 @@ render(root){
   head(root,0,cProjDeep);
   root.append(p('Given a vector \\(\\mathbf b\\) and a subspace (a line, a plane…), the <span class="term">projection</span> is the point <em>in</em> the subspace closest to \\(\\mathbf b\\). The error — what\'s left over — is always <b>perpendicular</b> to the subspace. That perpendicularity is the whole trick.'));
   root.append(math('\\text{proj}_{\\mathbf a}\\mathbf b = \\frac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a}\\,\\mathbf a'));
+  root.append(worked({title:'deriving the projection formula',
+    prompt:'Find the point on the line through \\(\\mathbf a\\) closest to \\(\\mathbf b\\). Call it \\(t\\mathbf a\\) — we just need the right scalar \\(t\\).',
+    steps:[
+      'The error is \\(\\mathbf b - t\\mathbf a\\). “Closest” means this error is <em>perpendicular</em> to the line — perpendicular to \\(\\mathbf a\\).',
+      'Perpendicular means dot product zero: \\(\\mathbf a\\cdot(\\mathbf b - t\\mathbf a) = 0\\).',
+      'Expand: \\(\\mathbf a\\cdot\\mathbf b - t\\,(\\mathbf a\\cdot\\mathbf a) = 0\\), so \\(t = \\dfrac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a}\\).'],
+    result:'The projection is \\(t\\mathbf a = \\dfrac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a}\\mathbf a\\). The whole formula falls out of one idea: <b>the error must be perpendicular.</b> Nothing memorized.'}));
   const nar=narrate('Drag b.');const board=projectionBoard({nar});
   const L=lab('Closest point in the subspace','See','see');L.append(stageOf(board,[]),nar);root.append(L);
   root.append(box('aha-box','why “perpendicular error” is everything','The closest point is found by making the leftover error perpendicular to the subspace. Set the error\'s dot product with the subspace to zero and you get the <b>normal equations</b> — the formula behind every least-squares fit. Perpendicular = optimal.'));
@@ -1020,6 +1059,17 @@ render(root){
   head(root,0,cSVD);
   root.append(p('The <span class="term">Singular Value Decomposition</span> says every matrix \\(A\\) — square or not — factors as \\(A = U\\Sigma V^{T}\\): a rotation \\(V^{T}\\), then a pure stretch \\(\\Sigma\\) along perpendicular axes, then another rotation \\(U\\). No matter how tangled the matrix looks, it\'s only ever “rotate, stretch, rotate.”'));
   root.append(math('A = U\\,\\Sigma\\,V^{T} \\quad(\\text{rotate} \\to \\text{stretch} \\to \\text{rotate})'));
+  root.append(h3('Where do U, Σ, and V actually come from?'));
+  root.append(p('The SVD isn\'t pulled from nowhere — it is built directly from eigenvectors of a <em>symmetric</em> matrix you can always form, so the spectral theorem (Part XVI) guarantees it exists for <em>every</em> matrix.'));
+  root.append(worked({title:'constructing the SVD from AᵀA',
+    prompt:'Given any matrix \\(A\\), build \\(U,\\Sigma,V\\) from scratch.',
+    steps:[
+      'Form \\(A^{T}A\\). It is <b>symmetric</b> (since \\((A^{T}A)^{T}=A^{T}A\\)) and positive-semidefinite, so by the spectral theorem it has real, non-negative eigenvalues and <em>perpendicular</em> eigenvectors.',
+      'Those eigenvectors become the columns of \\(V\\) (the input rotation). The <b>singular values</b> are \\(\\sigma_i=\\sqrt{\\lambda_i}\\) — square roots of those eigenvalues — down the diagonal of \\(\\Sigma\\).',
+      'Apply \\(A\\) to each \\(v_i\\) and normalize: \\(u_i = A v_i / \\sigma_i\\). These come out perpendicular and form the columns of \\(U\\) (the output rotation).',
+      'Then \\(A v_i = \\sigma_i u_i\\) for every axis — which is exactly \\(AV = U\\Sigma\\), i.e. \\(A = U\\Sigma V^{T}\\).'],
+    result:'Because \\(A^{T}A\\) is <em>always</em> symmetric, this construction <em>always</em> works — any matrix, any shape. That is precisely why the SVD is universal where eigen-decomposition is not.'}));
+  root.append(box('key','SVD vs eigen — the exact link','The singular values of \\(A\\) are the square roots of the eigenvalues of \\(A^{T}A\\). For a symmetric positive matrix the SVD and eigen-decomposition coincide; in general they differ because \\(A\\) may be non-square or non-diagonalizable — but \\(A^{T}A\\) is symmetric no matter what, so the SVD hands the spectral theorem\'s guarantees to <em>every</em> matrix.'));
   root.append(box('aha-box','why the SVD is the deepest theorem','It works for <em>every</em> matrix (unlike eigen-decomposition, which needs square + diagonalizable). The <b>singular values</b> in \\(\\Sigma\\) rank the directions by importance. Keep the biggest few and you get the best possible low-rank approximation — that\'s <b>image compression</b>, <b>recommendation systems</b> (the Netflix prize), and <b>latent semantic search</b>, all at once.'));
   root.append(box('key','SVD in one sentence per field','<b>Compression:</b> drop small singular values → tiny file, looks the same. <b>Recommendations:</b> the top singular directions are “taste factors” linking users and movies. <b>Search / NLP:</b> singular directions are latent topics. <b>Noise:</b> small singular values are usually noise — drop them.'));
   root.append(worked({title:'low-rank = compression',
