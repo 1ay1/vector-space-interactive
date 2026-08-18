@@ -1392,6 +1392,97 @@ function cofactorBuilder(opts){
    EIGENCHECK — type a candidate eigenvector; app computes Av
    and tells you if it's parallel to v (and the eigenvalue).
    ========================================================= */
+/* =========================================================
+   MATRIXLAB — THE signature widget. One editable 2x2 matrix,
+   shown simultaneously as: a grid transformation, its
+   determinant (area), eigenvectors/lines, and a live readout
+   of det, trace, rank, eigenvalues, inverse, singular values.
+   EVERYTHING updates together — the 'it's all connected' reveal.
+   ========================================================= */
+function matrixLab(opts){
+  let M=(opts&&opts.matrix)||[[2,1],[1,2]];
+  const wrap=el('div');
+  const layout=el('div');layout.style.cssText='display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start';
+  // LEFT: big transformation canvas
+  const W=340,H=340,unit=42;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;
+  const toPx=(x,y)=>[ox+x*unit,oy-y*unit];
+  function apply(x,y){return [M[0][0]*x+M[0][1]*y, M[1][0]*x+M[1][1]*y];}
+  function drawGridTransform(){
+    ctx.clearRect(0,0,W,H);
+    // transformed grid lines
+    for(let i=-6;i<=6;i++){
+      ctx.strokeStyle=(i===0)?'#c9bfb0':'#efe9df';ctx.lineWidth=1;
+      let p=apply(i,-6),q=apply(i,6);let a=toPx(p[0],p[1]),b=toPx(q[0],q[1]);
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+      p=apply(-6,i);q=apply(6,i);a=toPx(p[0],p[1]);b=toPx(q[0],q[1]);
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+    }
+    // unit square -> parallelogram (the determinant area)
+    const sq=[[0,0],[1,0],[1,1],[0,1]].map(p=>apply(p[0],p[1]));
+    const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
+    ctx.fillStyle=det<0?'rgba(228,87,46,.18)':'rgba(23,163,152,.18)';
+    ctx.beginPath();sq.forEach((p,i)=>{const q=toPx(p[0],p[1]);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.fill();
+    // eigenlines (glowing)
+    const e=LA.eig2(M);
+    if(e.real){e.vectors.forEach((ev,k)=>{const far=400;ctx.strokeStyle=k===0?'rgba(242,169,0,.55)':'rgba(155,93,229,.55)';ctx.lineWidth=7;
+      ctx.beginPath();ctx.moveTo(ox-ev[0]*far,oy+ev[1]*far);ctx.lineTo(ox+ev[0]*far,oy-ev[1]*far);ctx.stroke();});}
+    // basis vectors: where i-hat and j-hat land
+    function arr(vx,vy,color,lbl){const e2=toPx(vx,vy);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=3.5;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(e2[0],e2[1]);ctx.stroke();
+      const ang=Math.atan2(e2[1]-oy,e2[0]-ox),s=11;ctx.beginPath();ctx.moveTo(e2[0],e2[1]);
+      ctx.lineTo(e2[0]-s*Math.cos(ang-.4),e2[1]-s*Math.sin(ang-.4));ctx.lineTo(e2[0]-s*Math.cos(ang+.4),e2[1]-s*Math.sin(ang+.4));ctx.closePath();ctx.fill();
+      ctx.font='700 13px sans-serif';ctx.fillText(lbl,e2[0]+6,e2[1]-4);}
+    arr(M[0][0],M[1][0],C.accent,'î');arr(M[0][1],M[1][1],C.accentb,'ĵ');
+  }
+  // RIGHT: the live readout panel
+  const panel=el('div');panel.style.cssText='flex:1;min-width:250px;display:flex;flex-direction:column;gap:7px';
+  function fnum(x){return LA.fmtNum(Math.abs(x)<1e-9?0:x);}
+  function stat(label,val,color,note){
+    return `<div style="display:flex;justify-content:space-between;gap:8px;background:#fff;border:1px solid var(--softline);border-left:3px solid ${color};border-radius:8px;padding:7px 11px">
+      <span style="font-size:.82rem;color:var(--muted)">${label}</span>
+      <span style="font-family:var(--mono);font-weight:700;text-align:right">${val}${note?`<br><span style="font-size:.7rem;color:var(--muted);font-weight:400">${note}</span>`:''}</span></div>`;
+  }
+  function updatePanel(){
+    const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
+    const tr=M[0][0]+M[1][1];
+    const e=LA.eig2(M);
+    const inv=LA.inv(M);
+    const rank=(Math.abs(det)>1e-9)?2:(M.flat().some(x=>Math.abs(x)>1e-9)?1:0);
+    // singular values = sqrt(eig of M^T M)
+    const MtM=LA.matmul(LA.transpose(M),M);const se=LA.eig2(MtM);
+    const sv=se.real?se.values.map(v=>Math.sqrt(Math.max(0,v))).sort((a,b)=>b-a):[];
+    let html='';
+    html+=stat('determinant (area ×)',fnum(det),det<0?C.accent:(Math.abs(det)<1e-9?C.accent:C.accentc),
+      Math.abs(det)<1e-9?'= 0 → SINGULAR, collapses a dimension':(det<0?'negative → flips orientation':'invertible'));
+    html+=stat('trace (Σ diagonal)',fnum(tr),C.accentb,'= sum of eigenvalues');
+    html+=stat('rank',rank,rank===2?C.accentc:C.accent,rank===2?'full → invertible':'deficient → not invertible');
+    if(e.real) html+=stat('eigenvalues λ',e.values.map(fnum).join(',  '),C.gold,'product = det, sum = trace');
+    else html+=stat('eigenvalues λ','complex',C.accentd,'the matrix rotates — no real eigenlines');
+    if(inv) html+=stat('inverse A⁻¹',`[${fnum(inv[0][0])}, ${fnum(inv[0][1])}; ${fnum(inv[1][0])}, ${fnum(inv[1][1])}]`,C.accentb,'det(A⁻¹)=1/det');
+    else html+=stat('inverse A⁻¹','does not exist',C.accent,'because det = 0');
+    if(sv.length) html+=stat('singular values σ',sv.map(v=>v.toFixed(2)).join(',  '),C.accentd,'√ eig(AᵀA) — the SVD stretch factors');
+    panel.innerHTML=html;
+  }
+  // the editable matrix on top
+  const editRow=el('div');editRow.style.cssText='display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap';
+  const grid=matrixGrid({rows:2,cols:2,values:M,onChange:v=>{M=v;refresh();}});
+  const presets=el('div');presets.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+  const P=[['rotate 90°',[[0,-1],[1,0]]],['shear',[[1,1],[0,1]]],['stretch',[[2,0],[0,1]]],['flip',[[-1,0],[0,1]]],['singular!',[[1,2],[2,4]]],['symmetric',[[2,1],[1,2]]]];
+  P.forEach(([name,mat])=>{const b=el('button','btn ghost',name);b.style.fontSize='.78rem';b.style.padding='5px 9px';
+    b.onclick=()=>{M=mat.map(r=>r.slice());grid.set(M);refresh();};presets.append(b);});
+  editRow.append(el('div',null,'<b style="font-size:.9rem">A =</b>'),grid.el,presets);
+  const nar=narrate('Edit A or hit a preset — every panel below recomputes together. This is the whole subject in one view.');
+  function refresh(){drawGridTransform();updatePanel();
+    const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
+    nar.say(Math.abs(det)<1e-9
+      ? '<span class="r">det = 0:</span> watch the grid squash flat, the parallelogram vanish, rank drop to 1, the inverse disappear, and a singular value hit 0 — <b>all at once.</b> These aren\'t separate facts; they\'re one.'
+      : 'Notice: <b>product of eigenvalues = determinant</b>, <b>sum = trace</b>, the eigenlines are the directions the grid <em>doesn\'t</em> rotate, and the parallelogram\'s area <em>is</em> the determinant. One matrix, one truth, many faces.');}
+  layout.append(cv,panel);
+  wrap.append(editRow,layout,nar);refresh();
+  return wrap;
+}
+
 function eigenCheck(opts){
   const A=(opts&&opts.A)||[[2,1],[1,2]];
   const wrap=el('div');const nar=narrate('Type a vector (x, y). I\'ll compute A·v and check if it\'s an eigenvector.');
@@ -1424,5 +1515,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab};
 })();

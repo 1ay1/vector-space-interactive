@@ -131,6 +131,8 @@
     go(target);
   }
   document.getElementById('startBtn').onclick=()=>enter(0);
+  const labBtn=document.getElementById('labBtn');
+  if(labBtn) labBtn.onclick=()=>{const i=CHAPTERS.findIndex(c=>c.id==='matrixlab');enter(i>=0?i:0);};
   document.getElementById('jumpBtn').onclick=()=>{
     landing.classList.add('hidden');
     sidebar.classList.add('open');
