@@ -55,7 +55,9 @@ index.html    shell: sidebar (parts + chapters), main, landing, MathJax
 styles.css    the warm design system
 engine.js     reusable widgets: knobs, 2D/3D boards, span-fill, four-rep,
               projection, dimension ladder, orthogonality sampler, quiz…
-chapters.js   the 22-chapter course content
+chapters/     the course — ONE FILE PER CHAPTER (68 of them), plus
+              _prelude.js (shared helpers + CHAPTERS + register()).
+              Files are numbered in load order; index.html lists them.
 app.js        navigation, progress, routing, math typesetting
 ```
 

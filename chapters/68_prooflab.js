@@ -1,27 +1,6 @@
-/* ============================================================
-   chapters-proofs.js — the Proof Lab.
-   You don't READ these proofs — you ASSEMBLE them and justify
-   each step. Interactive proof training. Pushes chapters in.
-   ============================================================ */
+/* 68_prooflab.js — proofs track */
 'use strict';
 (function(){
-const {el,narrate,quiz,C,proofBuilder,worked}=VS;
-
-function head(root,n,c){
-  let num=n; try{const i=CHAPTERS.findIndex(x=>x.id===c.id);if(i>=0)num=i+1;}catch(e){}
-  if(c.part) root.append(el('div','part-banner',c.part));
-  root.append(el('div','eyebrow',`Chapter ${num}`));
-  root.append(el('h1',null,c.title));
-  root.append(el('p','lead-big',c.sub));
-}
-function box(kind,tag,html){const b=el('div','box '+kind);b.append(el('div','box-tag',tag));b.insertAdjacentHTML('beforeend',html);return b;}
-function lab(title,badge='Proof',cls=''){const l=el('div','lab');const h=el('div','lab-head');h.append(el('span','lab-badge '+cls,badge),el('span','lab-title',title));l.append(h);return l;}
-function p(html){return el('p',null,html);}
-function h3(t){return el('h3',null,t);}
-function summary(items){const s=el('div','summary');s.append(el('h4',null,'Lock it in'));const u=document.createElement('ul');items.forEach(i=>{const li=document.createElement('li');li.innerHTML=i;u.append(li);});s.append(u);return s;}
-function insertAfter(afterId, chapter){const i=CHAPTERS.findIndex(c=>c.id===afterId);if(i>=0) CHAPTERS.splice(i+1,0,chapter); else CHAPTERS.push(chapter);}
-
-/* ---------- PROOF LAB: intro + several assembled proofs ---------- */
 const cProofLab={id:'prooflab',part:'Part XXII · The Proof Lab',title:'✎ The Proof Lab — build the arguments yourself',
  sub:'The deepest test of understanding isn\'t computing — it\'s KNOWING WHY. Here you don\'t read proofs. You assemble them from scrambled steps and justify each move. This is what mathematicians actually do.',
 render(root){head(root,0,cProofLab);
@@ -95,6 +74,5 @@ render(root){head(root,0,cProofLab);
      {t:'All the statements are individually true',ok:false,why:'True statements in a random order aren\'t a proof \u2014 the logical dependency between them is what matters.'}]}));
  root.append(summary(['A proof = a chain where each step follows from earlier ones.','Order the steps: what must be true BEFORE this step?','Justify each step: name the definition/theorem that licenses it.','Techniques you assembled: direct, contradiction, and the discriminant trick.','Assembling proofs (not reading them) is what builds real understanding.']));
 }};
-CHAPTERS.push(cProofLab);
-
+register(cProofLab);
 })();
