@@ -229,7 +229,13 @@ render(root){head(root,0,this);
  root.append(p('A signal (sound, image row, stock price) is a vector in an infinite-dimensional function space (Part IV). The <b>sine and cosine waves form an orthogonal basis</b> for that space. Writing a signal in that basis \u2014 finding its \u201chow much of each frequency\u201d coordinates \u2014 <em>is</em> the <span class="term">Fourier transform</span>. Build a wave by mixing sine harmonics:'));
  const L=lab('Add up sine waves','Play');L.append(fourierSynth());root.append(L);
  root.append(box('aha-box','it\'s all change of basis','You already learned change of basis (Part II) \u2014 same vector, different rulers. Fourier is that idea with sine waves as the rulers. The \u201cfrequency spectrum\u201d is just the signal\'s coordinate list in the frequency basis. MP3, JPEG, noise cancellation, MRI, and 5G all live here.'));
- root.append(box('key','orthogonal function bases','Sines/cosines are orthogonal <em>as functions</em>: their inner product \\(\\int f g\\,dx = 0\\) unless they match. That perpendicularity is exactly why each frequency\'s coordinate can be read off independently \u2014 the same \u201corthogonal rulers make coordinates easy\u201d idea from Part X, now for functions.'));
+ root.append(box('key','orthogonal function bases','Sines/cosines are orthogonal <em>as functions</em>: their inner product \(\int f g\,dx = 0\) unless they match. That perpendicularity is exactly why each frequency\'s coordinate can be read off independently — the same “orthogonal rulers make coordinates easy” idea from Part X, now for functions.'));
+ root.append(worked({title:'extract one frequency\'s coordinate',
+   prompt:'A signal is \(f(x)=3\sin(x)+2\sin(2x)\). How much “\(\sin(2x)\)” does it contain? (Find that Fourier coefficient.)',
+   steps:['The coefficient of \(\sin(2x)\) is the inner product \(\langle f, \sin(2x)\rangle\), normalized — just like reading a coordinate by dotting with a basis vector.',
+     'Because the sines are orthogonal, \(\langle \sin(x),\sin(2x)\rangle = 0\): the \(3\sin(x)\) part contributes nothing.',
+     'Only the matching term survives: the coefficient is exactly the <b>2</b> sitting in front of \(\sin(2x)\).'],
+   result:'Answer: 2. Orthogonality did the work — every other frequency dropped out of the integral, leaving just the one you asked for. That independence is why an equalizer can boost one frequency without touching the rest.'}));
  root.append(quiz({question:'In what sense is the Fourier transform a change of basis?',
    options:[{t:'It re-expresses a signal using sine/cosine waves as the basis instead of individual time samples',ok:true,why:'Exactly \u2014 same signal, new (frequency) rulers. The spectrum is its coordinates there.'},
      {t:'It deletes high frequencies',ok:false,why:'That\'s filtering (which you can do afterwards). Fourier itself just changes basis into frequencies.'}]}));
@@ -241,8 +247,15 @@ NEW.push({id:'tensors',part:'Part XX · Multilinear',title:'Determinants, forms 
  sub:'Zoom out once more: the determinant is the unique \u201cvolume\u201d rule, linear maps generalize to multilinear ones, and that path leads to tensors \u2014 the language of modern physics and ML.',
 render(root){head(root,0,this);
  root.append(p('We treated the determinant as an area factor (Part VIII). Deeper truth: it\'s the <b>unique</b> function that is linear in each column, flips sign when you swap two columns, and gives 1 on the identity. Those three rules force the whole formula. The determinant is an <span class="term">alternating multilinear form</span>.'));
- root.append(box('aha-box','from linear to multilinear','A linear map eats one vector. A <b>bilinear</b> form (like the dot product, or \\(\\mathbf x^{T}A\\mathbf y\\)) eats two and is linear in each. Keep going \u2014 functions linear in several vector slots at once \u2014 and you get <span class="term">tensors</span>. A matrix is a 2-slot tensor; the determinant is an n-slot one.'));
- root.append(box('key','why you\'ll meet tensors','\u201cTensor\u201d in <b>PyTorch/TensorFlow</b> mostly means \u201cmulti-dimensional array,\u201d but the real idea is multilinearity: quantities that transform consistently under change of basis. General relativity (curvature), continuum mechanics (stress), and deep learning (weight tensors) all ride on it. Linear algebra is the ground floor; multilinear algebra is the next.'));
+ root.append(box('aha-box','from linear to multilinear','A linear map eats one vector. A <b>bilinear</b> form (like the dot product, or \(\mathbf x^{T}A\mathbf y\)) eats two and is linear in each. Keep going — functions linear in several vector slots at once — and you get <span class="term">tensors</span>. A matrix is a 2-slot tensor; the determinant is an n-slot one.'));
+ root.append(worked({title:'the three rules force ad − bc',
+   prompt:'Show that “linear in each column + sign-flip on swap + det(I)=1” forces the 2×2 formula.',
+   steps:['Write the columns in the standard basis: col 1 = \(a\,\mathbf e_1 + c\,\mathbf e_2\), col 2 = \(b\,\mathbf e_1 + d\,\mathbf e_2\).',
+     'Linearity in each column expands \(\det\) into four terms \(ad\,D(\mathbf e_1,\mathbf e_2) + \dots\), where \(D\) is the determinant of pairs of basis vectors.',
+     'The alternating rule kills repeats: \(D(\mathbf e_1,\mathbf e_1)=D(\mathbf e_2,\mathbf e_2)=0\), and \(D(\mathbf e_2,\mathbf e_1)=-D(\mathbf e_1,\mathbf e_2)\).',
+     'With \(D(\mathbf e_1,\mathbf e_2)=\det(I)=1\), only \(ad(1)+bc(-1)\) survives.'],
+   result:'\(\det = ad - bc\) — not defined arbitrarily, but <em>forced</em> by three natural rules. That\'s the multilinear-forms viewpoint: the formula is the unique thing satisfying the properties you actually want.'}));
+ root.append(box('key','why you\'ll meet tensors','“Tensor” in <b>PyTorch/TensorFlow</b> mostly means “multi-dimensional array,” but the real idea is multilinearity: quantities that transform consistently under change of basis. General relativity (curvature), continuum mechanics (stress), and deep learning (weight tensors) all ride on it. Linear algebra is the ground floor; multilinear algebra is the next.'));
  root.append(quiz({question:'The determinant is characterized as the unique function that is\u2026',
    options:[{t:'Linear in each column, sign-flipping under column swaps, and 1 on the identity',ok:true,why:'Right \u2014 those three properties pin it down completely (alternating multilinear form).'},
      {t:'The sum of the diagonal entries',ok:false,why:'That\'s the trace. The determinant is the alternating multilinear volume form.'}]}));
@@ -254,8 +267,14 @@ NEW.push({id:'numerical',part:'Part XXI · Numerical & capstone',title:'When the
  sub:'Real computation isn\'t exact. Some matrices amplify tiny errors catastrophically. Knowing which \u2014 the condition number \u2014 separates working code from silent disasters.',
 render(root){head(root,0,this);
  root.append(p('On a computer, numbers carry rounding error. A well-behaved matrix keeps those errors small; an ill-conditioned one blows them up. The <span class="term">condition number</span> (ratio of largest to smallest singular value) measures how much a matrix amplifies error when you solve \\(Ax=b\\).'));
- root.append(box('aha-box','nearly-singular = dangerous','If a matrix is <em>almost</em> singular (determinant near zero, one singular value tiny), solving with it divides by that tiny number \u2014 so microscopic input noise becomes huge output error. The answer looks fine and is completely wrong. This is why numerical linear algebra prefers QR and SVD (stable) over the naive inverse.'));
- root.append(box('key','the practitioner\'s toolkit','<b>Direct methods</b> (LU, QR, Cholesky) for moderate sizes. <b>Iterative methods</b> (conjugate gradient, GMRES) for enormous sparse systems \u2014 the ones in PDE simulation, ML, and PageRank, where the matrix is billions across but mostly zeros. Same theory, engineered for scale.'));
+ root.append(box('aha-box','nearly-singular = dangerous','If a matrix is <em>almost</em> singular (determinant near zero, one singular value tiny), solving with it divides by that tiny number — so microscopic input noise becomes huge output error. The answer looks fine and is completely wrong. This is why numerical linear algebra prefers QR and SVD (stable) over the naive inverse.'));
+ root.append(worked({title:'watch a tiny change wreck the answer',
+   prompt:'Solve \(x+y=2,\; x+1.001y=2\). Then change the second constant to 2.001 and re-solve.',
+   steps:['First system: subtracting gives \(0.001y=0\Rightarrow y=0\), so \(x=2\). Solution \((2, 0)\).',
+     'Now nudge the data by 0.001: \(x+y=2,\; x+1.001y=2.001\). Subtracting: \(0.001y=0.001\Rightarrow y=1\), so \(x=1\). Solution \((1, 1)\).',
+     'A <b>0.001</b> change in the input moved the answer by <b>1</b> — a 1000× amplification.'],
+   result:'The two lines are almost parallel (nearly the same equation), so their intersection is wildly sensitive. That is ill-conditioning: the geometry is fragile, and no algorithm can fix data that barely determines the answer.'}));
+ root.append(box('key','the practitioner\'s toolkit','<b>Direct methods</b> (LU, QR, Cholesky) for moderate sizes. <b>Iterative methods</b> (conjugate gradient, GMRES) for enormous sparse systems — the ones in PDE simulation, ML, and PageRank, where the matrix is billions across but mostly zeros. Same theory, engineered for scale.'));
  root.append(quiz({question:'A matrix has a huge condition number. What\'s the danger when solving Ax=b?',
    options:[{t:'Tiny rounding errors in the data get amplified into large errors in the answer',ok:true,why:'Exactly \u2014 ill-conditioned = error-amplifying. The computed solution can be far from the true one.'},
      {t:'It solves faster',ok:false,why:'Conditioning is about accuracy, not speed. High condition number means unreliable answers.'}]}));
