@@ -128,8 +128,15 @@ NEW.push({id:'lu',part:'Part XV · More decompositions',title:'LU \u2014 elimina
 render(root){head(root,0,this);
  root.append(p('Gaussian elimination (Part VI) turns \\(A\\) into an upper-triangular \\(U\\). If you also record the multipliers you used in a lower-triangular \\(L\\), you get \\(A = LU\\) \u2014 the same work, now <em>reusable</em>. Factor a matrix and watch L and U build:'));
  const L=lab('Factor A = LU','Play');L.append(luStepper());root.append(L);
- root.append(box('aha-box','why factor at all','To solve \\(Ax=b\\) you\'d redo elimination every time. But once \\(A=LU\\), solving is two quick triangular sweeps: \\(Ly=b\\) then \\(Ux=y\\). Change \\(b\\) a thousand times (same \\(A\\)) and each new solve is nearly free. This is how real solvers work.'));
- root.append(box('key','the decomposition family','LU (general), <b>Cholesky</b> (\\(A=LL^{T}\\), for symmetric positive-definite \u2014 twice as fast), QR (orthogonal, stable for least squares), and SVD (universal). Each trades generality for speed or stability. Choosing the right factorization is most of numerical linear algebra.'));
+ root.append(box('aha-box','why factor at all','To solve \(Ax=b\) you\'d redo elimination every time. But once \(A=LU\), solving is two quick triangular sweeps: \(Ly=b\) then \(Ux=y\). Change \(b\) a thousand times (same \(A\)) and each new solve is nearly free. This is how real solvers work.'));
+ root.append(worked({title:'factor a 2×2 and solve with it',
+   prompt:'Factor \(A=\begin{bmatrix}2&1\\6&8\end{bmatrix}\), then solve \(A\mathbf x=\begin{bmatrix}5\\26\end{bmatrix}\).',
+   steps:[
+     'Eliminate below the first pivot: \(R_2 \to R_2 - 3R_1\) (multiplier 3). This gives \(U=\begin{bmatrix}2&1\\0&5\end{bmatrix}\), and the multiplier goes into \(L\): \(L=\begin{bmatrix}1&0\\3&1\end{bmatrix}\).',
+     'Forward sweep \(L\mathbf y=b\): \(y_1=5\), then \(3y_1+y_2=26\Rightarrow y_2=11\).',
+     'Back sweep \(U\mathbf x=y\): \(5x_2=11\Rightarrow x_2=2.2\), then \(2x_1+x_2=5\Rightarrow x_1=1.4\).'],
+   result:'\(\mathbf x=(1.4,\,2.2)\). Note: to solve a <em>different</em> \(b\) you reuse the SAME \(L,U\) — just redo the two cheap sweeps, no re-elimination. That reuse is the entire point of factoring.'}));
+ root.append(box('key','the decomposition family','LU (general), <b>Cholesky</b> (\(A=LL^{T}\), for symmetric positive-definite — twice as fast), QR (orthogonal, stable for least squares), and SVD (universal). Each trades generality for speed or stability. Choosing the right factorization is most of numerical linear algebra.'));
  root.append(summary(['A = LU records elimination as reusable triangular factors.','Solve via Ly=b then Ux=y \u2014 cheap for many right-hand sides.','Cholesky is the fast LU for symmetric positive-definite A.','Factorization choice = the craft of numerical LA.']));
 }});
 
@@ -143,8 +150,15 @@ render(root){head(root,0,this);
    <b>All eigenvalues > 0</b> \u2192 <span style="color:var(--accentc)">positive definite</span>: a bowl, unique minimum. <br>
    <b>All < 0</b> \u2192 negative definite: a dome, unique maximum.<br>
    <b>Mixed signs</b> \u2192 <span style="color:var(--accentd)">indefinite</span>: a saddle (min one way, max another).`));
- root.append(box('key','why optimization lives here','At a critical point of any smooth function, the <b>Hessian</b> (matrix of second derivatives) is a symmetric matrix, and this exact test decides min vs max vs saddle. Positive-definite = \u201cyou found a minimum.\u201d Every training run of every ML model is chasing the positive-definite bowls of a loss landscape.'));
- root.append(quiz({question:'A quadratic form has eigenvalues +3 and \u22121. What shape is it?',
+ root.append(box('key','why optimization lives here','At a critical point of any smooth function, the <b>Hessian</b> (matrix of second derivatives) is a symmetric matrix, and this exact test decides min vs max vs saddle. Positive-definite = “you found a minimum.” Every training run of every ML model is chasing the positive-definite bowls of a loss landscape.'));
+ root.append(worked({title:'complete the square to SEE the bowl',
+   prompt:'Is \(Q(x,y)=2x^2+2xy+3y^2\) positive definite (a bowl)?',
+   steps:['Group the x-terms and complete the square: \(2x^2+2xy = 2\left(x+\tfrac{y}{2}\right)^2 - \tfrac{y^2}{2}\).',
+     'So \(Q = 2\left(x+\tfrac{y}{2}\right)^2 - \tfrac{y^2}{2} + 3y^2 = 2\left(x+\tfrac{y}{2}\right)^2 + \tfrac{5}{2}y^2\).',
+     'Both squared terms have <em>positive</em> coefficients, so \(Q\ge 0\), and \(Q=0\) only at \((0,0)\).'],
+   result:'Positive definite — a bowl with its unique minimum at the origin. Completing the square is the by-hand version of “all eigenvalues positive”; the positive coefficients you produced ARE (essentially) the eigenvalue signs.'}));
+ root.append(box('key','the fast 2×2 test','For \(A=\begin{bmatrix}a&b\\b&c\end{bmatrix}\): positive definite ⇔ \(a>0\) AND \(\det=ac-b^2>0\). (Here \(a=2>0\) and \(\det=6-1=5>0\) — confirms the bowl.) These “leading minors” being positive is Sylvester\'s criterion — a shortcut that avoids computing eigenvalues.'));
+ root.append(quiz({question:'A quadratic form has eigenvalues +3 and −1. What shape is it?',
    options:[{t:'A saddle (indefinite) \u2014 a min in one direction, a max in another',ok:true,why:'Mixed-sign eigenvalues = indefinite = saddle. No overall min or max.'},
      {t:'A bowl with a minimum',ok:false,why:'That needs BOTH eigenvalues positive. One negative makes it a saddle.'}]}));
  root.append(summary(['Q(x)=x\u1d40Ax is a landscape set by symmetric A.','Eigenvalue signs classify: bowl / dome / saddle.','Positive definite = unique minimum.','This is the second-derivative test \u2014 the basis of optimization.']));

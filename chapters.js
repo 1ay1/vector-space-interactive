@@ -540,7 +540,18 @@ render(root){
   const L=lab('Cast a shadow','See','see');L.append(stageOf(board,[]),nar);root.append(L);
   root.append(math('\\text{proj}_{\\mathbf u}\\mathbf v=(\\mathbf v\\cdot\\hat{\\mathbf u})\\,\\hat{\\mathbf u}'));
   root.append(box('aha-box','why projection is everywhere','Splitting a vector into "along this direction" + "the rest" is how you separate signal from noise, compress data, fit lines to data (least squares), and re-express a vector in a new basis. Every ruler-reading in Chapter 11 is a projection.'));
-  root.append(summary(['Projection = shadow of v on a direction.','Its length = dot product with the unit direction.','Decomposing into parts underlies compression, denoising, and fitting.']));
+  root.append(worked({title:'project one vector onto another',
+    prompt:'How much of \\(\\mathbf b=(4,2)\\) points along \\(\\mathbf a=(3,0)\\)? Find the projection.',
+    steps:[
+      'Scalar amount: \\(t = \\dfrac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a} = \\dfrac{3\\cdot4+0\\cdot2}{3\\cdot3+0\\cdot0} = \\dfrac{12}{9} = \\tfrac{4}{3}\\).',
+      'Projection vector: \\(t\\,\\mathbf a = \\tfrac{4}{3}(3,0) = (4,0)\\).',
+      'Sanity check: the leftover \\(\\mathbf b - (4,0) = (0,2)\\) is perpendicular to \\(\\mathbf a=(3,0)\\) — dot product 0. ✓'],
+    result:'The shadow of \\((4,2)\\) on the x-axis direction is \\((4,0)\\) — exactly the x-part, as expected. Always sanity-check by confirming the leftover is perpendicular.'}));
+  const Lp=lab('Practice: scalar projection','Practice','');
+  Lp.append(p('Find \\(t=(a\\cdot b)/(a\\cdot a)\\), the amount of a in b\'s shadow.'));
+  Lp.append(practiceSet(['projscalar','dot'],4));
+  root.append(Lp);
+  root.append(summary(['Projection = shadow of v on a direction.','Its length = dot product with the unit direction.','Sanity check: the leftover (v − projection) is perpendicular.','Decomposing into parts underlies compression, denoising, and fitting.']));
 }};
 
 const cOrtho={id:'ortho',part:'Part III · Geometry',title:'Orthogonality — perfect independence',
@@ -1088,6 +1099,16 @@ render(root){
   root.append(h3('Two facts that make diagonalization work'));
   root.append(box('aha-box','why different eigenvalues give independent eigenvectors','Suppose \\(\\mathbf x,\\mathbf y\\) had eigenvalues \\(\\lambda\\neq\\mu\\) but were dependent — say \\(\\mathbf y=c\\mathbf x\\). Apply \\(A\\): the left side gives \\(\\mu\\mathbf y=\\mu c\\mathbf x\\), the right gives \\(cA\\mathbf x=c\\lambda\\mathbf x\\). So \\(\\mu c\\mathbf x=\\lambda c\\mathbf x\\), forcing \\(\\lambda=\\mu\\) — a contradiction. So <b>eigenvectors from distinct eigenvalues are automatically independent</b>. That\'s <em>why</em> a matrix with \\(n\\) distinct eigenvalues is always diagonalizable: it hands you \\(n\\) independent directions for free.'));
   root.append(box('key','trace = sum, determinant = product','Two invariants read straight off the eigenvalues: the <b>trace</b> (sum of the diagonal) equals the <b>sum</b> of the eigenvalues, and the <b>determinant</b> equals their <b>product</b>. Reason: in the eigenbasis \\(A\\) is diagonal with the \\(\\lambda_i\\) on the diagonal — sum-of-diagonal and product-of-diagonal are obvious there, and both trace and det are unchanged by the change of basis (Part IX\'s similarity). Quick sanity check: \\(\\det=0 \\Leftrightarrow\\) some \\(\\lambda_i=0\\), matching “singular = has a zero eigenvalue.”'));
+  root.append(h3('A complete diagonalization, start to finish'));
+  root.append(worked({title:'diagonalize a 2×2 fully',
+    prompt:'Diagonalize \\(A=\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}\\): find \\(P, D\\) with \\(A=PDP^{-1}\\).',
+    steps:[
+      'Eigenvalues (Part IX): \\(\\lambda=3\\) and \\(\\lambda=1\\). Eigenvectors: \\((1,1)\\) and \\((1,-1)\\).',
+      'Stack eigenvectors as columns of \\(P=\\begin{bmatrix}1&1\\\\1&-1\\end{bmatrix}\\); put eigenvalues on the diagonal of \\(D=\\begin{bmatrix}3&0\\\\0&1\\end{bmatrix}\\) <b>in the same order</b>.',
+      'Invert \\(P\\): \\(\\det P=-2\\), so \\(P^{-1}=\\tfrac{1}{-2}\\begin{bmatrix}-1&-1\\\\-1&1\\end{bmatrix}=\\begin{bmatrix}\\tfrac12&\\tfrac12\\\\\\tfrac12&-\\tfrac12\\end{bmatrix}\\).',
+      'Verify: \\(PDP^{-1}\\) multiplies back to \\(\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}=A\\). ✓'],
+    result:'\\(A=PDP^{-1}\\) with those \\(P,D\\). Sanity checks: \\(\\text{trace}=4=3+1\\) ✓ and \\(\\det=3=3\\times1\\) ✓ — the eigenvalues match trace and determinant, so you know they\'re right before doing any multiplication.'}));
+  root.append(box('key','the column-order rule (a classic slip)','The order of eigenvectors in \\(P\\) MUST match the order of eigenvalues in \\(D\\). Put \\((1,1)\\) first → its eigenvalue 3 goes in the first diagonal slot. Swap the columns of \\(P\\) and you must swap the diagonal of \\(D\\) too, or \\(PDP^{-1}\\neq A\\).'));
   root.append(quiz({question:'Why is A¹⁰⁰ easy once you\'ve diagonalized A = PDP⁻¹?',
     options:[{t:'A¹⁰⁰ = P D¹⁰⁰ P⁻¹, and D¹⁰⁰ is just each eigenvalue to the 100th',ok:true,why:'Exactly. Diagonalizing turns a 100-fold matrix product into one exponent per eigenvalue.'},
       {t:'Because A¹⁰⁰ = 100A',ok:false,why:'Powers aren\'t multiples. The trick is D¹⁰⁰ being trivial in the eigenbasis.'}]}));
