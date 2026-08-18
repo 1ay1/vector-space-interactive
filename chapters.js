@@ -9,7 +9,8 @@ const CHAPTERS = (() => {
 const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUnit,
        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
        worked,gallery,matrixBoard,analogyDemo,
-       configSpace,possibilityCounter,morphPath,diffVector,webGraph}=VS;
+       configSpace,possibilityCounter,morphPath,diffVector,webGraph,
+       matrixGrid,matrixHTML,rrefStepper,systemLines}=VS;
 
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
@@ -717,6 +718,99 @@ render(root){
   root.append(box('aha-box','where to go next','You\'ve met matrices (verbs that move whole spaces). Next come <b>eigenvectors</b> (the special directions a matrix only stretches, never turns), <b>PCA</b> (finding the few directions your data actually uses), and the linear algebra inside every neural network. It\'s all this — lists, two moves, geometry, transformations — just stacked. Go forth and out-list the universe.'));
 }};
 
+/* ============================================================
+   PART VI — SYSTEMS OF EQUATIONS
+   ============================================================ */
+
+const cSysGeo={id:'sysgeo',part:'Part VI · Systems',title:'Equations are shapes that must agree',
+  sub:'A system of linear equations is a bunch of flat shapes — lines, planes — and “solving” means finding where they all meet. Three outcomes, and you can see all three.',
+render(root){
+  head(root,0,cSysGeo);
+  root.append(p('One linear equation like \\(x+y=3\\) is a <b>line</b> — every point on it satisfies the equation. Two equations = two lines. “Solving the system” means: <b>which point is on both lines at once?</b> Drag the coefficients and watch the three possible fates.'));
+  const L=lab('Two lines, one system','See','see');L.append(systemLines());root.append(L);
+  root.append(box('aha-box','the three fates of any linear system','<b>Cross once</b> → exactly one solution. <b>Parallel</b> → no solution (the equations contradict). <b>Same line</b> → infinitely many solutions (one equation was redundant). These three are the <em>only</em> possibilities — for 2 lines, 3 planes, or 900-dimensional hyperplanes.'));
+  root.append(box('key','two ways to read the same system','<b>Row picture:</b> each equation is a shape; solutions are where shapes meet (what you just saw). <b>Column picture:</b> the same system asks “what combination of these column-vectors builds the target?” — that\'s the span idea from Part II. Two lenses, one truth. We\'ll use both.'));
+  root.append(worked({title:'reading a system as columns',
+    prompt:'The system \\(2x+y=5,\\; x+3y=6\\) as a column combination.',
+    steps:['Write it as \\(x\\begin{bmatrix}2\\\\1\\end{bmatrix}+y\\begin{bmatrix}1\\\\3\\end{bmatrix}=\\begin{bmatrix}5\\\\6\\end{bmatrix}\\).',
+      'So: “what amounts \\(x,y\\) of the two column-vectors add up to the target?”',
+      'That\'s asking if the target is in the <em>span</em> of the columns.'],
+    result:'Solving a system = finding the linear combination of columns that hits the target. Row picture and column picture always agree.'}));
+  root.append(quiz({question:'Two lines in a system are parallel but not identical. How many solutions?',
+    options:[{t:'None — they never meet, so no point satisfies both',ok:true,why:'Right. Parallel distinct lines = inconsistent system = no solution.'},
+      {t:'Infinitely many',ok:false,why:'That\'s the case where they\'re the SAME line. Distinct parallel lines share no point.'}]}));
+  root.append(summary(['A linear equation is a flat shape (line/plane/hyperplane).','Solving = where all the shapes meet.','Exactly three fates: one / none / infinitely many solutions.','Row picture (shapes meet) = column picture (span a target).']));
+}};
+
+const cElim={id:'elim',part:'Part VI · Systems',title:'Gaussian elimination, step by step',
+  sub:'The universal algorithm to solve ANY linear system: use three legal row moves to grind the matrix into a form where the answer is obvious. Watch every step.',
+render(root){
+  head(root,0,cElim);
+  root.append(p('You can do three things to the rows of a system without changing its solutions: <b>swap</b> two rows, <b>scale</b> a row by a nonzero number, and <b>add a multiple</b> of one row to another. Applied cleverly, they reduce any matrix to <span class="term">reduced row echelon form</span> (RREF), where you can read off the solution. Run it and step through:'));
+  const L=lab('Elimination, one move at a time','Play');
+  L.append(rrefStepper({rows:3,cols:4,values:[[1,2,1,2],[2,1,-1,1],[1,-1,2,3]]}));
+  root.append(L);
+  root.append(box('aha-box','why the three moves are “legal”','Each move is <em>reversible</em> and preserves the solution set — swapping the order of equations, rescaling one, or adding one equation to another never changes which points satisfy them all. So the final, simple system has the <em>same</em> answers as the scary original.'));
+  root.append(box('key','echelon vs reduced echelon','<b>Echelon form:</b> a staircase of leading entries, zeros below. <b>Reduced (RREF):</b> also zeros <em>above</em> each leading 1, and each leading entry is 1. RREF is unique — the canonical fingerprint of the matrix.'));
+  root.append(box('key','try it yourself','Edit the numbers above and re-run. Try a system with a zero row at the end (dependent equations) and watch a pivot go missing — that\'s where “infinitely many solutions” comes from.'));
+  root.append(quiz({question:'Which row operation is NOT allowed (would change the solutions)?',
+    options:[{t:'Multiply a row by 0',ok:true,why:'Correct — that\'s forbidden. Scaling by 0 destroys the equation (0=0) and loses information. You may scale only by NONzero numbers.'},
+      {t:'Swap two rows',ok:false,why:'Swapping is fine — order of equations doesn\'t matter.'},
+      {t:'Add 3× row 1 to row 2',ok:false,why:'Allowed — adding a multiple of one row to another preserves solutions.'}]}));
+  root.append(summary(['Three legal moves: swap, scale (by nonzero), add-a-multiple.','They preserve the solution set, so simplify freely.','Goal: reduced row echelon form (RREF) — answer readable, and unique.']));
+}};
+
+const cRank={id:'rank',part:'Part VI · Systems',title:'Rank, pivots & how many solutions',
+  sub:'The number of pivots after elimination — the rank — tells you everything: whether a solution exists, and whether it\'s unique. One number, the whole story.',
+render(root){
+  head(root,0,cRank);
+  root.append(p('After elimination, count the <b>pivots</b> (leading 1s). That count is the <span class="term">rank</span> — the number of genuinely independent equations (or independent columns). Rank is the deepest single number attached to a matrix.'));
+  root.append(box('key','the rule that decides everything',`For a system with \\(n\\) unknowns:<br>
+    • <b>rank = n</b>, and consistent → <span style="color:var(--accentc)">exactly one solution</span> (every variable pinned).<br>
+    • <b>rank &lt; n</b>, and consistent → <span style="color:var(--accentd)">infinitely many</span> (free variables roam).<br>
+    • a pivot in the “=” column (like \\(0=1\\)) → <span style="color:var(--accent)">no solution</span> (contradiction).`));
+  root.append(h3('Free variables = the shape of the solution set'));
+  root.append(p('If rank &lt; number of unknowns, the leftover unknowns are <b>free</b> — you can set them to anything and the rest follow. Each free variable adds a dimension to the solution set: one free variable → the solutions form a line; two → a plane; and so on.'));
+  root.append(worked({title:'counting solutions from rank',
+    prompt:'A system has 4 unknowns. Elimination gives 2 pivots and no contradiction. Describe the solutions.',
+    steps:['Rank = 2 (two pivots), unknowns = 4.',
+      'Free variables = \\(4 - 2 = 2\\).',
+      'Consistent + 2 free variables → a 2-dimensional sheet of solutions.'],
+    result:'Infinitely many solutions, forming a 2D plane inside 4D space. Rank told us instantly.'}));
+  root.append(box('aha-box','rank is independence, counted','Rank = how many rows are truly independent = how many columns are truly independent (these are always equal!). It\'s the “true size” of what the matrix does — the same idea as dimension from Part II, now computable by elimination.'));
+  root.append(quiz({question:'A consistent system has 5 unknowns and rank 5. How many solutions?',
+    options:[{t:'Exactly one',ok:true,why:'rank = number of unknowns and consistent → unique solution. No free variables.'},
+      {t:'Infinitely many',ok:false,why:'That needs rank < unknowns. Here rank = 5 = unknowns, so every variable is pinned.'}]}));
+  root.append(summary(['Rank = number of pivots = independent equations/columns.','rank = unknowns (consistent) → unique solution.','rank < unknowns (consistent) → free variables → infinite solutions.','Contradiction row (0 = nonzero) → no solution.']));
+}};
+
+const cInverse={id:'inverse',part:'Part VI · Systems',title:'The inverse — undoing a matrix',
+  sub:'When a square matrix doesn\'t squash space, it can be undone. That undo is the inverse, and it solves Ax=b in one shot: x = A⁻¹b.',
+render(root){
+  head(root,0,cInverse);
+  root.append(p('A matrix is a verb (Part V) — it moves space. If it doesn\'t collapse any dimension (determinant ≠ 0), the move can be <b>reversed</b>. The reversing matrix is the <span class="term">inverse</span>, written \\(A^{-1}\\), and it satisfies \\(A^{-1}A = I\\) (do, then undo, = do nothing).'));
+  const L=lab('Invert a matrix (and see it fail)','Play');
+  const grid=matrixGrid({rows:2,cols:2,values:[[2,1],[1,3]]});
+  const out=el('div');out.style.cssText='margin-top:10px';const nar=narrate('Edit A, then invert.');
+  const btn=el('button','btn','compute A⁻¹');
+  btn.onclick=()=>{const A=grid.get();const d=LA.det(A);const Ai=LA.inv(A);
+    if(!Ai){out.innerHTML='';nar.say(`<span class="r">det = 0 — no inverse.</span> This matrix squashes the plane onto a line, throwing away a dimension. You can\'t undo that; many inputs map to the same output.`);}
+    else{out.innerHTML=`A⁻¹ = ${matrixHTML(Ai)} &nbsp; and &nbsp; A⁻¹A = ${matrixHTML(LA.matmul(Ai,A).map(r=>r.map(x=>Math.abs(x)<1e-9?0:x)))}`;
+      nar.say(`det = <span class="k">${LA.fmtNum(d)}</span> ≠ 0, so A is invertible. Notice A⁻¹A = I — the identity, i.e. “do nothing.”`);
+      if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([out]).catch(()=>{});}};
+  const ctr=el('div','controls');ctr.append(btn);
+  L.append(grid.el,ctr,out,nar);root.append(L);
+  root.append(math('A x = b \\quad\\Longrightarrow\\quad x = A^{-1} b'));
+  root.append(box('aha-box','why inverse solves systems instantly','If \\(Ax=b\\), multiply both sides by \\(A^{-1}\\): \\(x = A^{-1}b\\). One matrix-times-vector and you\'re done — <em>if</em> the inverse exists. (In practice, elimination is faster and more stable, but the inverse is the clean idea.)'));
+  root.append(box('trap','not everything is invertible','Only <b>square</b> matrices can have inverses, and only when \\(\\det \\neq 0\\) (“non-singular”). A determinant of 0 means the matrix flattened space — information was destroyed, so there\'s nothing to reverse. This is the same “you lost a dimension” idea as rank < n.'));
+  root.append(quiz({question:'When does a square matrix FAIL to have an inverse?',
+    options:[{t:'When its determinant is 0 (it squashes space, losing a dimension)',ok:true,why:'Exactly. det = 0 = singular = not invertible = rank < n. All the same fact.'},
+      {t:'When it has negative entries',ok:false,why:'Negative entries are fine. Invertibility is purely about det ≠ 0.'}]}));
+  root.append(summary(['Inverse A⁻¹ undoes A: A⁻¹A = I.','Exists only for square matrices with det ≠ 0.','Solves Ax=b in one shot: x = A⁻¹b.','det = 0 ⇔ singular ⇔ rank < n ⇔ no inverse.']));
+}};
+
 return [c0,cRep,cBox,cPoint,cDiff,cWebspace,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
-        cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,cUsed,cAxioms,cReview];
+        cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,
+        cSysGeo,cElim,cRank,cInverse,
+        cUsed,cAxioms,cReview];
 })();

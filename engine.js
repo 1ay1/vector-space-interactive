@@ -757,8 +757,117 @@ function webGraph(opts){
   const wrap=el('div');const ctr=el('div','controls');ctr.append(btn);wrap.append(cv,ctr,nar);render();return wrap;
 }
 
+/* =========================================================
+   MATRIXGRID — an editable grid of numbers. opts:{rows,cols,
+   values, onChange, labels}. Returns {el, get, set}.
+   ========================================================= */
+function matrixGrid(opts){
+  const {rows,cols}=opts; let V=opts.values?opts.values.map(r=>r.slice()):Array.from({length:rows},()=>Array(cols).fill(0));
+  const wrap=el('div');wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;margin:6px 0';
+  const brL=el('div');brL.style.cssText='width:8px;align-self:stretch;border:2px solid var(--ink);border-right:none;border-radius:3px 0 0 3px';
+  const grid=el('div');grid.style.cssText=`display:grid;grid-template-columns:repeat(${cols},1fr);gap:4px`;
+  const brR=el('div');brR.style.cssText='width:8px;align-self:stretch;border:2px solid var(--ink);border-left:none;border-radius:0 3px 3px 0';
+  const inputs=[];
+  for(let i=0;i<rows;i++){inputs[i]=[];for(let j=0;j<cols;j++){
+    const inp=el('input');inp.type='number';inp.value=V[i][j];
+    inp.style.cssText='width:52px;text-align:center;padding:6px 2px;border:1px solid var(--softline);border-radius:6px;font-family:var(--mono);font-size:.95rem';
+    inp.addEventListener('input',()=>{V[i][j]=parseFloat(inp.value)||0;if(opts.onChange)opts.onChange(getV());});
+    inputs[i][j]=inp;grid.append(inp);}}
+  wrap.append(brL,grid,brR);
+  function getV(){return V.map(r=>r.slice());}
+  function setV(nv){V=nv.map(r=>r.slice());for(let i=0;i<rows;i++)for(let j=0;j<cols;j++)inputs[i][j].value=fmt(V[i][j]);}
+  return {el:wrap,get:getV,set:setV};
+}
+
+/* render a static matrix as a small bracketed table (for steps) */
+function matrixHTML(M, highlightCol){
+  const cols=M[0].length;
+  let inner=M.map(row=>'<tr>'+row.map((x,j)=>`<td style="padding:2px 9px;text-align:right;font-family:var(--mono);${j===highlightCol?'background:#FFF3C4;border-radius:4px':''}">${LA.fmtNum(x)}</td>`).join('')+'</tr>').join('');
+  return `<span style="display:inline-flex;align-items:stretch;gap:4px;vertical-align:middle">
+    <span style="width:7px;border:2px solid var(--ink);border-right:none;border-radius:3px 0 0 3px"></span>
+    <table style="border-collapse:collapse">${inner}</table>
+    <span style="width:7px;border:2px solid var(--ink);border-left:none;border-radius:0 3px 3px 0"></span></span>`;
+}
+
+/* =========================================================
+   RREFSTEPPER — shows Gaussian elimination one step at a time
+   on an editable matrix (augmented allowed).
+   opts:{rows,cols,values, augcol(optional index of | line)}
+   ========================================================= */
+function rrefStepper(opts){
+  const wrap=el('div');
+  const grid=matrixGrid({rows:opts.rows,cols:opts.cols,values:opts.values});
+  const nar=narrate('Edit the matrix, then step through the elimination.');
+  const stepBox=el('div');stepBox.style.cssText='margin-top:10px';
+  const ctr=el('div','controls');
+  const runBtn=el('button','btn','▶ run elimination');
+  const nextBtn=el('button','btn ghost','next step');nextBtn.disabled=true;
+  const allBtn=el('button','btn ghost','show all');allBtn.disabled=true;
+  ctr.append(runBtn,nextBtn,allBtn);
+  let steps=[],cur=0;
+  function showStep(k){
+    stepBox.innerHTML='';
+    for(let s=0;s<=k && s<steps.length;s++){
+      const row=el('div');row.style.cssText='display:flex;align-items:center;gap:12px;margin:8px 0;opacity:'+(s===k?'1':'.65');
+      row.innerHTML=`<div style="font-size:.85rem;color:var(--muted);min-width:150px">${steps[s].desc}</div>${matrixHTML(steps[s].matrix)}`;
+      stepBox.append(row);
+    }
+    if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([stepBox]).catch(()=>{});
+  }
+  runBtn.onclick=()=>{const res=LA.rrefSteps(grid.get());steps=res.steps;cur=0;showStep(0);
+    nextBtn.disabled=false;allBtn.disabled=false;
+    nar.say(`Elimination has <span class="k">${steps.length}</span> steps. The <b>rank</b> is <b>${res.rank}</b> (number of pivots). Click “next step.”`);};
+  nextBtn.onclick=()=>{if(cur<steps.length-1){cur++;showStep(cur);} if(cur>=steps.length-1)nar.say('<span class="g">Reached reduced row echelon form.</span> Each leading 1 is a pivot; pivot columns are independent.');};
+  allBtn.onclick=()=>{cur=steps.length-1;showStep(cur);};
+  wrap.append(grid.el,ctr,stepBox,nar);
+  return wrap;
+}
+
+/* =========================================================
+   SYSTEMLINES — two equations a x + b y = e as two lines;
+   shows their intersection (unique / none / infinite).
+   ========================================================= */
+function systemLines(){
+  const W=320,H=320,unit=28;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;
+  let eq=[[1,1,3],[1,-1,1]]; // a b e
+  const nar=narrate('');
+  function drawLine(a,b,e,color){
+    // a x + b y = e
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();
+    if(Math.abs(b)>1e-9){const y=x=>(e-a*x)/b;const x0=-8,x1=8;
+      ctx.moveTo(ox+x0*unit,oy-y(x0)*unit);ctx.lineTo(ox+x1*unit,oy-y(x1)*unit);}
+    else if(Math.abs(a)>1e-9){const x=e/a;ctx.moveTo(ox+x*unit,0);ctx.lineTo(ox+x*unit,H);}
+    ctx.stroke();
+  }
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.soft;for(let g=ox%unit;g<W;g+=unit){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+    for(let g=oy%unit;g<H;g+=unit){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    drawLine(...eq[0],C.accent);drawLine(...eq[1],C.accentb);
+    // intersection
+    const [a1,b1,e1]=eq[0],[a2,b2,e2]=eq[1];const dt=a1*b2-a2*b1;
+    if(Math.abs(dt)>1e-9){const x=(e1*b2-e2*b1)/dt,y=(a1*e2-a2*e1)/dt;
+      ctx.fillStyle=C.accentc;ctx.beginPath();ctx.arc(ox+x*unit,oy-y*unit,6,0,7);ctx.fill();
+      nar.say(`Lines cross at <span class="k">(${x.toFixed(2)}, ${y.toFixed(2)})</span> — <b>one unique solution.</b> The determinant ${a1}·${b2}−${a2}·${b1} = ${dt} is nonzero, so the lines aren’t parallel.`);}
+    else {const parallelSame=Math.abs(e1*b2-e2*b1)<1e-9 && Math.abs(a1*e2-a2*e1)<1e-9;
+      nar.say(parallelSame?'<span class="r">Same line — infinitely many solutions.</span> det = 0 and the equations agree.':'<span class="r">Parallel, never meet — no solution.</span> det = 0 means the rows are dependent.');}
+  }
+  function mk(i){const r=el('div');r.style.cssText='display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:.9rem';
+    const mkI=(idx,val)=>{const inp=el('input');inp.type='number';inp.value=val;inp.style.cssText='width:44px;text-align:center;padding:4px;border:1px solid var(--softline);border-radius:5px';
+      inp.addEventListener('input',()=>{eq[i][idx]=parseFloat(inp.value)||0;render();});return inp;};
+    r.append(mkI(0,eq[i][0]),el('span',null,'x +'),mkI(1,eq[i][1]),el('span',null,'y ='),mkI(2,eq[i][2]));return r;}
+  const controls=el('div');controls.style.cssText='display:flex;flex-direction:column;gap:8px';
+  const t1=el('div',null,'<b style="color:var(--accent)">line 1</b>');const t2=el('div',null,'<b style="color:var(--accentb)">line 2</b>');
+  controls.append(t1,mk(0),t2,mk(1));
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');g.append(controls);s.append(cv,g);wrap.append(s,nar);render();
+  return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
-        configSpace,possibilityCounter,morphPath,diffVector,webGraph};
+        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
+        matrixGrid,matrixHTML,rrefStepper,systemLines};
 })();
