@@ -28,7 +28,12 @@
   /* ---- sidebar nav ---- */
   function buildNav(){
     chapnav.innerHTML='';
+    let lastPart=null;
     CHAPTERS.forEach((c,i)=>{
+      if(c.part && c.part!==lastPart){
+        const ph=document.createElement('div');ph.className='part-head';ph.textContent=c.part;
+        chapnav.append(ph); lastPart=c.part;
+      }
       const b=document.createElement('button');
       b.className='chap-link';
       b.innerHTML=`<span class="chap-num">${i+1}</span>
@@ -74,6 +79,10 @@
     catch(err){ chapter.innerHTML='<p style="color:var(--accent)">Widget error: '+err.message+'</p>'; console.error(err); }
     seen.add(CHAPTERS[idx].id); saveSeen();
     refreshChrome();
+    // typeset any math in the freshly rendered chapter
+    if(window.MathJax && window.MathJax.typesetPromise){
+      window.MathJax.typesetPromise([chapter]).catch(()=>{});
+    }
     window.scrollTo(0,0); content.scrollIntoView?.({block:'start'});
     sidebar.classList.remove('open');
     location.hash=CHAPTERS[idx].id;

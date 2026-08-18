@@ -286,5 +286,220 @@ function orthoLab(){
   return wrap;
 }
 
-return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit};
+/* =========================================================
+   NUMBERLINE — 1D vector as a point/arrow on a line
+   opts:{value,min,max,onChange}
+   ========================================================= */
+function numberline(opts){
+  const {min=-6,max=6}=opts; let v=opts.value??2;
+  const W=460,H=90; const canvas=el('canvas');canvas.width=W;canvas.height=H;
+  const ctx=hidpi(canvas);
+  const pad=30, y=H/2;
+  const toPx=x=>pad+(x-min)/(max-min)*(W-2*pad);
+  const toMath=px=>clamp(min+(px-pad)/(W-2*pad)*(max-min),min,max);
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.softline;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();
+    for(let t=Math.ceil(min);t<=max;t++){const px=toPx(t);
+      ctx.strokeStyle=C.softline;ctx.beginPath();ctx.moveTo(px,y-5);ctx.lineTo(px,y+5);ctx.stroke();
+      ctx.fillStyle=C.muted;ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(t,px,y+20);}
+    // arrow from 0 to v
+    const z=toPx(0),p=toPx(v);
+    ctx.strokeStyle=C.accent;ctx.fillStyle=C.accent;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(z,y-14);ctx.lineTo(p,y-14);ctx.stroke();
+    const dir=v>=0?1:-1,s=8;
+    ctx.beginPath();ctx.moveTo(p,y-14);ctx.lineTo(p-dir*s,y-14-5);ctx.lineTo(p-dir*s,y-14+5);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.arc(p,y,6,0,7);ctx.fill();
+    ctx.fillStyle=C.accent;ctx.font='700 13px sans-serif';ctx.textAlign='center';ctx.fillText('v = '+fmt(v),p,y-24);
+  }
+  let drag=false;
+  const ev=e=>{const r=canvas.getBoundingClientRect();return e.clientX-r.left;};
+  canvas.addEventListener('pointerdown',e=>{drag=true;canvas.setPointerCapture?.(e.pointerId);v=Math.round(toMath(ev(e))*2)/2;render();opts.onChange&&opts.onChange(v);e.preventDefault();});
+  canvas.addEventListener('pointermove',e=>{if(drag){v=Math.round(toMath(ev(e))*2)/2;render();opts.onChange&&opts.onChange(v);}});
+  window.addEventListener('pointerup',()=>drag=false);
+  render();opts.onChange&&opts.onChange(v);
+  canvas.api={get:()=>v,set:x=>{v=x;render();}};
+  return canvas;
+}
+
+/* =========================================================
+   BOARD3D — a rotatable 3D axis box with one draggable-ish vector.
+   Rotation via drag; vector set by sliders elsewhere.
+   opts:{vec:{x,y,z}, width,height}
+   Returns canvas with api.setVec / api.render
+   ========================================================= */
+function board3d(opts){
+  const W=opts.width||340,H=opts.height||300;
+  const canvas=el('canvas');canvas.width=W;canvas.height=H;
+  const ctx=hidpi(canvas);
+  let yaw=-0.6, pitch=0.5, scale=opts.scale||34;
+  let vec=opts.vec||{x:2,y:1,z:1.5};
+  const cx=W/2, cy=H/2+10;
+  function proj(x,y,z){
+    // rotate around y (yaw) then x (pitch), simple orthographic
+    let X=x*Math.cos(yaw)+z*Math.sin(yaw);
+    let Z=-x*Math.sin(yaw)+z*Math.cos(yaw);
+    let Y=y*Math.cos(pitch)-Z*Math.sin(pitch);
+    return [cx+X*scale, cy-Y*scale];
+  }
+  function line(a,b,color,lw,dash){ctx.strokeStyle=color;ctx.lineWidth=lw||1.5;
+    ctx.setLineDash(dash||[]);ctx.beginPath();const p=proj(...a),q=proj(...b);ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();ctx.setLineDash([]);}
+  function arrow(a,b,color,lw){line(a,b,color,lw);const p=proj(...a),q=proj(...b);
+    const ang=Math.atan2(q[1]-p[1],q[0]-p[0]),s=10;ctx.fillStyle=color;
+    ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(q[0]-s*Math.cos(ang-0.4),q[1]-s*Math.sin(ang-0.4));
+    ctx.lineTo(q[0]-s*Math.cos(ang+0.4),q[1]-s*Math.sin(ang+0.4));ctx.closePath();ctx.fill();}
+  function label(a,txt,color){const p=proj(...a);ctx.fillStyle=color;ctx.font='600 12px sans-serif';ctx.textAlign='left';ctx.fillText(txt,p[0]+5,p[1]-3);}
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    const A=4;
+    line([-A,0,0],[A,0,0],C.softline,1); line([0,-A,0],[0,A,0],C.softline,1); line([0,0,-A],[0,0,A],C.softline,1);
+    label([A,0,0],'x',C.muted);label([0,A,0],'y (up)',C.muted);label([0,0,A],'z',C.muted);
+    // box showing the three components
+    const {x,y,z}=vec;
+    line([0,0,0],[x,0,0],C.accentb,2);
+    line([x,0,0],[x,0,z],C.accentd,2);
+    line([x,0,z],[x,y,z],C.accentc,2);
+    line([0,0,0],[x,0,z],C.softline,1,[3,3]);
+    arrow([0,0,0],[x,y,z],C.accent,3);
+    label([x,y,z],`(${fmt(x)}, ${fmt(y)}, ${fmt(z)})`,C.accent);
+  }
+  let drag=false,lx=0,ly=0;
+  canvas.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture?.(e.pointerId);canvas.style.cursor='grabbing';e.preventDefault();});
+  canvas.addEventListener('pointermove',e=>{if(drag){yaw+=(e.clientX-lx)*0.01;pitch=clamp(pitch+(e.clientY-ly)*0.01,-1.3,1.3);lx=e.clientX;ly=e.clientY;render();}});
+  window.addEventListener('pointerup',()=>{drag=false;canvas.style.cursor='grab';});
+  canvas.style.cursor='grab';
+  render();
+  canvas.api={setVec:v=>{vec=v;render();},render};
+  return canvas;
+}
+
+/* =========================================================
+   SPANBOARD — 2D board that SHADES the span of 1 or 2 vectors
+   opts:{arrows:[...], onChange}
+   ========================================================= */
+function spanBoard(opts){
+  return vboard(Object.assign({},opts,{extra:(ctx,toPx,arrows)=>{
+    const W=680,H=680; // large fill via clip on the visible canvas is enough
+    if(arrows.length>=2){
+      const a=arrows[0],b=arrows[1];
+      const cross=a.x*b.y-a.y*b.x;
+      const [ox,oy]=toPx(0,0);
+      if(Math.abs(cross)<0.2){
+        // span is a line
+        const ang=Math.atan2(a.y||b.y,a.x||b.x),far=700;
+        ctx.strokeStyle=C.accent;ctx.globalAlpha=.18;ctx.lineWidth=16;
+        ctx.beginPath();ctx.moveTo(ox-far*Math.cos(ang),oy+far*Math.sin(ang));
+        ctx.lineTo(ox+far*Math.cos(ang),oy-far*Math.sin(ang));ctx.stroke();ctx.globalAlpha=1;
+      }else{
+        // span is whole plane -> tint background
+        ctx.fillStyle=C.accent;ctx.globalAlpha=.07;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.globalAlpha=1;
+      }
+    }
+    if(opts.extra)opts.extra(ctx,toPx,arrows);
+  }}));
+}
+
+/* =========================================================
+   FOURREP — show ONE 2D vector as list + arrow + knobs + point,
+   all synced. The spine of the whole course.
+   opts:{x,y}
+   ========================================================= */
+function fourRep(opts){
+  const state={x:opts.x??3,y:opts.y??2};
+  let ready=false;
+  const wrap=el('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px';
+  const listCard=el('div');listCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px';
+  const board=vboard({width:200,height:200,unit:26,arrows:[{x:state.x,y:state.y,color:C.accent,label:'v'}],snap:true,onChange:a=>{if(!ready)return;state.x=a[0].x;state.y=a[0].y;sync('arrow');}});
+  const boardCard=el('div');boardCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';boardCard.append(board);
+  const knobCard=el('div');knobCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px;display:grid;place-items:center';
+  const knobs=el('div','knobs');
+  const kx=knob({label:'x',color:C.accentb,min:-6,max:6,value:state.x,onInput:v=>{if(!ready)return;state.x=v;sync('knob');}});
+  const ky=knob({label:'y',color:C.accentc,min:-6,max:6,value:state.y,onInput:v=>{if(!ready)return;state.y=v;sync('knob');}});
+  knobs.append(kx,ky);knobCard.append(knobs);
+  const ptCanvas=el('canvas');ptCanvas.width=200;ptCanvas.height=200;const pctx=hidpi(ptCanvas);
+  const ptCard=el('div');ptCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';ptCard.append(ptCanvas);
+  function drawPoint(){const W=200,H=200,o=W/2,u=26;pctx.clearRect(0,0,W,H);
+    pctx.strokeStyle=C.soft;for(let g=o%u;g<W;g+=u){pctx.beginPath();pctx.moveTo(g,0);pctx.lineTo(g,H);pctx.stroke();pctx.beginPath();pctx.moveTo(0,g);pctx.lineTo(W,g);pctx.stroke();}
+    pctx.strokeStyle=C.softline;pctx.beginPath();pctx.moveTo(0,o);pctx.lineTo(W,o);pctx.moveTo(o,0);pctx.lineTo(o,H);pctx.stroke();
+    pctx.fillStyle=C.accent;pctx.beginPath();pctx.arc(o+state.x*u,o-state.y*u,6,0,7);pctx.fill();}
+  function sync(src){
+    listCard.innerHTML=`<div style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase">as a list</div>
+      <div style="font-family:var(--mono);font-size:1.4rem;margin-top:8px">(${fmt(state.x)}, ${fmt(state.y)})</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-top:6px">x = ${fmt(state.x)}<br>y = ${fmt(state.y)}</div>`;
+    if(src!=='arrow'){board.api.arrows[0].x=state.x;board.api.arrows[0].y=state.y;board.api.render();}
+    if(src!=='knob'){kx.api.set(state.x);ky.api.set(state.y);}
+    drawPoint();
+  }
+  const l1=el('div');l1.append(listCard);
+  wrap.append(l1,boardCard,knobCard,ptCard);
+  boardCard.insertAdjacentHTML('afterbegin','<div style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;width:100%">as an arrow</div>');
+  knobCard.insertAdjacentHTML('afterbegin','<div style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;width:100%">as knobs</div>');
+  ptCard.insertAdjacentHTML('afterbegin','<div style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;width:100%">as a point</div>');
+  ready=true; sync('init');
+  return wrap;
+}
+
+/* =========================================================
+   PROJECTION — drag a vector, see its shadow on a fixed direction
+   ========================================================= */
+function projectionBoard(opts){
+  const nar=opts.nar;
+  const board=vboard({arrows:[{x:3,y:2,color:C.accent,label:'v'}],snap:true,
+    extra:(ctx,toPx,arrows)=>{
+      const v=arrows[0]; const dir={x:1,y:0}; // project onto x-axis-ish reference (fixed)
+      // reference direction arrow (blue), unit*4
+      const [ox,oy]=toPx(0,0);
+      const reflen=4;
+      ctx.strokeStyle=C.accentb;ctx.lineWidth=3;
+      const [rx,ry]=toPx(dir.x*reflen,dir.y*reflen);
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(rx,ry);ctx.stroke();
+      // projection scalar = v·dir
+      const s=v.x*dir.x+v.y*dir.y;
+      const [px,py]=toPx(dir.x*s,dir.y*s);
+      // shadow line
+      const [vx,vy]=toPx(v.x,v.y);
+      ctx.strokeStyle=C.muted;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(vx,vy);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
+      // projection vector (teal)
+      ctx.strokeStyle=C.accentc;ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(px,py);ctx.stroke();
+      ctx.fillStyle=C.accentc;ctx.beginPath();ctx.arc(px,py,4,0,7);ctx.fill();
+    },
+    onChange:a=>{const v=a[0];const s=v.x;
+      if(nar)nar.say(`v's shadow on the blue direction has length <span class="k">${fmt(s)}</span> — that's the dot product v·(1,0). The teal arrow is the shadow itself.`);
+    }});
+  return board;
+}
+
+/* =========================================================
+   LADDER — climb dimensions, watch the SAME recipe apply
+   Shows n knobs; computes length live.
+   ========================================================= */
+function ladder(){
+  const wrap=el('div');
+  let n=2; let vals=[3,2];
+  const nar=narrate('');
+  const knobRow=el('div','knobs');knobRow.style.flexWrap='wrap';
+  const ro=el('div','readout','');
+  const palette=[C.accent,C.accentb,C.accentc,C.accentd,C.gold,C.green,'#d1495b','#3a86ff'];
+  function rebuild(){
+    knobRow.innerHTML='';
+    while(vals.length<n)vals.push(Math.floor(Math.random()*6)+1);
+    vals=vals.slice(0,n);
+    vals.forEach((v,i)=>{knobRow.append(knob({label:'n'+(i+1),color:palette[i%palette.length],min:0,max:9,value:v,onInput:val=>{vals[i]=val;upd();}}));});
+    upd();
+  }
+  function upd(){
+    const len=Math.sqrt(vals.reduce((s,x)=>s+x*x,0));
+    ro.innerHTML=`v = (${vals.join(', ')}) &nbsp;·&nbsp; length = √(${vals.map(x=>x+'²').join('+')}) = <b style="color:var(--accent)">${len.toFixed(2)}</b>`;
+    const msg = n<=3?'You can still picture this one.':n<=6?'Past 3 — no picture, but the recipe is identical.':'Way past seeing it — yet adding & measuring feel exactly the same.';
+    nar.say(`Dimension <span class="k">${n}</span>. ${msg} <span class="g">Same square-add-root recipe, more terms.</span>`);
+  }
+  const row=rangeRow({label:'dimension',min:1,max:8,step:1,value:2,onInput:v=>{n=v;rebuild();}});
+  wrap.append(row,knobRow,ro,nar);rebuild();
+  return wrap;
+}
+
+return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
+        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder};
 })();

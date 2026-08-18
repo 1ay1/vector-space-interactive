@@ -1,18 +1,20 @@
 /* ============================================================
-   chapters.js — the 12-chapter course. Each chapter:
-   { id, title, sub, render(root) }  builds DOM into root.
-   Uses VS engine widgets.
+   chapters.js — the full course.
+   Each chapter: { id, part, title, sub, render(root) }.
+   Uses the VS engine. Prose aims to make n-D feel like 1/2/3-D.
    ============================================================ */
 'use strict';
 
 const CHAPTERS = (() => {
-const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUnit}=VS;
+const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUnit,
+       numberline,board3d,spanBoard,fourRep,projectionBoard,ladder}=VS;
 
-/* shared helpers for chapter chrome */
-function head(root, n, title, sub){
+/* ---------- chapter chrome helpers ---------- */
+function head(root,n,c){
+  if(c.part) root.append(el('div','part-banner',c.part));
   root.append(el('div','eyebrow',`Chapter ${n}`));
-  root.append(el('h1',null,title));
-  root.append(el('p','lead-big',sub));
+  root.append(el('h1',null,c.title));
+  root.append(el('p','lead-big',c.sub));
 }
 function box(kind,tag,html){const b=el('div','box '+kind);b.append(el('div','box-tag',tag));b.insertAdjacentHTML('beforeend',html);return b;}
 function lab(title,badge='Play',cls=''){const l=el('div','lab');
@@ -20,435 +22,526 @@ function lab(title,badge='Play',cls=''){const l=el('div','lab');
 function p(html){return el('p',null,html);}
 function h2(t){return el('h2',null,t);}
 function h3(t){return el('h3',null,t);}
+function math(tex){const d=el('div','mathblock','$$'+tex+'$$');return d;}
+function summary(items){const s=el('div','summary');s.append(el('h4',null,'Lock it in'));
+  const ul=el('ul');items.forEach(i=>{const li=el('li');li.innerHTML=i;ul.append(li);});s.append(ul);return s;}
+function stageOf(canvas, sideNodes){const s=el('div','stage');const g=el('div','grow');(sideNodes||[]).forEach(n=>g.append(n));s.append(canvas,g);return s;}
+function repLegend(){const l=el('div','replegend');
+  [['list','var(--ink)'],['arrow','var(--accent)'],['knobs','var(--accentb)'],['point','var(--accentc)']]
+    .forEach(([t,c])=>{l.insertAdjacentHTML('beforeend',`<span class="repchip"><span class="dotc" style="background:${c}"></span>${t}</span>`);});
+  return l;}
 
-/* ============================================================ 1 */
-const c1={id:'what',title:'What a vector actually is',sub:'Forget arrows for a minute. A vector is a list of numbers you can adjust — and you already think this way every single day.',
+/* ============================================================
+   PART 0 — ORIENTATION
+   ============================================================ */
+
+const c0={id:'welcome',part:'Part 0 · Orientation',title:'The one idea you\'ll never unsee',
+  sub:'Before any math: a single mental image that makes 1, 3, or 3-million dimensions feel like the same easy thing.',
 render(root){
-  head(root,1,c1.title,c1.sub);
-  root.append(p('Here is the whole secret of the subject, stated once, plainly:'));
-  root.append(box('key','the one idea','<b>A vector is a fixed list of numbers. Each number is an independent thing you can change. The <span class="aha">dimension</span> is just how many numbers are in the list.</b>'));
-  root.append(p('A colour is three numbers — how much red, green, blue. So a colour <b>is</b> a 3-dimensional vector, and the space of all colours is a 3D space. Let\'s prove it with your finger.'));
+  head(root,1,c0);
+  root.append(p('Most people meet vectors as arrows in physics class, panic at "the fourth dimension," and quietly decide the subject is not for them. That reaction is 100% avoidable. It comes from <em>one</em> misleading picture, and we\'re going to replace it right now.'));
+  root.append(box('key','the whole course in one line','<b>A vector is a list of numbers you can adjust. Each number is an independent thing you can change. The <span class="aha">dimension</span> is just how many numbers are in the list.</b>'));
+  root.append(p('That\'s it. Everything else — arrows, length, angle, span, "the 4th dimension," even infinite dimensions — is a consequence of that sentence. You already think in these terms every day:'));
+  root.append(el('ul',null,`
+    <li>a <b>coffee order</b> — (shots, syrups, oz of milk) — is a 3-number vector,</li>
+    <li>the <b>coins in your pocket</b> are a 4-number vector,</li>
+    <li>a <b>colour</b> on your screen is a 3-number vector (red, green, blue),</li>
+    <li>a <b>photo</b> is a vector with one number per pixel — millions of them.</li>`));
+  root.append(el('p','pull','You never once tried to "visualise 4-dimensional coffee." You just set the numbers. That relaxed, number-by-number thinking <em>is</em> how to think in any dimension.'));
 
-  const L=lab('A colour is 3 numbers');
-  L.append(box('ask','predict first','The swatch starts orange <code>(228, 87, 46)</code>. If you drag <em>only</em> the green knob to the top, what colour appears? Guess — then do it.'));
-  const stage=el('div','stage');
-  const knobs=el('div','knobs');
-  const right=el('div');right.style.cssText='display:flex;flex-direction:column;gap:14px;align-items:center';
-  const sw=el('div','swatch');const ro=el('div','readout','(228, 87, 46)');
-  right.append(sw,ro);
-  const rgb={r:228,g:87,b:46};
-  const nar=narrate('Drag a knob — I\'ll tell you what changed.');
-  function upd(which){
-    sw.style.background=`rgb(${rgb.r},${rgb.g},${rgb.b})`;
-    ro.textContent=`(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-    if(which)nar.say(`You turned <span class="k">${which}</span>. Only that one number moved — the other two didn't budge. <span class="g">That's what "independent" means.</span>`);
-  }
+  const L=lab('Feel it once: turn three knobs, make a colour');
+  L.append(box('ask','predict','The swatch is orange. Drag <em>only</em> the green knob up. What colour appears — before you try it?'));
+  const stage=el('div','stage');const knobs=el('div','knobs');
+  const right=el('div');right.style.cssText='display:flex;flex-direction:column;gap:12px;align-items:center';
+  const sw=el('div','swatch');const ro=el('div','readout','(228, 87, 46)');right.append(sw,ro);
+  const rgb={r:228,g:87,b:46};const nar=narrate('Drag any knob.');
+  function upd(w){sw.style.background=`rgb(${rgb.r},${rgb.g},${rgb.b})`;ro.textContent=`(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    if(w)nar.say(`You turned <span class="k">${w}</span> — and <em>only</em> that number moved. <span class="g">That's what "independent" means.</span>`);}
   knobs.append(knob({label:'red',color:C.accent,value:228,onInput:v=>{rgb.r=v;upd('red');}}));
   knobs.append(knob({label:'green',color:C.accentc,value:87,onInput:v=>{rgb.g=v;upd('green');}}));
   knobs.append(knob({label:'blue',color:C.accentb,value:46,onInput:v=>{rgb.b=v;upd('blue');}}));
-  stage.append(knobs,right);L.append(stage,nar);
-  L.append(box('aha-box','so that\'s what it means','You just moved a point around a 3-dimensional space with your finger. Each knob is one dimension. Notice you never "pictured 3D" as a shape — you turned three knobs. <span class="aha">That same move works with 3 knobs or 3 million.</span>'));
-  root.append(L);
-
-  root.append(h3('Everyday things that are secretly vectors'));
-  root.append(el('ul',null,`
-    <li><b>A coffee order</b> — (shots, syrup pumps, oz of milk). A 3-vector.</li>
-    <li><b>The coins in your pocket</b> — (£1s, 50ps, 20ps, pennies). A 4-vector.</li>
-    <li><b>A song's audio</b> — the air-pressure at each instant. A ~44,100-per-second vector.</li>
-    <li><b>A photo</b> — one brightness number per pixel. A few-million-vector.</li>`));
-
-  root.append(quiz({question:'If a colour needs 3 numbers and a grayscale photo needs one number per pixel, how many dimensions is a 1000×1000 grayscale photo?',
-    options:[
-      {t:'3 — it\'s still just a picture',ok:false,why:'The 3 was specific to colour. Grayscale uses one number (brightness) per pixel.'},
-      {t:'1,000,000 — one number per pixel',ok:true,why:'Exactly. A million pixels = a million-dimensional vector. Nothing about the idea changed — just the length of the list.'},
-      {t:'1000 — the width of the image',ok:false,why:'Careful: it\'s 1000×1000 pixels total = a million numbers.'}]}));
-  root.append(box('trap','the trap to avoid','"A million dimensions must be impossibly hard to think about." It isn\'t — you just did it above. It\'s a longer list. You never needed to <em>see</em> it; you only needed to set the numbers.'));
+  stage.append(knobs,right);L.append(stage,nar);root.append(L);
+  root.append(box('aha-box','what just happened','You moved a point around a 3-dimensional space with your fingers — no arrows, no "seeing" 3D as a shape. You set three numbers. <span class="aha">The exact same move works for 3 numbers or 3 million.</span>'));
+  root.append(summary([
+    'A vector = a list of numbers you can adjust.',
+    'Dimension = how many numbers.',
+    'You already reason this way (coffee, coins, colour).',
+    'The goal of this course: make that reasoning automatic for <em>any</em> number of dimensions.']));
 }};
 
-/* ============================================================ 2 */
-const c2={id:'arrows',title:'Vectors as arrows',sub:'For 2 and 3 numbers, a vector has a second life as an arrow. Same information, friendlier picture — but watch where the picture will fail us later.',
+const cRep={id:'four',part:'Part 0 · Orientation',title:'The four faces of a vector',
+  sub:'One vector, four ways to see it: a list, an arrow, a bank of knobs, a point. Switching between them fluently is 80% of the skill.',
 render(root){
-  head(root,2,c2.title,c2.sub);
-  root.append(p('A 2-number vector <code>(x, y)</code> can be drawn as an arrow from the origin: go <em>x</em> right, then <em>y</em> up. Drag the arrow\'s tip and watch its two numbers change.'));
-  const L=lab('Drag the arrow','Play');
-  const ro=el('div','readout','v = (3, 2)');
-  const nar=narrate('Drag the orange tip around the grid.');
+  head(root,2,cRep);
+  root.append(p('A vector wears four costumes. They\'re the <em>same information</em> — but each is good at a different job. Learn to flip between them instantly, and higher dimensions stop being scary, because you can always retreat to the costume that still works.'));
+  root.append(repLegend());
+  root.append(p('Below is <b>one</b> 2D vector shown all four ways at once. Change it in any panel — drag the arrow, turn a knob — and watch the others update in lockstep. They never disagree, because they\'re the same thing.'));
+  const L=lab('One vector, four synced views','Play');
+  L.append(fourRep({x:3,y:2}));
+  root.append(L);
+  root.append(el('div','cols2').appendChild(box('key','when each costume wins',`
+    <b>List</b> — for <em>computing</em>. You read numbers and do arithmetic.<br>
+    <b>Arrow</b> — for <em>direction & length</em> intuition (only up to 3 numbers).<br>
+    <b>Knobs</b> — for feeling the numbers are <em>independent</em>.<br>
+    <b>Point</b> — for thinking of a vector as a <em>location</em> among all possibilities.`)).parentNode);
+  root.append(box('trap','the costume that fails','Only the <b>arrow</b> and <b>point</b> pictures need your eyes — and both die at 3 numbers. The <b>list</b> and <b>knobs</b> never need eyes. So in high dimensions we simply drop the two visual costumes and keep the two that scale forever. Nothing is lost but the pictures.'));
+  root.append(summary([
+    'Every vector = list = arrow = knobs = point. Same object, four views.',
+    'List & knobs work in <em>any</em> dimension; arrow & point only up to 3.',
+    'Fluency = switching costumes on demand.']));
+}};
+
+/* ============================================================
+   PART I — BUILD IT
+   ============================================================ */
+
+const c1d={id:'oneD',part:'Part I · Build it',title:'1D — the number line',
+  sub:'The simplest vector: a single number. Everything bigger is just more of these, side by side.',
+render(root){
+  head(root,3,c1d);
+  root.append(p('A one-dimensional vector is a single number — how far along a line, sign and all. Positive is one way, negative the other. Drag it.'));
+  const nar=narrate('');
+  const nl=numberline({value:2,onChange:v=>{nar.say(`v = <span class="k">${fmt(v)}</span>. ${v>0?'Points right.':v<0?'Points left (negative).':'Sitting at the origin — the zero vector.'} Length is just |v| = ${fmt(Math.abs(v))}.`);}});
+  const L=lab('Drag a 1D vector');L.append(nl,nar);root.append(L);
+  root.append(box('aha-box','why start here','In 1D, "adding vectors" is adding numbers, "scaling" is multiplying, "length" is absolute value. You already mastered 1D vectors in primary school. Every higher dimension just runs this <em>same</em> arithmetic in parallel, once per number.'));
+  root.append(math('\\mathbf v = (v_1) \\qquad \\lVert \\mathbf v\\rVert = |v_1|'));
+  root.append(summary(['1D vector = one number on a line.','Add = add; scale = multiply; length = absolute value.','Higher-D = many 1D lines running in parallel.']));
+}};
+
+const c2d={id:'twoD',part:'Part I · Build it',title:'2D — the plane, and the arrow',
+  sub:'Two numbers. Now a vector gets its famous second life as an arrow — beautiful, but watch where it will betray us.',
+render(root){
+  head(root,4,c2d);
+  root.append(p('Add a second number and a vector <code>(x, y)</code> becomes an arrow: go <em>x</em> right, then <em>y</em> up. The arrow and the pair are the same thing — move one, the other moves.'));
+  const ro=el('div','readout','v = (3, 2)');const nar=narrate('Drag the tip.');
   const board=vboard({arrows:[{x:3,y:2,color:C.accent,label:'v'}],snap:true,onChange:a=>{
     const v=a[0];ro.textContent=`v = (${fmt(v.x)}, ${fmt(v.y)})`;
-    let q = v.x>=0&&v.y>=0?'upper-right':v.x<0&&v.y>=0?'upper-left':v.x<0&&v.y<0?'lower-left':'lower-right';
-    nar.say(`The arrow is the list <span class="k">(${fmt(v.x)}, ${fmt(v.y)})</span> — ${fmt(v.x)} across, ${fmt(v.y)} up. Pointing to the ${q}.`);
-  }});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro);stage.append(board,g);
-  L.append(stage,nar);
-  L.append(box('aha-box','the key realization','The arrow and the pair of numbers are the <em>same thing</em>. The arrow is just the list, drawn. Everything we do to arrows, we\'re really doing to the numbers.'));
-  root.append(L);
-  root.append(box('key','remember','An arrow is a <b>direction and a length</b> bundled together — and both are captured completely by the list of numbers. Move the tip, the numbers move. Change the numbers, the tip moves.'));
-  root.append(box('trap','watch this','The arrow picture is lovely for 2 and 3 numbers. But it <em>secretly needs your eyes</em> — and your eyes give out at 3 numbers. In Chapter 10 we drop the arrow and keep the list. The list never needed your eyes.'));
-  root.append(quiz({question:'You drag the tip to (0, 0). What is this vector?',
-    options:[
-      {t:'The "zero vector" — no direction, no length',ok:true,why:'Right. Every vector space has one. It\'s the "do nothing" vector — add it and nothing changes.'},
-      {t:'It\'s not a vector anymore',ok:false,why:'It still is! (0,0) is a perfectly good vector — the special one with all-zero entries.'},
-      {t:'An error',ok:false,why:'Nope — the origin arrow is the zero vector, a genuine and important member of the space.'}]}));
+    nar.say(`<span class="k">(${fmt(v.x)}, ${fmt(v.y)})</span> — ${fmt(v.x)} across, ${fmt(v.y)} up. The arrow is just the list, drawn.`);}});
+  const L=lab('Drag the arrow');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(box('key','remember','An arrow bundles a <b>direction</b> and a <b>length</b>, and both are captured completely by the two numbers. It is a <em>displacement</em> ("go here from there"), which is why the same arrow can start anywhere.'));
+  root.append(box('trap','the seed of all confusion','The arrow is lovely — but it secretly needs you to <em>see</em> the whole thing at once. That works for 2 numbers, wobbles at 3, and dies at 4. We will keep the arrow as long as it helps, then let it go. The list never needed your eyes.'));
+  root.append(quiz({question:'You drag the tip exactly to the origin, (0,0). What is this?',
+    options:[{t:'The zero vector — a real, important vector',ok:true,why:'Yes. Every vector space has exactly one zero vector; it\'s the "do nothing" element. Adding it changes nothing.'},
+      {t:'Not a vector anymore',ok:false,why:'It absolutely is — (0,0) is the special all-zeros vector.'}]}));
+  root.append(summary(['2D vector = (x, y) = an arrow.','Arrow = direction + length, captured by the numbers.','It\'s a displacement; it can start anywhere.','The arrow picture will fail past 3 numbers — don\'t depend on it.']));
 }};
 
-/* ============================================================ 3 */
-const c3={id:'add',title:'Adding vectors',sub:'The first of only two operations you ever need. And it\'s something you\'ve done since you could count: combine two lists.',
+const c3d={id:'threeD',part:'Part I · Build it',title:'3D — the last room you can see',
+  sub:'Three numbers, three axes. This is the final dimension your eyes handle — so study exactly how the arrow is built, because the recipe is what carries you past it.',
 render(root){
-  head(root,3,c3.title,c3.sub);
-  root.append(p('To add two vectors, add them <b>line by line</b>. That\'s the entire rule. Your 6 eggs + their 4 eggs = 10 eggs; milk with milk; nothing else moves.'));
-  const L1=lab('Add two shopping lists');
-  L1.append(box('ask','watch for','Does the <em>eggs</em> line ever change the <em>milk</em> line? It can\'t — and that\'s exactly why dimension never matters.'));
-  L1.append(listAdd({items:['eggs','milk','bread','coffee','apples'],a:[6,2,1,4,3],b:[4,1,3,0,5]}));
-  L1.append(box('aha-box','why this scales forever','Because no line looks at its neighbours, the <em>identical</em> procedure works for 5 lines or 5 billion. A rule that treats each line on its own literally cannot tell how long the list is.'));
-  root.append(L1);
+  head(root,5,c3d);
+  root.append(p('A 3D vector is three numbers: right, up, and toward-you. Below is a real 3D box you can <b>rotate by dragging</b>. Watch how the arrow is built: go along x, then z, then up y. That "lay each number along its own axis" recipe is the thing that never changes.'));
+  const bd=board3d({vec:{x:2,y:1.5,z:1.5}});
+  const nar=narrate('Drag to rotate. Move the sliders to change the vector.');
+  function set(){const v={x:vx,y:vy,z:vz};bd.api.setVec(v);
+    const len=Math.sqrt(vx*vx+vy*vy+vz*vz);
+    nar.say(`v = <span class="k">(${fmt(vx)}, ${fmt(vy)}, ${fmt(vz)})</span>. Built by walking x → z → up y. Length = √(${fmt(vx)}²+${fmt(vy)}²+${fmt(vz)}²) = <b>${len.toFixed(2)}</b>.`);}
+  let vx=2,vy=1.5,vz=1.5;
+  const rx=rangeRow({label:'x',min:-3,max:3,step:.5,value:2,fmt:v=>v,onInput:v=>{vx=v;set();}});
+  const ry=rangeRow({label:'y (up)',min:-3,max:3,step:.5,value:1.5,fmt:v=>v,onInput:v=>{vy=v;set();}});
+  const rz=rangeRow({label:'z',min:-3,max:3,step:.5,value:1.5,fmt:v=>v,onInput:v=>{vz=v;set();}});
+  const L=lab('Rotate a real 3D vector','See','see');
+  const g=el('div','grow');g.append(rx,ry,rz);const s=el('div','stage');s.append(bd,g);
+  L.append(s,nar);root.append(L);set();
+  root.append(box('aha-box','the recipe, stated once','<em>Lay each number along its own axis; the arrow ends where they add up.</em> 1D used one axis, 2D two, 3D three. Nowhere does the recipe learn that "three" is where human eyes give out — it just keeps going. In Chapter 10 we run it with six, and it works identically.'));
+  root.append(math('\\lVert \\mathbf v\\rVert = \\sqrt{x^2+y^2+z^2}'));
+  root.append(summary(['3D vector = three numbers along three axes.','Same build-recipe as 1D and 2D, one more time.','This is the last dimension you can picture — the recipe doesn\'t care.']));
+}};
 
-  root.append(h3('The same thing, as arrows: tip-to-tail'));
-  root.append(p('Drawn as arrows, adding means: walk along the first arrow, then walk along the second from where you landed. The single arrow from start to finish is the sum. Drag either arrow.'));
-  const L2=lab('Tip-to-tail','See','see');
-  const ro=el('div','readout','');
-  const nar=narrate('Drag the blue or teal arrow.');
-  const board=vboard({arrows:[
-    {x:2,y:1,color:C.accentb,label:'a'},
-    {x:1,y:2,color:C.accentc,label:'b'}],snap:true,
-    extra:(ctx,toPx,arrows)=>{
-      const a=arrows[0],b=arrows[1];
-      // b drawn from tip of a (ghost)
-      const [ax,ay]=toPx(a.x,a.y), [sx,sy]=toPx(a.x+b.x,a.y+b.y);
-      ctx.strokeStyle=C.accentc;ctx.setLineDash([5,4]);ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(sx,sy);ctx.stroke();ctx.setLineDash([]);
-      // sum arrow
-      ctx.strokeStyle=C.accent;ctx.fillStyle=C.accent;ctx.lineWidth=3.5;
-      const [ox,oy]=toPx(0,0);
-      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(sx,sy);ctx.stroke();
-      const ang=Math.atan2(sy-oy,sx-ox),s=12;
-      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx-s*Math.cos(ang-0.42),sy-s*Math.sin(ang-0.42));
-      ctx.lineTo(sx-s*Math.cos(ang+0.42),sy-s*Math.sin(ang+0.42));ctx.closePath();ctx.fill();
-    },
+const cAdd={id:'add',part:'Part I · Build it',title:'Adding — the first of two moves',
+  sub:'The entire subject runs on exactly two operations. Here\'s the first, and you\'ve done it since you could count.',
+render(root){
+  head(root,6,cAdd);
+  root.append(p('To add two vectors, add them <b>line by line</b>. Eggs with eggs, milk with milk. No line ever looks at another — the most antisocial rule in mathematics, and that\'s exactly why it scales to a billion dimensions.'));
+  const L1=lab('Add two lists, one line at a time');
+  L1.append(box('ask','watch','Does the eggs line ever change the milk line? (It can\'t. That independence is the secret.)'));
+  L1.append(listAdd({items:['eggs','milk','bread','coffee','apples'],a:[6,2,1,4,3],b:[4,1,3,0,5]}));
+  root.append(L1);
+  root.append(h3('The same thing as arrows: tip-to-tail'));
+  root.append(p('Walk along the first arrow, then the second from where you landed. The single arrow from start to finish is the sum. Drag either.'));
+  const ro=el('div','readout','');const nar=narrate('Drag an arrow.');
+  const board=vboard({arrows:[{x:2,y:1,color:C.accentb,label:'a'},{x:1,y:2,color:C.accentc,label:'b'}],snap:true,
+    extra:(ctx,toPx,arrows)=>{const a=arrows[0],b=arrows[1];const[ax,ay]=toPx(a.x,a.y),[sx,sy]=toPx(a.x+b.x,a.y+b.y),[ox,oy]=toPx(0,0);
+      ctx.strokeStyle=C.accentc;ctx.setLineDash([5,4]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(sx,sy);ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle=C.accent;ctx.fillStyle=C.accent;ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(sx,sy);ctx.stroke();
+      const ang=Math.atan2(sy-oy,sx-ox),s=12;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx-s*Math.cos(ang-.42),sy-s*Math.sin(ang-.42));ctx.lineTo(sx-s*Math.cos(ang+.42),sy-s*Math.sin(ang+.42));ctx.closePath();ctx.fill();},
     onChange:a=>{const s={x:a[0].x+a[1].x,y:a[0].y+a[1].y};
       ro.innerHTML=`(${fmt(a[0].x)}, ${fmt(a[0].y)}) + (${fmt(a[1].x)}, ${fmt(a[1].y)}) = <b style="color:var(--accent)">(${fmt(s.x)}, ${fmt(s.y)})</b>`;
-      nar.say(`Tip-to-tail lands at <span class="k">(${fmt(s.x)}, ${fmt(s.y)})</span> — which is exactly ${fmt(a[0].x)}+${fmt(a[1].x)} across and ${fmt(a[0].y)}+${fmt(a[1].y)} up. The picture and the line-by-line sum agree, always.`);
-    }});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro);stage.append(board,g);
-  L2.append(stage,nar);root.append(L2);
+      nar.say(`Tip-to-tail lands at <span class="k">(${fmt(s.x)}, ${fmt(s.y)})</span> — exactly the line-by-line sums. The picture and the arithmetic always agree.`);}});
+  const L2=lab('Tip-to-tail','See','see');L2.append(stageOf(board,[ro]),nar);root.append(L2);
+  root.append(math('\\mathbf a + \\mathbf b = (a_1+b_1,\\; a_2+b_2,\\; \\dots,\\; a_n+b_n)'));
+  root.append(box('aha-box','why dimension is a non-issue','Because the rule touches each line alone, the <em>identical</em> procedure works for 5 lines or 5 billion. A rule that treats each line separately literally cannot tell how long the list is.'));
   root.append(quiz({question:'(3, −1, 5) + (−3, 1, −5) = ?',
-    options:[
-      {t:'(0, 0, 0) — the zero vector',ok:true,why:'Yes! These two are opposites; each line cancels. b is called the "negative" of a — every vector has one.'},
-      {t:'(6, −2, 10)',ok:false,why:'That would be a+a. Add line by line: 3+(−3)=0, and so on.'},
-      {t:'(0, 0, 10)',ok:false,why:'Check the last line: 5+(−5)=0, not 10.'}]}));
+    options:[{t:'(0, 0, 0)',ok:true,why:'Each line cancels. b is the "negative" of a — every vector has one that adds back to zero.'},
+      {t:'(6, −2, 10)',ok:false,why:'That\'s a+a. Add line by line: 3+(−3)=0, etc.'}]}));
+  root.append(summary(['Add = line by line, no line looks at its neighbours.','Arrows: tip-to-tail.','That independence is why addition scales to any dimension.']));
 }};
 
-/* ============================================================ 4 */
-const c4={id:'scale',title:'Scaling vectors',sub:'The second and last operation. Multiply a whole vector by one number — and you\'ve met the brightness slider in every photo app.',
+const cScale={id:'scale',part:'Part I · Build it',title:'Scaling — the second move',
+  sub:'Multiply a whole vector by one number. You\'ve met this as the brightness slider in every photo app.',
 render(root){
-  head(root,4,c4.title,c4.sub);
-  root.append(p('To <b>scale</b> a vector by a number, multiply every line by that number. Double it → everything doubles. Times ½ → everything halves. Times −1 → it flips to point the opposite way.'));
-
-  const L=lab('Brightness = scaling a photo');
-  L.append(box('ask','predict','This face is an 11×11 grid — a <b>121-dimensional</b> vector. What appears at scale <b>0×</b>? At <b>2×</b>?'));
+  head(root,7,cScale);
+  root.append(p('To <b>scale</b> by a number, multiply every line by it. Double → all doubles. Times ½ → all halves. Times −1 → it flips to point the opposite way. This little face is an 11×11 grid — a <b>121-dimensional vector</b> — and the brightness slider scales all 121 at once.'));
+  const L=lab('Brightness = scaling a 121-D photo');
+  L.append(box('ask','predict','What appears at 0×? At 2×?'));
   const canvas=el('canvas');canvas.width=200;canvas.height=200;const ctx=VS.hidpi(canvas);
   const N=11,cell=200/N,base=[];
-  for(let y=0;y<N;y++){base[y]=[];for(let x=0;x<N;x++){
-    const dx=x-5,dy=y-5,r=Math.hypot(dx,dy);let v=45+150*Math.max(0,1-r/6);
-    if(y===3&&(x===3||x===7))v=235; if(y===8&&x>=3&&x<=7)v=225; base[y][x]=Math.round(v);}}
+  for(let y=0;y<N;y++){base[y]=[];for(let x=0;x<N;x++){const dx=x-5,dy=y-5,r=Math.hypot(dx,dy);let v=45+150*Math.max(0,1-r/6);
+    if(y===3&&(x===3||x===7))v=235;if(y===8&&x>=3&&x<=7)v=225;base[y][x]=Math.round(v);}}
   const nar=narrate('');
-  function draw(s){for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=clamp(Math.round(base[y][x]*s),0,255);
-    ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x*cell,y*cell,cell+.5,cell+.5);}
-    const msg = s===0?'<span class="r">Every pixel is now 0 — pure black. That\'s the <b>zero vector</b>.</span>':
-      s<1?'Every pixel shrank toward 0 — the photo darkens.':
-      s>1?'Every pixel grew (and clipped at white) — the photo brightens.':'Original.';
+  function draw(s){for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=clamp(Math.round(base[y][x]*s),0,255);ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x*cell,y*cell,cell+.5,cell+.5);}
+    const msg=s===0?'<span class="r">Every pixel is 0 — the <b>zero vector</b> (pure black).</span>':s<1?'Every pixel shrank — darker.':s>1?'Every pixel grew (clipped at white) — brighter.':'Original.';
     nar.say(`scale = <span class="k">${s.toFixed(2)}×</span>. ${msg}`);}
-  const row=rangeRow({label:'scale factor',min:0,max:2,step:0.01,value:1,fmt:v=>v.toFixed(2)+'×',onInput:draw});
-  const stage=el('div','stage');const g=el('div','grow');g.append(nar);stage.append(canvas,g);
-  L.append(row,stage);draw(1);
-  L.append(box('aha-box','one number, 121 pixels','You just reached into 121 numbers at once with a single slider. Your real photo app does this to a few <em>million</em> pixels every time you drag "brightness." <span class="aha">Same move, more lines, no extra difficulty.</span>'));
-  root.append(L);
-
-  root.append(h3('Scaling an arrow: stretch, don\'t steer'));
-  root.append(p('Drag the slider and watch: positive scaling changes the <em>length</em> but not the <em>direction</em>. Negative flips it.'));
-  const L2=lab('Stretch vs steer','See','see');
-  const ro=el('div','readout','');const nar2=narrate('');
-  const base2={x:2,y:1};let k=1.5;
-  const board=vboard({arrows:[{x:3,y:1.5,color:C.accent,label:'k·v',draggable:false},{x:2,y:1,color:C.accentb,label:'v',draggable:false}],
-    extra:()=>{}});
+  const row=rangeRow({label:'scale factor',min:0,max:2,step:.01,value:1,fmt:v=>v.toFixed(2)+'×',onInput:draw});
+  L.append(row,stageOf(canvas,[nar]));draw(1);root.append(L);
+  root.append(h3('As an arrow: stretch, don\'t steer'));
+  const ro=el('div','readout','');const nar2=narrate('');const base2={x:2,y:1};let k=1.5;
+  const board=vboard({arrows:[{x:3,y:1.5,color:C.accent,label:'k·v',draggable:false},{x:2,y:1,color:C.accentb,label:'v',draggable:false}]});
   function apply(kk){k=kk;board.api.arrows[0].x=base2.x*k;board.api.arrows[0].y=base2.y*k;board.api.render();
-    ro.innerHTML=`${k.toFixed(2)} · (2, 1) = <b style="color:var(--accent)">(${(2*k).toFixed(1)}, ${(1*k).toFixed(1)})</b>`;
-    nar2.say(k<0?`<span class="r">Negative — the arrow flipped to point the opposite way.</span>`:
-      k===0?'Zero — the arrow collapsed to the origin (the zero vector).':
-      `Same direction as v, just <span class="k">${k.toFixed(2)}×</span> as long. Direction locked, only length changed.`);}
+    ro.innerHTML=`${k.toFixed(2)} · (2, 1) = <b style="color:var(--accent)">(${(2*k).toFixed(1)}, ${(k).toFixed(1)})</b>`;
+    nar2.say(k<0?'<span class="r">Negative — flipped to point the opposite way.</span>':k===0?'Zero — collapsed to the origin.':`Same direction, <span class="k">${k.toFixed(2)}×</span> as long. Direction locked; only length changed.`);}
   const row2=rangeRow({label:'scale k',min:-2,max:2,step:.05,value:1.5,fmt:v=>v.toFixed(2),onInput:apply});
-  const stage2=el('div','stage');const g2=el('div','grow');g2.append(ro);stage2.append(board,g2);
-  L2.append(row2,stage2,nar2);apply(1.5);root.append(L2);
-  root.append(box('trap','the trap','"Scaling makes it point somewhere new." No — positive scaling only changes length; the direction is locked because every line grows by the same factor, so their ratios stay fixed. Stretch ≠ steer.'));
-  root.append(quiz({question:'Scaling a vector by 0 gives…',
-    options:[{t:'the zero vector',ok:true,why:'Every line × 0 = 0. You always land on the origin, no matter what you started with.'},
-      {t:'the same vector',ok:false,why:'That\'s scaling by 1. Zero wipes every line to 0.'},
-      {t:'an error',ok:false,why:'Perfectly legal — it just gives the zero vector.'}]}));
+  const L2=lab('Stretch vs steer','See','see');L2.append(row2,stageOf(board,[ro]),nar2);apply(1.5);root.append(L2);
+  root.append(math('c\\,\\mathbf v = (c\\,v_1,\\; c\\,v_2,\\; \\dots,\\; c\\,v_n)'));
+  root.append(box('trap','the trap','"Scaling steers the vector." No — positive scaling only changes length. Every line grows by the same factor, so the ratios (the direction) stay fixed. Stretch ≠ steer.'));
+  root.append(summary(['Scale = multiply every line by one number.','0× → zero vector; −1× → flip; positive → stretch, same direction.','Photo brightness is scaling in a million dimensions.']));
 }};
 
-/* ============================================================ 5 */
-const c5={id:'span',title:'Combinations & span',sub:'Mix the two moves — scale, then add — and you can reach new places. The set of everywhere you can reach is called the span. This is the big one.',
+/* ============================================================
+   PART II — STRUCTURE
+   ============================================================ */
+
+const cCombo={id:'combo',part:'Part II · Structure',title:'Linear combinations',
+  sub:'Mix the two moves — scale some vectors, then add. This one operation is the beating heart of the entire subject.',
 render(root){
-  head(root,5,c5.title,c5.sub);
-  root.append(p('A <span class="term">linear combination</span> is just: take some of this vector, some of that vector, and add. Like a recipe — 3 scoops of <b>a</b>, 2 scoops of <b>b</b>. The set of <em>every</em> point you can reach this way is the <span class="term">span</span>.'));
-  const L=lab('Reach a target by mixing two vectors');
-  L.append(box('ask','try it','Set the two dials to hit the star. You\'re choosing "how much a" and "how much b." Can you always reach it? What if the star moves off the line?'));
-  const target={x:2.5,y:1.5};
-  let ca=1,cb=1;
-  const av={x:2,y:0.5}, bv={x:0.5,y:2};
+  head(root,8,cCombo);
+  root.append(p('A <span class="term">linear combination</span> is just: take some of this vector, some of that one, and add. Like a recipe — "3 scoops of a, 2 scoops of b." Scale, then add. That\'s the whole thing.'));
+  root.append(math('c_1\\mathbf a + c_2\\mathbf b + \\dots + c_k\\mathbf z'));
+  root.append(p('Everything ahead — span, basis, independence, even matrices — is built from this. Below, mix two vectors with the dials and reach the star.'));
+  const target={x:2.5,y:1.5};let ca=1,cb=1;const av={x:2,y:.5},bv={x:.5,y:2};
   const ro=el('div','readout','');const nar=narrate('');
-  const board=vboard({arrows:[
-      {x:av.x,y:av.y,color:C.accentb,label:'a',draggable:false},
-      {x:bv.x,y:bv.y,color:C.accentc,label:'b',draggable:false}],
-    extra:(ctx,toPx)=>{
-      // scaled a
-      const [ox,oy]=toPx(0,0);
-      const pa={x:av.x*ca,y:av.y*ca};
-      const res={x:av.x*ca+bv.x*cb,y:av.y*ca+bv.y*cb};
-      const [pax,pay]=toPx(pa.x,pa.y),[rx,ry]=toPx(res.x,res.y);
-      ctx.strokeStyle=C.accentb;ctx.globalAlpha=.4;ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(pax,pay);ctx.stroke();
-      ctx.strokeStyle=C.accentc;ctx.beginPath();ctx.moveTo(pax,pay);ctx.lineTo(rx,ry);ctx.stroke();
-      ctx.globalAlpha=1;
-      // result dot
+  const board=vboard({arrows:[{x:av.x,y:av.y,color:C.accentb,label:'a',draggable:false},{x:bv.x,y:bv.y,color:C.accentc,label:'b',draggable:false}],
+    extra:(ctx,toPx)=>{const[ox,oy]=toPx(0,0);const pa={x:av.x*ca,y:av.y*ca};const res={x:av.x*ca+bv.x*cb,y:av.y*ca+bv.y*cb};
+      const[pax,pay]=toPx(pa.x,pa.y),[rx,ry]=toPx(res.x,res.y);
+      ctx.strokeStyle=C.accentb;ctx.globalAlpha=.4;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(pax,pay);ctx.stroke();
+      ctx.strokeStyle=C.accentc;ctx.beginPath();ctx.moveTo(pax,pay);ctx.lineTo(rx,ry);ctx.stroke();ctx.globalAlpha=1;
       ctx.fillStyle=C.accent;ctx.beginPath();ctx.arc(rx,ry,6,0,7);ctx.fill();
-      // target star
-      const [tx,ty]=toPx(target.x,target.y);
-      ctx.fillStyle=C.gold;ctx.font='20px sans-serif';ctx.fillText('★',tx-8,ty+7);
-    }});
-  function upd(){
-    const res={x:av.x*ca+bv.x*cb,y:av.y*ca+bv.y*cb};
-    board.api.render();
-    const hit=Math.hypot(res.x-target.x,res.y-target.y)<0.15;
+      const[tx,ty]=toPx(target.x,target.y);ctx.fillStyle=C.gold;ctx.font='20px sans-serif';ctx.fillText('★',tx-8,ty+7);}});
+  function upd(){const res={x:av.x*ca+bv.x*cb,y:av.y*ca+bv.y*cb};board.api.render();
+    const hit=Math.hypot(res.x-target.x,res.y-target.y)<.15;
     ro.innerHTML=`${ca.toFixed(2)}·a + ${cb.toFixed(2)}·b = <b style="color:var(--accent)">(${res.x.toFixed(2)}, ${res.y.toFixed(2)})</b>`;
-    nar.say(hit?`<span class="g">Bullseye!</span> That combination reaches the star. With two independent vectors you can reach <b>every</b> point in the plane — their span is the whole 2D space.`
-      :`Result at <span class="k">(${res.x.toFixed(2)}, ${res.y.toFixed(2)})</span>. Keep adjusting the two dials.`);
-  }
+    nar.say(hit?'<span class="g">Bullseye!</span> Two different-direction vectors can reach <b>any</b> point in the plane.':`Result (${res.x.toFixed(2)}, ${res.y.toFixed(2)}). Keep tuning.`);}
   const rA=rangeRow({label:'how much a',min:-2,max:2,step:.05,value:1,fmt:v=>v.toFixed(2),onInput:v=>{ca=v;upd();}});
   const rB=rangeRow({label:'how much b',min:-2,max:2,step:.05,value:1,fmt:v=>v.toFixed(2),onInput:v=>{cb=v;upd();}});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro,rA,rB);stage.append(board,g);
-  L.append(stage,nar);upd();root.append(L);
-  root.append(box('aha-box','what "span" means','The <span class="term">span</span> of some vectors is every point you can reach by scaling and adding them. Two arrows that point different ways span the <em>whole plane</em> — you can reach anywhere. That\'s the deepest idea in the subject, and you just felt it.'));
-  root.append(box('trap','the exception','If a and b point the <em>same</em> way (one is a scaled copy of the other), you can only ever land <em>on that line</em> — their span collapses to a line, not the whole plane. That "redundancy" is the subject of Chapter 9.'));
-  root.append(quiz({question:'Two vectors point in different directions in 2D. What is their span?',
-    options:[{t:'The entire 2D plane',ok:true,why:'Yes — two genuinely different directions let you reach anywhere by mixing them. They form a basis for the plane.'},
-      {t:'Just a line',ok:false,why:'That only happens if they point the same (or opposite) way. Different directions → the whole plane.'},
-      {t:'Only the points between them',ok:false,why:'Scaling can be negative and >1, so you escape the region "between" them and fill the whole plane.'}]}));
+  const L=lab('Reach the star by mixing');const g=el('div','grow');g.append(ro,rA,rB);const s=el('div','stage');s.append(board,g);
+  L.append(s,nar);upd();root.append(L);
+  root.append(box('aha-box','the phrase, demystified','"Linear combination" sounds intimidating; it means "a smoothie." Scoops of each ingredient, blended. If you can customise a smoothie order, you understand it.'));
+  root.append(summary(['Linear combination = scale each, then add.','It\'s the engine every later idea is built from.','Two different-direction 2D vectors can combine to reach anywhere.']));
 }};
 
-/* ============================================================ 6 */
-const c6={id:'basis',title:'Basis & coordinates',sub:'Plot twist: the numbers in a vector depend on the "rulers" you chose. Change the rulers, the numbers change — but the vector doesn\'t move.',
+const cSpan={id:'span',part:'Part II · Structure',title:'Span — everywhere you can reach',
+  sub:'The set of all points a few vectors can build by scaling-and-adding. Watch it flip between "a line" and "the whole plane."',
 render(root){
-  head(root,6,c6.title,c6.sub);
-  root.append(p('When you write a vector as <code>(3, 2)</code>, you secretly mean "3 of the right-ruler + 2 of the up-ruler." Those rulers are a choice, called a <span class="term">basis</span>. Pick different rulers and the <em>same point</em> gets different numbers.'));
-  const L=lab('Same point, two sets of rulers','See','see');
-  const pt={x:3,y:2};
+  head(root,9,cSpan);
+  root.append(p('The <span class="term">span</span> of some vectors is <em>every</em> place you can land by scaling and adding them. Drag the two arrows. When they point different ways, their span is shaded across the <b>whole plane</b>. Line them up and it collapses to a single <b>line</b>.'));
+  const ro=el('div','readout','');const nar=narrate('Drag the arrows.');
+  const board=spanBoard({arrows:[{x:2,y:1,color:C.accentb,label:'a'},{x:-1,y:1.5,color:C.accentc,label:'b'}],snap:true,
+    onChange:a=>{const cross=a[0].x*a[1].y-a[0].y*a[1].x;const line=Math.abs(cross)<.2;
+      ro.innerHTML=line?'<b style="color:var(--accent)">span = a LINE</b>':'<b style="color:var(--accentc)">span = the WHOLE PLANE</b>';
+      nar.say(line?'<span class="r">They point the same way</span> — so scaling & adding only ever lands on one line. Span collapsed to 1D.':'<span class="g">Two genuine directions</span> — you can reach every point in 2D. Span = the whole plane.');}});
+  const L=lab('Watch the span change','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(box('aha-box','the deepest idea, felt','This is the core of linear algebra. A set of vectors "spans" a space if you can build every point in it from them. Two independent 2D vectors span the plane; three independent 3D vectors span space; <em>n</em> independent vectors span an n-dimensional space. Span is how vectors <em>build</em> a world.'));
+  root.append(box('trap','the collapse','If b is just a scaled copy of a, it adds nothing new — you\'re stuck on a\'s line. That redundancy is the subject of the next chapter, and it\'s what "dimension" really measures.'));
+  root.append(quiz({question:'Two vectors point in different directions in 2D. Their span is…',
+    options:[{t:'the entire plane',ok:true,why:'Yes — two real directions reach anywhere. They form a basis for 2D.'},
+      {t:'only the region between them',ok:false,why:'Scaling can be negative and large, so you escape "between" and fill the whole plane.'}]}));
+  root.append(summary(['Span = all points reachable by scale-and-add.','Different directions → whole plane; same direction → just a line.','Spanning is how vectors build a space.']));
+}};
+
+const cIndep={id:'indep',part:'Part II · Structure',title:'Independence — is a vector redundant?',
+  sub:'A vector is "redundant" if you could already reach it with the ones you had. Counting the non-redundant ones is what dimension really means.',
+render(root){
+  head(root,10,cIndep);
+  root.append(p('Vector <b>b</b> is <span class="term">redundant</span> (dependent) if it lies along a\'s line — it reaches nowhere new. It\'s <span class="term">independent</span> if it opens a genuinely new direction. Drag b onto a\'s line and back.'));
+  const ro=el('div','readout','');const nar=narrate('');
+  const board=vboard({arrows:[{x:2,y:1,color:C.accentb,label:'a'},{x:1.4,y:2,color:C.accentc,label:'b'}],snap:true,
+    extra:(ctx,toPx,arrows)=>{const a=arrows[0],b=arrows[1];const cross=a.x*b.y-a.y*b.x;
+      if(Math.abs(cross)<.25){const[ox,oy]=toPx(0,0);const ang=Math.atan2(a.y,a.x),far=600;
+        ctx.strokeStyle=C.accent;ctx.globalAlpha=.3;ctx.lineWidth=10;ctx.beginPath();
+        ctx.moveTo(ox-far*Math.cos(ang),oy+far*Math.sin(ang));ctx.lineTo(ox+far*Math.cos(ang),oy-far*Math.sin(ang));ctx.stroke();ctx.globalAlpha=1;}},
+    onChange:a=>{const cross=a[0].x*a[1].y-a[0].y*a[1].x;const dep=Math.abs(cross)<.25;
+      ro.innerHTML=dep?'<b style="color:var(--accent)">REDUNDANT</b>':'<b style="color:var(--accentc)">INDEPENDENT</b>';
+      nar.say(dep?'<span class="r">b is redundant</span> — on a\'s line. Together they still only reach a <b>1D line</b>. True dimension: 1.':'<span class="g">b is independent</span> — a new direction. Together they reach the <b>whole plane</b>. True dimension: 2.');}});
+  const L=lab('Independent or redundant?','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(box('aha-box','what dimension really counts','Dimension isn\'t "how many vectors you have" — it\'s how many <em>independent</em> ones. Ten vectors on one line still only span a line (dimension 1). The count of genuinely-new directions is the real dimension.'));
+  root.append(box('key','basis, made precise','A <span class="term">basis</span> is a set that is (1) independent — nothing redundant — and (2) spans the whole space. It\'s the <em>smallest</em> set of rulers that reaches everywhere: exactly n of them for an n-dimensional space.'));
+  root.append(quiz({question:'You have 5 vectors in 2D. The most that can be independent is…',
+    options:[{t:'2',ok:true,why:'2D holds at most 2 independent directions; vectors 3–5 must be combinations of the first two. That 2 is the dimension.'},
+      {t:'5',ok:false,why:'Having five vectors doesn\'t make five directions. In 2D only 2 can be independent.'}]}));
+  root.append(summary(['Redundant = reachable from the others.','Dimension = number of <em>independent</em> vectors.','Basis = independent + spanning = smallest complete set of rulers.']));
+}};
+
+const cBasis={id:'basis',part:'Part II · Structure',title:'Basis & coordinates — the numbers were a choice',
+  sub:'A vector\'s numbers depend on which rulers you measure with. Change rulers, the numbers change — but the vector doesn\'t move.',
+render(root){
+  head(root,11,cBasis);
+  root.append(p('When you write <code>(3, 2)</code> you secretly mean "3 of the right-ruler + 2 of the up-ruler." Those rulers are your <span class="term">basis</span>. Pick <em>different</em> rulers and the same point gets different numbers. Drag the point and read it two ways.'));
   const nar=narrate('');
   const board=vboard({arrows:[{x:3,y:2,color:C.accent,label:'p'}],snap:true,
-    extra:(ctx,toPx)=>{
-      // standard rulers (blue)
-      const [ox,oy]=toPx(0,0),[e1x,e1y]=toPx(1,0),[e2x,e2y]=toPx(0,1);
-      ctx.strokeStyle=C.accentb;ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(e1x,e1y);ctx.moveTo(ox,oy);ctx.lineTo(e2x,e2y);ctx.stroke();
-      // diagonal rulers (violet): u1=(1,1), u2=(-1,1)
-      const [d1x,d1y]=toPx(1,1),[d2x,d2y]=toPx(-1,1);
-      ctx.strokeStyle=C.accentd;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(d1x,d1y);ctx.moveTo(ox,oy);ctx.lineTo(d2x,d2y);ctx.stroke();
-    },
-    onChange:a=>{
-      const v=a[0];
-      // standard coords = (x,y). diagonal coords solve c1(1,1)+c2(-1,1)=(x,y)
-      const c1=(v.x+v.y)/2, c2=(v.y-v.x)/2;
-      nar.say(`Same arrow, two readings:<br>• in <span style="color:var(--accentb);font-weight:700">standard rulers</span>: (${fmt(v.x)}, ${fmt(v.y)})<br>• in <span style="color:var(--accentd);font-weight:700">diagonal rulers</span>: (${fmt(c1)}, ${fmt(c2)}). <span class="g">The point never moved — only the numbers did.</span>`);
-    }});
-  const stage=el('div','stage');stage.append(board,el('div','grow'));
-  L.append(stage,nar);root.append(L);
-  root.append(box('aha-box','the big realization','A vector is the underlying <em>thing</em>; its list of numbers is only its <em>shadow</em> in the rulers you picked. This is why "why did my numbers change?!" confuses people — the answer is always "you changed rulers."'));
-  root.append(box('key','why bother','Choosing clever rulers turns hard problems easy. JPEG re-describes your photo in "wavy pattern" rulers where most numbers become ~0 and can be thrown away — that\'s image compression. Noise-cancelling headphones pick rulers where "engine drone" is one number, then zero it.'));
-  root.append(quiz({question:'You re-describe a vector in a new basis and all its numbers change. Did the vector change?',
-    options:[{t:'No — only its coordinates (its "shadow") changed',ok:true,why:'Exactly. The vector is basis-independent; the numbers are just how you read it in chosen rulers.'},
-      {t:'Yes — different numbers means different vector',ok:false,why:'This is the classic trap. The point stayed put; you only changed the rulers you measure it with.'}]}));
+    extra:(ctx,toPx)=>{const[ox,oy]=toPx(0,0),[e1x,e1y]=toPx(1,0),[e2x,e2y]=toPx(0,1),[d1x,d1y]=toPx(1,1),[d2x,d2y]=toPx(-1,1);
+      ctx.strokeStyle=C.accentb;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(e1x,e1y);ctx.moveTo(ox,oy);ctx.lineTo(e2x,e2y);ctx.stroke();
+      ctx.strokeStyle=C.accentd;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(d1x,d1y);ctx.moveTo(ox,oy);ctx.lineTo(d2x,d2y);ctx.stroke();},
+    onChange:a=>{const v=a[0];const c1=(v.x+v.y)/2,c2=(v.y-v.x)/2;
+      nar.say(`Same arrow, two readings:<br>• <span style="color:var(--accentb);font-weight:700">standard rulers</span>: (${fmt(v.x)}, ${fmt(v.y)})<br>• <span style="color:var(--accentd);font-weight:700">diagonal rulers</span>: (${fmt(c1)}, ${fmt(c2)}). <span class="g">The point never moved — only the numbers.</span>`);}});
+  const L=lab('One point, two sets of rulers','See','see');L.append(stageOf(board,[]),nar);root.append(L);
+  root.append(box('aha-box','thing vs shadow','A vector is the underlying <em>thing</em>; its list of numbers is only its <em>shadow</em> in the rulers you chose. "Why did my numbers change?!" always has the same answer: you changed rulers.'));
+  root.append(box('key','why re-choose rulers','Clever rulers make hard problems easy. <b>JPEG</b> re-describes your photo in "wavy pattern" rulers where most numbers become ~0 and can be dropped — that\'s compression. <b>Noise-cancelling</b> picks rulers where "engine drone" is one number, then zeroes it.'));
+  root.append(quiz({question:'You re-describe a vector in a new basis; all its numbers change. Did the vector change?',
+    options:[{t:'No — only its coordinates (its shadow) changed',ok:true,why:'Exactly. The vector is basis-independent; the numbers are how you read it in chosen rulers.'},
+      {t:'Yes — new numbers, new vector',ok:false,why:'The classic trap. The point stayed put; you changed the measuring rulers.'}]}));
+  root.append(summary(['A basis = your chosen rulers.','Coordinates = "how much of each ruler."','Change basis → numbers change, vector doesn\'t.','Smart bases power compression and denoising.']));
 }};
 
-/* ============================================================ 7 */
-const c7={id:'length',title:'Length & distance',sub:'Geometry survives into any dimension. Length is just Pythagoras with more plus signs — and it powers "how similar are these two things?"',
+/* ============================================================
+   PART III — GEOMETRY
+   ============================================================ */
+
+const cLength={id:'length',part:'Part III · Geometry',title:'Length & distance',
+  sub:'Geometry survives into any dimension. Length is Pythagoras with more plus signs — and it powers "how similar are these two things?"',
 render(root){
-  head(root,7,c7.title,c7.sub);
-  root.append(p('The length of a vector is <code>√(sum of each number squared)</code>. In 2D that\'s the hypotenuse — Pythagoras. In a million dimensions it\'s the exact same recipe, just a longer sum.'));
-  const L=lab('Live Pythagoras','See','see');
+  head(root,12,cLength);
+  root.append(p('The length of a vector is the square root of the sum of its squared numbers. In 2D that\'s the hypotenuse — Pythagoras. In a million dimensions it\'s the exact same recipe, just a longer sum.'));
+  root.append(math('\\lVert\\mathbf v\\rVert=\\sqrt{v_1^2+v_2^2+\\cdots+v_n^2}'));
   const ro=el('div','readout','');const nar=narrate('');
   const board=vboard({arrows:[{x:3,y:2,color:C.accent,label:'v'}],snap:true,
     extra:(ctx,toPx,arrows)=>{const v=arrows[0];const[ox,oy]=toPx(0,0),[vx,vy]=toPx(v.x,v.y),[cx,cy]=toPx(v.x,0);
-      ctx.strokeStyle=C.accentb;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(cx,cy);ctx.lineTo(vx,vy);ctx.stroke();ctx.setLineDash([]);},
+      ctx.strokeStyle=C.accentb;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(cx,cy);ctx.lineTo(vx,vy);ctx.stroke();ctx.setLineDash([]);},
     onChange:a=>{const v=a[0];const len=Math.hypot(v.x,v.y);
       ro.innerHTML=`length = √(${fmt(v.x)}² + ${fmt(v.y)}²) = <b style="color:var(--accent)">${len.toFixed(2)}</b>`;
-      nar.say(`Square each number, add, square-root: <span class="k">√(${(v.x*v.x).toFixed(1)} + ${(v.y*v.y).toFixed(1)}) = ${len.toFixed(2)}</span>. The dashed legs are the triangle — but you didn't need the picture, only the arithmetic.`);
-    }});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro);stage.append(board,g);
-  L.append(stage,nar);root.append(L);
+      nar.say(`Square each, add, root: <span class="k">√(${(v.x*v.x).toFixed(1)} + ${(v.y*v.y).toFixed(1)}) = ${len.toFixed(2)}</span>. The dashed legs are the triangle — but the arithmetic didn't need it.`);}});
+  const L=lab('Live Pythagoras','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
   root.append(box('aha-box','distance = length of the difference','How far apart are two vectors? Subtract them (line by line) and take the length. That\'s <em>literally</em> how your photo app decides two images are similar: turn each into a vector, subtract, measure. Small distance = alike.'));
+  root.append(math('\\text{dist}(\\mathbf a,\\mathbf b)=\\lVert\\mathbf a-\\mathbf b\\rVert=\\sqrt{\\textstyle\\sum_i (a_i-b_i)^2}'));
   root.append(quiz({question:'Length of the 4-D vector (1, 2, 2, 4)?',
-    options:[{t:'5',ok:true,why:'√(1+4+4+16) = √25 = 5. You just measured a distance in a space you can\'t see — with grade-school arithmetic.'},
-      {t:'9',ok:false,why:'That\'s 1+2+2+4 (adding, not squaring). Square each first: 1+4+4+16=25, √25=5.'},
-      {t:'√9 = 3',ok:false,why:'Re-add the squares: 1+4+4+16 = 25, not 9. So the length is 5.'}]}));
+    options:[{t:'5',ok:true,why:'√(1+4+4+16)=√25=5. You measured a distance in a space you can\'t see, with grade-school arithmetic.'},
+      {t:'9',ok:false,why:'That\'s 1+2+2+4 (no squaring). Square first: 1+4+4+16=25, √25=5.'}]}));
+  root.append(summary(['Length = √(sum of squares) — Pythagoras, any dimension.','Distance = length of the difference vector.','This is the backbone of "similarity" in tech.']));
 }};
 
-/* ============================================================ 8 */
-const c8={id:'dot',title:'Dot product & angle',sub:'One number that tells you whether two vectors agree, are unrelated, or clash. This runs search engines, recommendations, and face unlock.',
+const cDot={id:'dot',part:'Part III · Geometry',title:'Dot product & angle',
+  sub:'One number telling you whether two vectors agree, are unrelated, or clash. It runs search, recommendations, and face unlock.',
 render(root){
-  head(root,8,c8.title,c8.sub);
-  root.append(p('The <span class="term">dot product</span> is: multiply matching numbers, add them up. Its <b>sign</b> tells you the relationship — <span class="sign pos">＋ agree</span>, <span class="sign zero">0 unrelated</span>, <span class="sign neg">－ clash</span>.'));
-  const L=lab('Rotate an arrow, watch the sign flip','See','see');
-  L.append(box('ask','find the flip','Drag the orange arrow from lined-up-with-blue around to opposite. Find the <em>exact</em> spot the sign flips ＋→−. (It\'s 90° — perpendicular means unrelated.)'));
-  const ro=el('div','readout','');const nar=narrate('');
-  let ang=Math.PI*0.2;
-  const board=vboard({showGrid:false,arrows:[
-      {x:2,y:0,color:C.accentb,label:'reference',draggable:false},
-      {x:2*Math.cos(ang),y:2*Math.sin(ang),color:C.accent,label:'drag me'}],
-    onChange:a=>{
-      // keep orange at length ~2, only angle matters
-      const o=a[1];const L2=Math.hypot(o.x,o.y)||1; o.x=o.x/L2*2;o.y=o.y/L2*2;
-      const ux=o.x/2,uy=o.y/2; const dot=1*ux+0*uy; // reference unit (1,0)
-      const deg=Math.acos(clamp(dot,-1,1))*180/Math.PI;
-      let cls,txt;
-      if(dot>0.15){cls='pos';txt='＋ positive → they broadly AGREE';}
-      else if(dot<-0.15){cls='neg';txt='－ negative → they CLASH (opposite-ish)';}
-      else{cls='zero';txt='≈0 → perpendicular → UNRELATED';}
-      ro.innerHTML=`dot ≈ <b>${dot.toFixed(2)}</b> &nbsp; angle ≈ ${deg.toFixed(0)}°`;
-      nar.say(`<span class="sign ${cls}">${cls==='pos'?'＋':cls==='neg'?'－':'0'}</span> ${txt}.`);
-    }});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro);stage.append(board,g);
-  L.append(stage,nar);root.append(L);
-  root.append(box('aha-box','why this rules the internet','"Which direction" survives into any dimension. Turn two photos into 500-number vectors, take their dot product: positive = similar, near-zero = unrelated. That\'s <em>cosine similarity</em>, run billions of times a day. You can\'t picture 500-D arrows — the dot product measures their angle anyway.'));
-  root.append(quiz({question:'Two vectors have a dot product of exactly 0. They are…',
-    options:[{t:'perpendicular / unrelated',ok:true,why:'Right. Zero dot product = a right angle = "these share nothing in common direction-wise."'},
-      {t:'identical',ok:false,why:'Identical vectors have a large positive dot product, not zero.'},
-      {t:'opposite',ok:false,why:'Opposite vectors have a negative dot product. Zero means perpendicular.'}]}));
+  head(root,13,cDot);
+  root.append(p('The <span class="term">dot product</span>: multiply matching numbers, add them up. Its <b>sign</b> reveals the relationship — <span class="sign pos">＋ agree</span>, <span class="sign zero">0 unrelated</span>, <span class="sign neg">－ clash</span>. Rotate the orange arrow and hunt for the flip.'));
+  root.append(math('\\mathbf a\\cdot\\mathbf b=a_1b_1+a_2b_2+\\cdots+a_nb_n=\\lVert\\mathbf a\\rVert\\,\\lVert\\mathbf b\\rVert\\cos\\theta'));
+  const ro=el('div','readout','');const nar=narrate('');let ang=Math.PI*.2;
+  const board=vboard({showGrid:false,arrows:[{x:2,y:0,color:C.accentb,label:'reference',draggable:false},{x:2*Math.cos(ang),y:2*Math.sin(ang),color:C.accent,label:'drag me'}],
+    onChange:a=>{const o=a[1];const L2=Math.hypot(o.x,o.y)||1;o.x=o.x/L2*2;o.y=o.y/L2*2;const dot=o.x/2;
+      const deg=Math.acos(clamp(dot,-1,1))*180/Math.PI;let cls,txt;
+      if(dot>.15){cls='pos';txt='＋ they broadly AGREE';}else if(dot<-.15){cls='neg';txt='－ they CLASH';}else{cls='zero';txt='≈0 → perpendicular → UNRELATED';}
+      ro.innerHTML=`dot ≈ <b>${dot.toFixed(2)}</b> · angle ≈ ${deg.toFixed(0)}°`;
+      nar.say(`<span class="sign ${cls}">${cls==='pos'?'＋':cls==='neg'?'－':'0'}</span> ${txt}.`);}});
+  const L=lab('Rotate, watch the sign flip','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(box('aha-box','why it rules the internet','"Which direction" survives to any dimension. Turn two photos into 500-number vectors, take their dot product: positive = similar, near-zero = unrelated. That\'s <em>cosine similarity</em>, run billions of times a day. You can\'t picture 500-D arrows — the dot product measures their angle anyway.'));
+  root.append(quiz({question:'Two vectors have dot product exactly 0. They are…',
+    options:[{t:'perpendicular / unrelated',ok:true,why:'Zero dot product = right angle = "nothing in common, direction-wise."'},
+      {t:'identical',ok:false,why:'Identical vectors have a large positive dot product.'}]}));
+  root.append(summary(['Dot product = multiply matching numbers, sum.','Sign: ＋ agree, 0 perpendicular, − clash.','It equals ‖a‖‖b‖cosθ — it secretly holds the angle.','Cosine similarity = the core of modern search/recommendation.']));
 }};
 
-/* ============================================================ 9 */
-const c9={id:'independence',title:'When a vector is redundant',sub:'Linear independence, made obvious: a vector is "redundant" if you could already reach it with the ones you had. This is what "true dimension" really counts.',
+const cProj={id:'proj',part:'Part III · Geometry',title:'Projection — a vector\'s shadow',
+  sub:'Drop a vector\'s shadow onto a direction. This "how much of me points that way?" is how you decompose anything into parts.',
 render(root){
-  head(root,9,c9.title,c9.sub);
-  root.append(p('You have vector <b>a</b>. A second vector <b>b</b> is <span class="term">redundant</span> (dependent) if it points along the same line — because then it reaches nowhere new. It\'s <span class="term">independent</span> if it opens up a genuinely new direction.'));
-  const L=lab('Independent or redundant?','See','see');
-  const ro=el('div','readout','');const nar=narrate('');
-  const board=vboard({arrows:[
-      {x:2,y:1,color:C.accentb,label:'a'},
-      {x:1.4,y:2,color:C.accentc,label:'b'}],snap:true,
-    extra:(ctx,toPx,arrows)=>{
-      // shade span: if independent -> whole plane tint; if collinear -> line
-      const a=arrows[0],b=arrows[1];
-      const cross=a.x*b.y-a.y*b.x;
-      if(Math.abs(cross)<0.25){ // near collinear -> draw the line they span
-        const [ox,oy]=toPx(0,0);const ang=Math.atan2(a.y,a.x);
-        const far=600;ctx.strokeStyle=C.accent;ctx.globalAlpha=.3;ctx.lineWidth=10;
-        ctx.beginPath();ctx.moveTo(ox-far*Math.cos(ang),oy+far*Math.sin(ang));
-        ctx.lineTo(ox+far*Math.cos(ang),oy-far*Math.sin(ang));ctx.stroke();ctx.globalAlpha=1;
-      }
-    },
-    onChange:a=>{const cross=a[0].x*a[1].y-a[0].y*a[1].x;
-      const dep=Math.abs(cross)<0.25;
-      ro.innerHTML=dep?'<b style="color:var(--accent)">REDUNDANT</b> — b lies on a\'s line':'<b style="color:var(--accentc)">INDEPENDENT</b> — new direction';
-      nar.say(dep?`<span class="r">b is redundant.</span> It points along a\'s line, so a and b together still only reach that <b>1D line</b> (highlighted). Their true dimension is 1, not 2.`
-        :`<span class="g">b is independent.</span> It opens a new direction, so together they reach the <b>whole 2D plane</b>. True dimension = 2.`);
-    }});
-  const stage=el('div','stage');const g=el('div','grow');g.append(ro);stage.append(board,g);
-  L.append(stage,nar);root.append(L);
-  root.append(box('aha-box','what dimension really counts','Dimension isn\'t "how many vectors you have" — it\'s how many <em>independent</em> ones. Ten vectors all on one line still only span a line (dimension 1). The number of genuinely-new directions is the real dimension.'));
-  root.append(box('key','basis, finally precise','A <span class="term">basis</span> is a set of vectors that are (1) independent — none redundant — and (2) span the whole space. It\'s the smallest set of rulers that can reach everywhere. Exactly n of them for an n-dimensional space.'));
-  root.append(quiz({question:'You have 5 vectors in 2D. What\'s the most independent ones you can have?',
-    options:[{t:'2 — after that, every new vector is reachable from the first two',ok:true,why:'Right. 2D holds at most 2 independent directions; vectors 3,4,5 must be combinations of the first two. That "2" is the dimension.'},
-      {t:'5 — you have five vectors',ok:false,why:'Having five doesn\'t make five directions. In 2D, only 2 can be independent; the rest are redundant.'},
-      {t:'Unlimited',ok:false,why:'The plane only has 2 independent directions. Any extra vector is a combination of those.'}]}));
+  head(root,14,cProj);
+  root.append(p('The <span class="term">projection</span> of v onto a direction is v\'s shadow on that direction — "how much of v points that way." Drag v; the teal shadow follows, and its length is exactly the dot product with the (unit) blue direction.'));
+  const nar=narrate('Drag v.');const board=projectionBoard({nar});
+  const L=lab('Cast a shadow','See','see');L.append(stageOf(board,[]),nar);root.append(L);
+  root.append(math('\\text{proj}_{\\mathbf u}\\mathbf v=(\\mathbf v\\cdot\\hat{\\mathbf u})\\,\\hat{\\mathbf u}'));
+  root.append(box('aha-box','why projection is everywhere','Splitting a vector into "along this direction" + "the rest" is how you separate signal from noise, compress data, fit lines to data (least squares), and re-express a vector in a new basis. Every ruler-reading in Chapter 11 is a projection.'));
+  root.append(summary(['Projection = shadow of v on a direction.','Its length = dot product with the unit direction.','Decomposing into parts underlies compression, denoising, and fitting.']));
 }};
 
-/* ============================================================ 10 */
-const c10={id:'higherd',title:'The leap past 3D',sub:'Here your eyes tap out — and it doesn\'t matter. You stop watching the vector and start operating it. Nothing else changes.',
+const cOrtho={id:'ortho',part:'Part III · Geometry',title:'Orthogonality — perfect independence',
+  sub:'Perpendicular vectors share nothing. They make the cleanest possible rulers — and in high dimensions, they\'re almost the only kind there is.',
 render(root){
-  head(root,10,c10.title,c10.sub);
-  root.append(p('At 3 numbers, the arrow picture dies — you can\'t draw a 4-arrow. This is where most people quit. The fix isn\'t a better brain; it\'s a new <em>habit</em>: drop the arrow, keep the list.'));
-  root.append(box('key','the reframe','Below 4 numbers you <b>watch</b> the vector (as an arrow). From 4 up, you <b>operate</b> it (as a list). The math didn\'t get harder — your eyes just stopped being the tool. Switch tools.'));
-  const L=lab('Operate a vector you can\'t picture');
-  L.append(p('Here\'s a 6-dimensional vector as six sliders. You can\'t draw its arrow — but you can absolutely turn six knobs, add another 6-vector, and read its length. Do it.'));
-  const dim=6;let v=[3,1,4,1,5,2],w=[1,2,0,3,1,1];
-  const nar=narrate('');
-  const ro=el('div','readout','');
-  function upd(){ro.textContent='v = ('+v.join(', ')+')';}
-  const knobs=el('div','knobs');
-  const api=[];
-  for(let i=0;i<dim;i++){const k=knob({label:'n'+(i+1),color:[C.accent,C.accentb,C.accentc,C.accentd,C.gold,C.green][i],min:0,max:9,value:v[i],onInput:val=>{v[i]=val;upd();}});api.push(k);knobs.append(k);}
-  const addBtn=el('button','btn','+ add w = (1,2,0,3,1,1)');
-  const lenBtn=el('button','btn ghost','measure length');
+  head(root,15,cOrtho);
+  root.append(p('Two vectors are <span class="term">orthogonal</span> (perpendicular) when their dot product is 0. Orthogonal rulers are ideal: each measures a totally separate thing, with zero overlap. The x and y axes are orthogonal; so are the "wavy patterns" JPEG uses.'));
+  root.append(box('aha-box','a teaser for the weirdness ahead','In 2D it takes effort to find perpendicular vectors. In 1000 dimensions, <em>almost every random pair is already nearly perpendicular</em> — which turns out to be the reason AI embeddings work. We\'ll feel that in Part IV.'));
+  root.append(quiz({question:'Why are orthogonal rulers especially nice?',
+    options:[{t:'Each measures a completely separate thing — no overlap, no double-counting',ok:true,why:'Right. Orthogonal bases make coordinates trivial to compute (just project) and keep dimensions from interfering.'},
+      {t:'They\'re longer',ok:false,why:'Length isn\'t the point — it\'s the zero overlap (perpendicularity) that makes them clean.'}]}));
+  root.append(summary(['Orthogonal = perpendicular = dot product 0.','Orthogonal rulers measure independent things with no overlap.','High-D is full of near-orthogonal directions (next part).']));
+}};
+
+/* ============================================================
+   PART IV — THE LEAP
+   ============================================================ */
+
+const cLeap={id:'leap',part:'Part IV · The leap',title:'Past 3D — operate, don\'t watch',
+  sub:'Here your eyes tap out, and it doesn\'t matter. You stop watching the vector and start operating it. Nothing else changes.',
+render(root){
+  head(root,16,cLeap);
+  root.append(p('At three numbers the arrow dies — you can\'t draw a 4-arrow. This is where most people quit. The fix isn\'t a better brain; it\'s a new <em>habit</em>: drop the arrow, keep the list.'));
+  root.append(el('div','pull','Below 4 numbers you <b>watch</b> the vector. From 4 up you <b>operate</b> it. The math didn\'t get harder — your eyes just stopped being the tool.'));
+  const L=lab('Operate a 6-D vector you can\'t picture');
+  L.append(p('Here\'s a 6-dimensional vector as six knobs. You can\'t draw its arrow — but you can absolutely turn six knobs, add another 6-vector, and read its length.'));
+  let v=[3,1,4,1,5,2],w=[1,2,0,3,1,1];const nar=narrate('');
+  const ro=el('div','readout','');function updRO(){ro.textContent='v = ('+v.join(', ')+')';}
+  const knobs=el('div','knobs');knobs.style.flexWrap='wrap';const api=[];
+  const pal=[C.accent,C.accentb,C.accentc,C.accentd,C.gold,C.green];
+  for(let i=0;i<6;i++){const k=knob({label:'n'+(i+1),color:pal[i],min:0,max:9,value:v[i],onInput:val=>{v[i]=val;updRO();}});api.push(k);knobs.append(k);}
+  const addBtn=el('button','btn','+ add w = (1,2,0,3,1,1)');const lenBtn=el('button','btn ghost','measure length');
   const ctr=el('div','controls');ctr.append(addBtn,lenBtn);
-  addBtn.onclick=()=>{v=v.map((x,i)=>x+w[i]);v=v.map(x=>clamp(x,0,9));api.forEach((k,i)=>k.api.set(v[i]));upd();
-    nar.say(`Added <span class="k">w</span> line by line. New v = (${v.join(', ')}). Six separate sums — you just did 6-D vector addition without a single picture.`);};
-  lenBtn.onclick=()=>{const len=Math.sqrt(v.reduce((s,x)=>s+x*x,0));
-    nar.say(`length = √(${v.map(x=>x+'²').join(' + ')}) = <b>${len.toFixed(2)}</b>. Pythagoras in 6 dimensions. It just works.`);};
-  L.append(knobs,ctr,ro,nar);upd();root.append(L);
-  root.append(box('aha-box','the whole point','You just added and measured a 6-dimensional vector as comfortably as a 2D one — because the operations only ever touch one number at a time. <span class="aha">"100-dimensional" just means "a list with 100 lines." Instantly comfortable, completely correct.</span>'));
-  root.append(quiz({question:'What\'s the honest way to "picture" a 50-dimensional vector?',
-    options:[{t:'Don\'t picture it — treat it as a list of 50 numbers and operate on them',ok:true,why:'Yes. That\'s exactly what mathematicians and ML engineers do. The list is the tool; the picture was optional all along.'},
-      {t:'Squint really hard until you see 50 axes',ok:false,why:'Nobody can, and nobody needs to. The arrow was only ever a crutch for tiny dimensions.'},
-      {t:'Imagine 3D moving through time 47 times',ok:false,why:'A fun idea, but you don\'t need any of it — a 50-number list is complete on its own.'}]}));
+  addBtn.onclick=()=>{v=v.map((x,i)=>clamp(x+w[i],0,9));api.forEach((k,i)=>k.api.set(v[i]));updRO();
+    nar.say(`Added <span class="k">w</span> line by line → (${v.join(', ')}). Six separate sums — 6-D addition, no picture needed.`);};
+  lenBtn.onclick=()=>{const len=Math.sqrt(v.reduce((s,x)=>s+x*x,0));nar.say(`length = √(${v.map(x=>x+'²').join('+')}) = <b>${len.toFixed(2)}</b>. Pythagoras in 6 dimensions. It just works.`);};
+  L.append(knobs,ctr,ro,nar);updRO();root.append(L);
+  root.append(box('aha-box','the reframe that wins','You just added and measured a 6-D vector as easily as a 2-D one — because the operations only ever touch one number at a time. <span class="aha">"100-dimensional" just means "a list with 100 lines." Instantly comfortable, completely correct.</span>'));
+  root.append(quiz({question:'The honest way to "picture" a 50-dimensional vector is…',
+    options:[{t:'Don\'t — treat it as a list of 50 numbers and operate on them',ok:true,why:'Exactly what mathematicians and ML engineers do. The list is the tool; the picture was optional all along.'},
+      {t:'Squint until you see 50 axes',ok:false,why:'Nobody can, nobody needs to. The arrow was only ever a crutch for tiny dimensions.'}]}));
+  root.append(summary(['Past 3D: operate the list, don\'t watch the arrow.','Every operation touches one number at a time.','"n-dimensional" = "a list with n lines." That\'s the whole leap.']));
 }};
 
-/* ============================================================ 11 */
-const c11={id:'weird',title:'Where your 3D gut lies',sub:'The comforting story was 90% true. Here\'s the mind-bending 10% — the geometry of high dimensions is genuinely strange, and that strangeness powers modern AI.',
+const cLadder={id:'ladder',part:'Part IV · The leap',title:'Climb the ladder',
+  sub:'Slide the dimension up and watch the exact same square-add-root recipe keep working, long after the picture is gone.',
 render(root){
-  head(root,11,c11.title,c11.sub);
-  root.append(p('The <em>arithmetic</em> of high-D is boring and familiar (add, scale, measure). But the <em>geometry</em> gets weird. Exhibit A: random directions.'));
-  const L=lab('Almost everything is perpendicular','Weird','weird');
-  L.append(box('ask','predict','In 1000 dimensions, two <em>random</em> arrows — do they tend to point a similar way, opposite ways, or at right angles? Guess, then drag the dimension slider up.'));
-  L.append(orthoLab());
-  L.append(box('aha-box','the weirdness is the feature','As dimension grows, random vectors crowd toward 90° — nearly everything is perpendicular to everything. That\'s <em>why</em> AI works: high-D has room for millions of near-orthogonal "concepts" that barely interfere. Your 3D gut said "no way"; the formula said "yes," and up here the formula wins.'));
-  root.append(L);
-  root.append(h3('Two more facts your gut refuses to believe'));
+  head(root,17,cLadder);
+  root.append(p('The best way to trust higher dimensions is to watch one fact — length — climb the dimensions without ever changing its recipe. Slide the dimension from 1 to 8. Notice the moment your ability to picture it ends (around 3–4), and notice that the arithmetic <em>doesn\'t care at all</em>.'));
+  const L=lab('Dimension climber','Play');L.append(ladder());root.append(L);
+  root.append(box('aha-box','the pattern is your new eyes','You can\'t see 7D, but you can finish the pattern: length is always √(sum of squares). The recipe is dimension-blind. In high dimensions, <em>the formula is what you "see" with</em> — and it never lies to you the way a forced mental picture would.'));
+  root.append(el('div','pull','You didn\'t "understand" 7 dimensions in a flash of insight. You added a few lists and measured a few lengths, and one day you noticed you\'d stopped flinching. That\'s the whole enlightenment.'));
+  root.append(summary(['The length recipe is identical in every dimension.','The picture ends ~3D; the arithmetic never does.','Finishing the pattern is how you reason past what you can see.']));
+}};
+
+const cWeird={id:'weird',part:'Part IV · The leap',title:'Where your 3D gut lies',
+  sub:'The comforting story was 90% true. Here\'s the mind-bending 10% — high-dimensional geometry is genuinely strange, and that strangeness powers modern AI.',
+render(root){
+  head(root,18,cWeird);
+  root.append(p('The <em>arithmetic</em> of high-D is familiar and boring. But the <em>geometry</em> gets weird. Exhibit A: random directions. Predict first — in 1000 dimensions, are two random arrows usually similar, opposite, or at right angles? Then drag the slider.'));
+  const L=lab('Almost everything is perpendicular','Weird','weird');L.append(orthoLab());root.append(L);
+  root.append(box('aha-box','the weirdness IS the feature','As dimension grows, random vectors crowd toward 90° — nearly everything is perpendicular to everything. That\'s <em>why</em> AI works: high-D has room for millions of near-orthogonal "concepts" that barely interfere. Your 3D gut said "no way"; the formula said "yes," and up here the formula wins.'));
+  root.append(h3('Two more facts your gut refuses'));
   root.append(el('ul',null,`
-    <li><b>The orange is all peel.</b> In 100-D, over 99% of a ball\'s volume sits in its outer 5% shell. The "juicy middle" essentially vanishes.</li>
-    <li><b>The box is all corners.</b> In 10-D, the ball inside a box fills only 0.25% of it — 99.75% of the box lives out in corners the ball can\'t reach.</li>`));
-  root.append(box('key','the mature takeaway','The recipes (add, scale, length, dot product) stay <em>perfect</em> in every dimension. What breaks is your <em>expectation</em> about the results. Keep the list and the knobs for doing the math — and a third rule: don\'t trust your 3D gut about volumes, corners, and angles. Up here, the formula is your eyes.'));
-  root.append(quiz({question:'Why is "almost everything is perpendicular" actually useful?',
-    options:[{t:'High-D has room for millions of near-orthogonal directions, so distinct concepts barely interfere',ok:true,why:'Exactly — it\'s the backbone of word/image embeddings. Independence comes almost for free in high dimensions.'},
-      {t:'It isn\'t useful, just a curiosity',ok:false,why:'It\'s one of the load-bearing facts of modern ML — it\'s why embeddings can pack so much meaning.'},
-      {t:'It makes vectors easier to draw',ok:false,why:'You still can\'t draw them — but you can pack a lot of nearly-independent meaning into them, which is the real win.'}]}));
+    <li><b>The orange is all peel.</b> In 100-D, over 99% of a ball\'s volume sits in its outer 5% shell. The juicy middle essentially vanishes.</li>
+    <li><b>The box is all corners.</b> In 10-D, the ball inside a box fills just 0.25% of it — 99.75% lives out in corners the ball can\'t reach.</li>`));
+  root.append(box('key','the mature takeaway','The recipes (add, scale, length, dot product) stay <em>perfect</em> in every dimension. What breaks is your <em>expectation</em> about the results. Keep the list and the knobs for doing the math — plus a third rule: don\'t trust your 3D gut about volumes, corners, and angles. Up here, the formula is your eyes.'));
+  root.append(quiz({question:'Why is "almost everything is perpendicular" useful?',
+    options:[{t:'High-D fits millions of near-orthogonal directions, so distinct concepts barely interfere',ok:true,why:'The backbone of word/image embeddings — independence is nearly free in high dimensions.'},
+      {t:'It isn\'t useful, just a curiosity',ok:false,why:'It\'s a load-bearing fact of modern ML — it\'s why embeddings pack so much meaning.'}]}));
+  root.append(summary(['Random high-D vectors are almost always near-perpendicular.','Volume flees to the shell; boxes become all-corners.','Recipes stay exact; only your visual expectations break.','This weirdness is exactly what makes embeddings work.']));
 }};
 
-/* ============================================================ 12 */
-const c12={id:'used',title:'Where this actually lives',sub:'You now own the whole toolkit. Here\'s it running in the real world — and a tiny "similarity search" you can play with.',
+const cInfinite={id:'infinite',part:'Part IV · The leap',title:'∞ dimensions — functions are vectors',
+  sub:'The final leap, and it feels easy: give a vector one number for every point on a line, and you\'ve invented a function.',
 render(root){
-  head(root,12,c12.title,c12.sub);
-  root.append(p('Everything you learned — list, add, scale, length, dot product — is exactly what powers search, recommendations, and AI. Here\'s a toy version: three "documents" as 3-number vectors (how much they\'re about <b>cats</b>, <b>code</b>, <b>cooking</b>). Tune your query and watch which doc wins by <em>angle</em>.'));
+  head(root,19,cInfinite);
+  root.append(p('A vector had one number per slot. A photo had one per pixel. So what if you had one number for <em>every point x on a line</em> — no gaps? That rule, "a number at every x," is exactly a <b>function</b> f(x). A function is a vector with infinitely many numbers.'));
+  root.append(box('key','the same two moves survive','Add two functions: (f+g)(x) = f(x)+g(x) — add them at every point. Scale: (2f)(x) = 2·f(x) — turn every point up. Your volume knob is scalar multiplication on an infinite-dimensional vector. Length becomes an integral (a continuous sum), and the dot product too:'));
+  root.append(math('\\langle f,g\\rangle=\\int f(x)\\,g(x)\\,dx \\qquad \\lVert f\\rVert=\\sqrt{\\int f(x)^2\\,dx}'));
+  const L=lab('Add two functions, point by point','See','see');
+  const canvas=el('canvas');canvas.width=440;canvas.height=200;const ctx=VS.hidpi(canvas);
+  const nar=narrate('');let A=1,B=1;
+  function draw(){const W=440,H=200,mid=H/2;ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.softline;ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();
+    function plot(fn,color,lw){ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.beginPath();
+      for(let px=0;px<=W;px++){const x=px/W*6;const y=fn(x);const py=mid-y*38;px===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}ctx.stroke();}
+    const f=x=>A*Math.sin(x*1.6), g=x=>B*Math.cos(x*2.2);
+    plot(f,C.accentb,1.6);plot(g,C.accentc,1.6);plot(x=>f(x)+g(x),C.accent,2.6);
+    nar.say(`<span style="color:var(--accentb)">f</span> + <span style="color:var(--accentc)">g</span> = <span style="color:var(--accent)">f+g</span>, added at <em>every</em> point x. Same line-by-line addition — just infinitely many lines.`);}
+  const rA=rangeRow({label:'amount of f',min:-2,max:2,step:.1,value:1,fmt:v=>v.toFixed(1),onInput:v=>{A=v;draw();}});
+  const rB=rangeRow({label:'amount of g',min:-2,max:2,step:.1,value:1,fmt:v=>v.toFixed(1),onInput:v=>{B=v;draw();}});
+  L.append(rA,rB,stageOf(canvas,[]),nar);draw();root.append(L);
+  root.append(box('aha-box','one idea, all the way up','Fourier analysis, quantum mechanics, signal processing, the guts of your music app — all of it is "treat functions as vectors in an infinite-dimensional space and reuse the two moves." You didn\'t level up to infinity; infinity moved in next door and turned out to use the same recipes.'));
+  root.append(summary(['A function = a vector with one number per point (∞-dimensional).','Add/scale still work — at every point.','Length & dot product become integrals.','Same idea, all the way to infinity.']));
+}};
+
+/* ============================================================
+   PART V — PAYOFF & MASTERY
+   ============================================================ */
+
+const cUsed={id:'used',part:'Part V · Payoff',title:'Where this actually lives',
+  sub:'You own the whole toolkit now. Here it is running the real world — plus a live similarity search you can play with.',
+render(root){
+  head(root,20,cUsed);
+  root.append(p('Everything you learned — list, add, scale, length, dot product — is exactly what powers search, recommendations, and AI. Here\'s a toy: three "documents" as 3-number vectors (how much about <b>cats</b>, <b>code</b>, <b>cooking</b>). Tune your query; watch which wins by <em>angle</em>.'));
   const L=lab('Similarity search, live');
-  const docs=[
-    {name:'"My cat sat on my keyboard"',v:[0.8,0.5,0.1],color:C.accent},
-    {name:'"A recipe for lentil curry"',v:[0.0,0.1,0.95],color:C.accentc},
-    {name:'"Debugging a null pointer"',v:[0.05,0.95,0.1],color:C.accentb}];
-  const q=[0.7,0.4,0.2];
-  const nar=narrate('');
-  const bars=el('div');bars.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:6px';
+  const docs=[{name:'"My cat sat on my keyboard"',v:[.8,.5,.1],color:C.accent},
+    {name:'"A recipe for lentil curry"',v:[0,.1,.95],color:C.accentc},
+    {name:'"Debugging a null pointer"',v:[.05,.95,.1],color:C.accentb}];
+  const q=[.7,.4,.2];const nar=narrate('');const bars=el('div');bars.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:6px';
   function cos(a,b){let d=0,na=0,nb=0;for(let i=0;i<3;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return d/(Math.sqrt(na*nb)||1);}
-  function upd(){
-    const scored=docs.map(d=>({...d,s:cos(q,d.v)})).sort((a,b)=>b.s-a.s);
-    bars.innerHTML='';
-    scored.forEach((d,i)=>{const row=el('div');row.style.cssText='display:flex;align-items:center;gap:10px';
+  function upd(){const sc=docs.map(d=>({...d,s:cos(q,d.v)})).sort((a,b)=>b.s-a.s);bars.innerHTML='';
+    sc.forEach((d,i)=>{const row=el('div');row.style.cssText='display:flex;align-items:center;gap:10px';
       const bar=el('div');bar.style.cssText=`height:20px;border-radius:5px;background:${d.color};width:${Math.max(4,d.s*220)}px;transition:width .2s`;
-      row.append(el('div',null,(i===0?'🏆 ':'&nbsp;&nbsp;&nbsp;')+d.name),bar,el('b',null,d.s.toFixed(2)));
-      bars.append(row);});
-    nar.say(`Your query = (cats ${q[0].toFixed(1)}, code ${q[1].toFixed(1)}, cooking ${q[2].toFixed(1)}). Winner: <span class="k">${scored[0].name}</span> — highest cosine similarity. Change the sliders and the winner changes.`);
-  }
+      row.append(el('div',null,(i===0?'🏆 ':'&nbsp;&nbsp;&nbsp;')+d.name),bar,el('b',null,d.s.toFixed(2)));bars.append(row);});
+    nar.say(`Query = (cats ${q[0].toFixed(1)}, code ${q[1].toFixed(1)}, cooking ${q[2].toFixed(1)}). Winner: <span class="k">${sc[0].name}</span> — highest cosine similarity.`);}
   const r1=rangeRow({label:'about cats',min:0,max:1,step:.05,value:q[0],fmt:v=>v.toFixed(2),onInput:v=>{q[0]=v;upd();}});
   const r2=rangeRow({label:'about code',min:0,max:1,step:.05,value:q[1],fmt:v=>v.toFixed(2),onInput:v=>{q[1]=v;upd();}});
   const r3=rangeRow({label:'about cooking',min:0,max:1,step:.05,value:q[2],fmt:v=>v.toFixed(2),onInput:v=>{q[2]=v;upd();}});
   L.append(r1,r2,r3,bars,nar);upd();root.append(L);
-  root.append(box('aha-box','that\'s the whole magic trick','Real search engines and chatbots do <em>exactly</em> this — just with vectors of hundreds or thousands of numbers instead of 3, produced by a neural net. "Find similar" = "smallest angle." You now understand the core of it.'));
-  root.append(h2('You made it. Here\'s everything, in four lines.'));
-  root.append(box('key','the whole subject',`
-    <b>• a vector</b> = a list of numbers (equivalently, a row of independent knobs)<br>
-    <b>• two moves</b> = add (line by line) and scale (every line by one number)<br>
-    <b>• geometry</b> = length is √(sum of squares); direction/similarity is the dot product<br>
-    <b>• dimension</b> = how many <em>independent</em> numbers — and it can be 2, 900, or ∞ without changing a thing`));
-  root.append(p('<span class="aha" style="font-size:1.1rem">You no longer believe in a magic room you can\'t enter. You just see a longer list. That\'s internalized. That\'s the whole thing.</span>'));
+  root.append(box('aha-box','that\'s the whole magic trick','Real search engines and chatbots do exactly this — with vectors of hundreds or thousands of numbers from a neural net. "Find similar" = "smallest angle." You now understand the core of it.'));
+  root.append(h3('More places you\'re now equipped to see it'));
+  root.append(el('ul',null,`
+    <li><b>Word embeddings</b> — words as ~300-D vectors; "king − man + woman ≈ queen" is literally vector addition.</li>
+    <li><b>Recommendations</b> — you and each movie are vectors; your match is a dot product.</li>
+    <li><b>Computer graphics</b> — every rotation, scale, and camera move is linear algebra on 3-vectors.</li>
+    <li><b>Machine learning</b> — a neural network is stacks of "multiply by a matrix, then bend" — matrices are just vectors of vectors.</li>`));
+  root.append(summary(['Similarity = angle = dot product, at scale.','Embeddings turn words/images/users into vectors.','You now understand the core operation behind modern AI.']));
 }};
 
-return [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12];
+const cAxioms={id:'axioms',part:'Part V · Payoff',title:'The rules of the club (axioms)',
+  sub:'What officially makes something a "vector space." They read like legalese but each one is just a promise that your intuition transfers.',
+render(root){
+  head(root,21,cAxioms);
+  root.append(p('A <span class="term">vector space</span> is <em>any</em> collection of things you can <b>add</b> and <b>scale</b>, where a short list of promises holds. Not arrows — <em>anything</em>: numbers, functions, matrices, quantum states, financial portfolios. If it keeps the promises, every theorem you learned works for it, free.'));
+  const promises=[['Order-blind addition','a + b = b + a. Your cart plus theirs = theirs plus yours.'],
+    ['Grouping-blind addition','(a+b)+c = a+(b+c). Add in any grouping.'],
+    ['A "do-nothing" vector','the zero vector; adding it changes nothing.'],
+    ['Every vector has an undo','a + (−a) = 0. No vector is a trap.'],
+    ['Scaling composes','a(b·v) = (ab)·v. Triple then double = sextuple.'],
+    ['Scaling by 1 does nothing','1·v = v.'],
+    ['Scaling spreads over addition','a(u+v)=au+av and (a+b)v=av+bv.']];
+  const g=el('div','glossary');promises.forEach(([t,d])=>{const it=el('div','gitem');it.innerHTML=`<b>${t}</b> — ${d}`;g.append(it);});
+  root.append(g);
+  root.append(box('aha-box','what the promises buy you','They are a <em>guarantee your intuition transfers</em>. Whatever weird object you\'re holding, if it passes this checklist, then adding, scaling, length, distance, angle, and direction all behave exactly like they did on childhood graph paper. That\'s why the same machinery describes arrows, photos, songs, and functions.'));
+  root.append(quiz({question:'The set of all functions f(x), with normal add & scale — is it a vector space?',
+    options:[{t:'Yes — you can add and scale them, and all the promises hold',ok:true,why:'Correct. Functions form one of the most important vector spaces in all of math and physics.'},
+      {t:'No — vectors have to be arrows',ok:false,why:'That\'s the myth this whole course dismantles. "Vector" means "member of a vector space" — arrows are just one example.'}]}));
+  root.append(summary(['Vector space = things you can add & scale, obeying 7 promises.','The promises guarantee your 2D intuition transfers.','Arrows, functions, matrices, portfolios — all vector spaces.']));
+}};
+
+const cReview={id:'review',part:'Part V · Payoff',title:'You made it — the whole subject, and a review',
+  sub:'Everything, compressed. Then a quick self-test to prove it stuck, and a glossary to keep.',
+render(root){
+  head(root,22,cReview);
+  root.append(el('div','pull','You no longer believe in a magic room you can\'t enter. You just see a longer list. That\'s internalized. That\'s the whole thing.'));
+  root.append(box('key','the entire course in four lines',`
+    <b>• a vector</b> = a list of numbers (equivalently: arrow, knobs, point)<br>
+    <b>• two moves</b> = add (line by line) and scale (every line by one number)<br>
+    <b>• geometry</b> = length is √(sum of squares); direction/similarity is the dot product<br>
+    <b>• dimension</b> = how many <em>independent</em> numbers — can be 2, 900, or ∞ without changing a thing`));
+  root.append(h3('Prove it stuck'));
+  root.append(quiz({question:'(2, 0, 5, 1) + (3, 4, 1, 1) = ?',options:[
+    {t:'(5, 4, 6, 2)',ok:true,why:'Line by line. You just did 4-D addition without a picture.'},
+    {t:'(5, 4, 6, 1)',ok:false,why:'Last line: 1+1=2, not 1.'}]}));
+  root.append(quiz({question:'A 1000-dimensional vector is best thought of as…',options:[
+    {t:'a list of 1000 numbers you operate on',ok:true,why:'Yes. Not a shape to visualise — a list to compute with.'},
+    {t:'an arrow in a room you must imagine',ok:false,why:'No arrow survives past 3D, and you never needed one.'}]}));
+  root.append(quiz({question:'Two random vectors in very high dimensions are almost always…',options:[
+    {t:'nearly perpendicular',ok:true,why:'The concentration effect — and the reason embeddings can pack so much meaning.'},
+    {t:'nearly parallel',ok:false,why:'The opposite — they crowd toward 90°, not 0°.'}]}));
+  root.append(h3('Glossary to keep'));
+  const terms=[['vector','a list of numbers you can add and scale'],['dimension','how many independent numbers in the list'],
+    ['linear combination','scale some vectors, then add — a "smoothie"'],['span','every point reachable by scaling & adding some vectors'],
+    ['independent','not reachable from the others; a genuinely new direction'],['basis','a smallest set of rulers (independent + spanning)'],
+    ['norm / length','√(sum of squares)'],['dot product','multiply matching numbers & sum; sign = agree/perp/clash'],
+    ['orthogonal','perpendicular; dot product 0'],['vector space','anything you can add & scale that obeys the 7 promises']];
+  const g=el('div','glossary');terms.forEach(([t,d])=>{const it=el('div','gitem');it.innerHTML=`<b>${t}</b> — ${d}`;g.append(it);});
+  root.append(g);
+  root.append(box('aha-box','where to go next','You\'re ready for matrices (functions that move whole spaces around), determinants (how much they stretch), eigenvectors (the directions a matrix leaves alone), and everything in machine learning. It\'s all this — lists, two moves, geometry — just stacked. Go forth and out-list the universe.'));
+}};
+
+return [c0,cRep,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
+        cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cUsed,cAxioms,cReview];
 })();

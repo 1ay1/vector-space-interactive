@@ -1,40 +1,36 @@
-# VectorSpace — learn vector spaces by touching them
+# VectorSpace — internalize *n* dimensions
 
-An interactive, self‑contained web course that teaches **vector spaces** from
-zero to deep — intuition first. You **drag, predict, and watch** until a
-900‑dimensional space feels as ordinary as a shopping list.
+An interactive, self‑contained web course that teaches **vector spaces** from a
+single number on a line all the way to **infinite dimensions** — intuition first.
+You **drag, predict, and watch** across 22 short chapters until a 900‑dimensional
+space feels as ordinary as a shopping list.
 
 **▶ Live:** <https://1ay1.github.io/vector-space-interactive/>
 
-No build step. No dependencies. No signup. Open `index.html` and it runs.
+No build step. No dependencies (MathJax loads from a CDN for the formulas).
+No signup. Open `index.html` and it runs.
 
 ---
 
-## What's inside
+## The course — 22 chapters across 5 parts
 
-Twelve short interactive chapters, each built around **predict → do → get it**:
+**Part 0 · Orientation** — the one idea; the four faces of a vector (list · arrow · knobs · point), all synced live.
 
-| # | Chapter | You interact with |
-|---|---------|-------------------|
-| 1 | What a vector actually is | RGB knobs → a live colour swatch |
-| 2 | Vectors as arrows | a draggable arrow on a grid |
-| 3 | Adding vectors | animated line‑by‑line list add + tip‑to‑tail arrows |
-| 4 | Scaling vectors | a brightness slider on a 121‑D pixel photo |
-| 5 | Combinations & span | tune two dials to reach a target — feel the whole plane |
-| 6 | Basis & coordinates | one point, two sets of rulers |
-| 7 | Length & distance | live Pythagoras |
-| 8 | Dot product & angle | rotate an arrow, watch the sign flip |
-| 9 | Linear independence | span snaps between a line and the whole plane |
-| 10 | The leap past 3D | operate a real 6‑dimensional vector |
-| 11 | Where your 3D gut lies | near‑orthogonality histogram (concentration of measure) |
-| 12 | Where this lives | a live cosine‑similarity search |
+**Part I · Build it** — 1D number line · 2D plane & arrow · a **rotatable 3D** vector · adding (line‑by‑line + tip‑to‑tail) · scaling (a live 121‑D photo).
 
-Every lab has a live "narrator" that translates your actions into vector terms,
-plus quizzes with real feedback. Progress is saved in `localStorage`.
+**Part II · Structure** — linear combinations · **span** (watch it flip line ↔ plane) · independence & redundancy · basis & coordinates (change your rulers).
+
+**Part III · Geometry** — length & distance (live Pythagoras) · dot product & angle (the sign‑flip) · projection (a vector's shadow) · orthogonality.
+
+**Part IV · The leap** — operate a **6‑D** vector you can't picture · a dimension‑climbing ladder · **high‑D weirdness** (near‑orthogonality sampler) · **∞ dimensions** (functions as vectors).
+
+**Part V · Payoff** — a live **similarity search** · the axioms as promises · a glossary + self‑test capstone.
+
+Every lab uses **predict → do → get it**: a prompt makes you guess, you
+interact, and a live "narrator" translates your action into vector terms. Most
+chapters end with a quiz and a summary. Progress is saved in `localStorage`.
 
 ## Run locally
-
-Just open the file:
 
 ```sh
 open index.html          # macOS
@@ -42,20 +38,15 @@ open index.html          # macOS
 python3 -m http.server   # then visit http://localhost:8000
 ```
 
-## Deploy on GitHub Pages
-
-1. Push this repo to GitHub (done).
-2. **Settings → Pages → Source: Deploy from a branch → `main` / root.**
-3. Your site goes live at `https://<user>.github.io/<repo>/`.
-
 ## Project layout
 
 ```
-index.html    shell: sidebar, main, landing
+index.html    shell: sidebar (parts + chapters), main, landing, MathJax
 styles.css    the warm design system
-engine.js     reusable interactive widgets (knobs, vector board, quiz, …)
-chapters.js   the 12‑chapter course content
-app.js        navigation, routing, progress
+engine.js     reusable widgets: knobs, 2D/3D boards, span-fill, four-rep,
+              projection, dimension ladder, orthogonality sampler, quiz…
+chapters.js   the 22-chapter course content
+app.js        navigation, progress, routing, math typesetting
 ```
 
 ## License

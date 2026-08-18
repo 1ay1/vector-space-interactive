@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Vector Space — learn it like never before</title>
+<title>VectorSpace — internalize n dimensions</title>
 <link rel="stylesheet" href="styles.css" />
+<script>
+  window.MathJax = {
+    tex:{inlineMath:[['\\(','\\)']], displayMath:[['$$','$$']]},
+    svg:{fontCache:'global'},
+    startup:{typeset:false}
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 
@@ -41,14 +49,15 @@
 <!-- landing overlay -->
 <div id="landing">
   <div class="landing-inner">
-    <div class="landing-badge">interactive course · self-contained · no signup</div>
-    <h1>Understand <em>vector spaces</em><br>the way no textbook lets you.</h1>
-    <p class="landing-lead">Not formulas first. <b>Intuition first</b> — you'll drag,
-      predict, and watch, until a 900-dimensional space feels as ordinary as a
-      shopping list. Twelve short interactive chapters. Start anywhere.</p>
+    <div class="landing-badge">interactive course · 22 chapters · self-contained · no signup</div>
+    <h1>Internalize <em>vector spaces</em><br>until <em>n</em> dimensions feel like 2 or 3.</h1>
+    <p class="landing-lead">Not formulas first — <b>intuition first</b>. You'll drag,
+      predict, and watch across 22 short chapters, from a single number on a line all the
+      way to infinite dimensions — until a 900-dimensional space feels as ordinary as a
+      shopping list.</p>
     <div class="landing-cta">
-      <button id="startBtn" class="big-cta">Start chapter 1 →</button>
-      <button id="jumpBtn" class="ghost-cta">jump to the map</button>
+      <button id="startBtn" class="big-cta">Start the course →</button>
+      <button id="jumpBtn" class="ghost-cta">browse the chapters</button>
     </div>
     <div class="landing-marquee" id="landingChips"></div>
   </div>

@@ -192,3 +192,40 @@ table.list th:first-child,table.list td:first-child{text-align:left;color:var(--
   #content{padding-top:70px}
   #landing h1{font-size:2.1rem}
 }
+
+/* ---------------- PART HEADERS (sidebar) ---------------- */
+.part-head{font-size:.68rem;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--accentd);margin:14px 8px 4px;padding-top:8px;border-top:1px solid var(--soft)}
+.part-head:first-child{border-top:none;padding-top:0;margin-top:2px}
+
+/* part banner in content */
+.part-banner{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;color:#fff;background:var(--accentd);padding:4px 11px;border-radius:6px;margin-bottom:6px}
+
+/* summary / recap */
+.summary{background:linear-gradient(180deg,#fff,var(--soft));border:1px solid var(--softline);
+  border-radius:12px;padding:16px 18px;margin:22px 0}
+.summary h4{margin:0 0 8px;font-size:.8rem;letter-spacing:.6px;text-transform:uppercase;color:var(--accent)}
+.summary ul{margin:0;padding-left:1.2em}
+
+/* math display sizing */
+mjx-container{font-size:1.05em!important}
+.mathblock{margin:14px 0;text-align:center;overflow-x:auto}
+
+/* glossary */
+.glossary{display:grid;gap:10px;margin:16px 0}
+.gitem{background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px 14px}
+.gitem b{color:var(--accentb)}
+
+/* representation legend chips */
+.replegend{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.repchip{font-size:.78rem;background:var(--soft);border-radius:7px;padding:4px 10px;font-weight:600}
+.repchip .dotc{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* two-column helper */
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.cols2{grid-template-columns:1fr}}
+
+/* pull-quote */
+.pull{font-size:1.25rem;line-height:1.4;color:var(--ink);border-left:4px solid var(--gold);
+  padding:6px 0 6px 16px;margin:20px 0;font-weight:500}
