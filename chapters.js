@@ -394,6 +394,7 @@ render(root){
     result:'Yes — \\((7,4) = \\tfrac{17}{5}(2,1) + \\tfrac15(1,3)\\). “Is it in the span?” ALWAYS means “does this system have a solution?” — and since the two vectors are independent, the answer here is yes for <em>every</em> target.'}));
   root.append(box('key','span in 3D: line, plane, or all of space','One nonzero vector spans a <b>line</b>. Two independent vectors span a <b>plane</b> (through the origin). Three independent vectors span <b>all of \\(\\mathbb R^3\\)</b>. Add a fourth vector in 3D and it\'s guaranteed redundant — there\'s no room for a fourth independent direction. The number of independent vectors = the dimension of the span.'));
   root.append(box('trap','the tempting wrong picture','It\'s natural to imagine the span of \\(\\mathbf a\\) and \\(\\mathbf b\\) as the <em>region between them</em> — like a pizza slice. <b>Wrong.</b> The scalars can be <em>negative</em> and <em>bigger than 1</em>, so you shoot out past both vectors and behind the origin in every direction. Two independent 2D vectors don\'t span a wedge — they span the <em>entire plane</em>. “Between” is a convex-combination idea; span is a linear-combination idea, and linear is much bigger.'));
+  root.append(box('connect','connects to','“Is \\(v\\) in the span?” is the SAME question as “does \\(A\\mathbf x=\\mathbf b\\) have a solution?” — which you\'ll solve by elimination in <a onclick="vsGoTo(\'elim\')">Gaussian elimination</a>, and whose answer is decided by <a onclick="vsGoTo(\'rank\')">rank</a>. Span (geometry) and systems (algebra) are two views of one thing.'));
   root.append(summary(['Span = all points reachable by scale-and-add.','“Is v in the span?” = “does c₁a+c₂b+…=v have a solution?”','3D spans: 1 vec → line, 2 → plane, 3 → all of space.','Different directions → whole space; dependent → something smaller.']));
 }};
 
@@ -662,6 +663,13 @@ render(root){
   const rB=rangeRow({label:'amount of g',min:-2,max:2,step:.1,value:1,fmt:v=>v.toFixed(1),onInput:v=>{B=v;draw();}});
   L.append(rA,rB,stageOf(canvas,[]),nar);draw();root.append(L);
   root.append(box('aha-box','one idea, all the way up','Fourier analysis, quantum mechanics, signal processing, the guts of your music app — all of it is "treat functions as vectors in an infinite-dimensional space and reuse the two moves." You didn\'t level up to infinity; infinity moved in next door and turned out to use the same recipes.'));
+  root.append(worked({title:'are these two functions perpendicular?',
+    prompt:'Vectors use a dot product; functions use an <em>integral</em>. Check whether \\(\\sin x\\) and \\(\\cos x\\) are “perpendicular” on \\([0,2\\pi]\\): compute \\(\\langle \\sin,\\cos\\rangle=\\int_0^{2\\pi}\\sin x\\cos x\\,dx\\).',
+    steps:[
+      'The “dot product” of functions is \\(\\int f(x)g(x)\\,dx\\) — the same “multiply matching entries and sum,” with the sum becoming an integral.',
+      'Use \\(\\sin x\\cos x=\\tfrac12\\sin 2x\\), so the integral is \\(\\tfrac12\\int_0^{2\\pi}\\sin 2x\\,dx\\).',
+      'Over a full period, \\(\\int_0^{2\\pi}\\sin 2x\\,dx=0\\).'],
+    result:'The inner product is <b>0</b> — \\(\\sin\\) and \\(\\cos\\) are <em>orthogonal functions</em>. That perpendicularity is exactly what lets Fourier read off each frequency independently (Part XIX). “Perpendicular” works for functions just like arrows — the integral is the dot product.'}));
   root.append(summary(['A function = a vector with one number per point (∞-dimensional).','Add/scale still work — at every point.','Length & dot product become integrals.','Same idea, all the way to infinity.']));
 }};
 
@@ -1042,6 +1050,7 @@ render(root){
   root.append(quiz({question:'A 3×3 matrix has determinant 0. What did it do to 3D space?',
     options:[{t:'Squashed it into a plane or line — volume became 0, so it\'s not invertible',ok:true,why:'Exactly. det=0 means a collapsed dimension: the output is flat, information is lost, no inverse exists.'},
       {t:'Doubled every volume',ok:false,why:'That would be det=2. Zero means the volume collapsed to nothing.'}]}));
+  root.append(box('connect','connects to','\\(\\det=0\\) isn\'t a lone fact — it\'s one face of a single idea. It means the matrix has no <a onclick="vsGoTo(\'inverse\')">inverse</a>, has <a onclick="vsGoTo(\'rank\')">rank</a> below full, and has <b>0</b> as an <a onclick="vsGoTo(\'eigen\')">eigenvalue</a>. See them move together in the <a onclick="vsGoTo(\'matrixlab\')">Matrix Lab</a> and unified in the <a onclick="vsGoTo(\'imt\')">Invertible Matrix Theorem</a>.'));
   root.append(summary(['det = signed area/volume scale factor of the transform.','det < 0 = orientation flipped; det = 0 = dimension collapsed.','det(AB)=det(A)det(B); det=0 ⇔ singular ⇔ no inverse.']));
 }};
 
@@ -1099,6 +1108,7 @@ render(root){
   root.append(quiz({question:'A·v = λv means…',
     options:[{t:'The matrix only scales v (by λ) without changing its direction',ok:true,why:'Exactly — that\'s the definition of an eigenvector v with eigenvalue λ.'},
       {t:'v is the largest column of A',ok:false,why:'No relation. It means applying A to v just stretches v.'}]}));
+  root.append(box('connect','connects to','Eigenvectors are the engine of the rest of the course: they make <a onclick="vsGoTo(\'diag\')">diagonalization</a> and huge matrix powers cheap, they ARE the answer in <a onclick="vsGoTo(\'markov\')">Markov chains &amp; PageRank</a> (the λ=1 eigenvector), they give the axes in <a onclick="vsGoTo(\'pca\')">PCA</a>, and — for symmetric matrices — they\'re guaranteed perpendicular by the <a onclick="vsGoTo(\'spectral\')">spectral theorem</a>.'));
   root.append(summary(['Eigenvector: a direction the matrix only stretches, never rotates.','Eigenvalue λ: the stretch factor. A·v = λv.','Found via det(A − λI) = 0.','They turn hard transforms into simple scalings — the key to powers, PageRank, PCA.']));
 }};
 

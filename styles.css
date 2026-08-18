@@ -90,6 +90,9 @@ code, .vec{font-family:var(--mono);background:var(--soft);padding:2px 7px;border
 .box.ask{background:#F3ECFB;border-left:4px solid var(--accentd)}
 .box.ask b{color:var(--accentd)}
 .box.trap{background:#FDEEE8;border-left:4px solid var(--accent)}
+.box.connect{background:#EAF3FC;border-left:4px solid var(--accentb)}
+.box.connect .box-tag{color:var(--accentb)}
+.box.connect a{color:var(--accentb);text-decoration:none;border-bottom:1px dashed var(--accentb);cursor:pointer}
 .box.trap b{color:var(--accent)}
 .box .box-tag{font-size:.7rem;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
   display:inline-block;margin-bottom:5px}

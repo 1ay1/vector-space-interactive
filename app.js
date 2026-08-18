@@ -114,6 +114,8 @@
 
   prevBtn.onclick=()=>go(idx-1);
   nextBtn.onclick=()=>go(idx+1);
+  // let connection links jump to a chapter by id
+  window.vsGoTo=function(id){const i=CHAPTERS.findIndex(c=>c.id===id);if(i>=0)go(i);};
   menuToggle.onclick=()=>sidebar.classList.toggle('open');
   document.getElementById('resetProgress').onclick=()=>{
     seen=new Set(); saveSeen(); refreshChrome();
