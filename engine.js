@@ -1114,6 +1114,95 @@ function fourierSynth(){
   const wrap=el('div');wrap.append(cv,rows,nar);render();return wrap;
 }
 
+/* =========================================================
+   PRACTICE ENGINE
+   A bank of problem generators. Each returns:
+     {prompt(html), answer(string|number|array), check(user)->bool,
+      solution(html)}
+   practiceSet(kinds, n) builds a graded, scored problem set.
+   ========================================================= */
+const _ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const _mat=(r,c,lo,hi)=>Array.from({length:r},()=>Array.from({length:c},()=>_ri(lo,hi)));
+function _approx(a,b,eps){eps=eps||1e-2;return Math.abs(a-b)<=eps;}
+function _parseNums(s){return (s.match(/-?\d+\.?\d*/g)||[]).map(Number);}
+
+const PROBLEMS = {
+  add:()=>{const a=_mat(1,3,-5,9)[0],b=_mat(1,3,-5,9)[0];const ans=a.map((x,i)=>x+b[i]);
+    return {prompt:`Add the vectors: (${a.join(', ')}) + (${b.join(', ')})`,
+      answer:ans, check:u=>{const n=_parseNums(u);return n.length===3&&n.every((x,i)=>x===ans[i]);},
+      solution:`Add line by line → (${ans.join(', ')}).`};},
+  scale:()=>{const k=_ri(-3,4),v=_mat(1,3,-4,6)[0];const ans=v.map(x=>x*k);
+    return {prompt:`Compute ${k} · (${v.join(', ')})`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length===3&&n.every((x,i)=>x===ans[i]);},
+      solution:`Multiply every entry by ${k} → (${ans.join(', ')}).`};},
+  dot:()=>{const a=_mat(1,3,-4,6)[0],b=_mat(1,3,-4,6)[0];const ans=a.reduce((s,x,i)=>s+x*b[i],0);
+    return {prompt:`Dot product: (${a.join(', ')}) · (${b.join(', ')})`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:`Multiply matching entries and add: ${a.map((x,i)=>`${x}·${b[i]}`).join(' + ')} = ${ans}.`};},
+  length:()=>{const opts=[[3,4],[6,8],[5,12],[8,15],[2,2,1],[1,2,2],[2,3,6]];const v=opts[_ri(0,opts.length-1)];
+    const ans=Math.sqrt(v.reduce((s,x)=>s+x*x,0));
+    return {prompt:`Length of (${v.join(', ')})`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&_approx(n[0],ans);},
+      solution:`√(${v.map(x=>x+'²').join(' + ')}) = √${v.reduce((s,x)=>s+x*x,0)} = ${ans.toFixed(3)}.`};},
+  det2:()=>{const A=_mat(2,2,-4,6);const ans=A[0][0]*A[1][1]-A[0][1]*A[1][0];
+    return {prompt:`det [[${A[0].join(', ')}], [${A[1].join(', ')}]]`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:`ad − bc = ${A[0][0]}·${A[1][1]} − ${A[0][1]}·${A[1][0]} = ${ans}.`};},
+  matvec:()=>{const A=_mat(2,2,-3,5),v=_mat(1,2,-3,5)[0];const ans=[A[0][0]*v[0]+A[0][1]*v[1],A[1][0]*v[0]+A[1][1]*v[1]];
+    return {prompt:`[[${A[0].join(', ')}],[${A[1].join(', ')}]] · (${v.join(', ')})`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length===2&&n.every((x,i)=>x===ans[i]);},
+      solution:`Each output row = row·v: (${ans.join(', ')}).`};},
+  matmul:()=>{const A=_mat(2,2,-2,4),B=_mat(2,2,-2,4);const C=LA.matmul(A,B);
+    return {prompt:`Top-left entry of [[${A[0].join(', ')}],[${A[1].join(', ')}]] · [[${B[0].join(', ')}],[${B[1].join(', ')}]]`,answer:C[0][0],
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===C[0][0];},
+      solution:`Row 1 of A · column 1 of B = ${A[0][0]}·${B[0][0]} + ${A[0][1]}·${B[1][0]} = ${C[0][0]}.`};},
+  eig:()=>{const picks=[[[2,0],[0,3]],[[1,2],[0,3]],[[4,0],[0,-1]],[[3,1],[0,2]],[[2,0],[0,2]]];const A=picks[_ri(0,picks.length-1)];
+    const e=LA.eig2(A);const vals=e.values.map(x=>Math.round(x)).sort((a,b)=>a-b);
+    return {prompt:`Eigenvalues of [[${A[0].join(', ')}],[${A[1].join(', ')}]] (triangular — read the diagonal!)`,answer:vals,
+      check:u=>{const n=_parseNums(u).map(Math.round).sort((a,b)=>a-b);return n.length>=2&&n[0]===vals[0]&&n[1]===vals[1];},
+      solution:`For a triangular matrix the eigenvalues are the diagonal entries: ${vals.join(' and ')}.`};},
+  rank:()=>{const kind=_ri(0,1);let A,ans;if(kind===0){const r=_mat(1,3,1,4)[0];A=[r,r.map(x=>2*x)];ans=1;}else{A=[[1,0,2],[0,1,3]];ans=2;}
+    return {prompt:`Rank of [[${A[0].join(', ')}], [${A[1].join(', ')}]]`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:ans===1?`The second row is a multiple of the first — only 1 independent row. Rank 1.`:`The two rows are independent — rank 2.`};},
+  nullity:()=>{const cols=_ri(3,5),rank=_ri(1,Math.min(3,cols-1));const ans=cols-rank;
+    return {prompt:`A matrix has ${cols} columns and rank ${rank}. What is its nullity (dim of kernel)?`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:`Rank + nullity = columns → nullity = ${cols} − ${rank} = ${ans}.`};},
+};
+
+function practiceSet(kinds, n){
+  n=n||6;
+  const wrap=el('div');
+  const head=el('div');head.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px';
+  const score=el('div');score.style.cssText='font-weight:700';
+  head.append(el('div',null,'<b>Practice — type your answers</b>'),score);
+  wrap.append(head);
+  let correct=0, done=0;
+  function refresh(){score.innerHTML=`score: <span style="color:var(--green)">${correct}</span> / ${n}`;}
+  refresh();
+  for(let i=0;i<n;i++){
+    const kind=kinds[_ri(0,kinds.length-1)];
+    const prob=PROBLEMS[kind]();
+    const card=el('div');card.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px 14px;margin:8px 0';
+    const q=el('div');q.style.cssText='font-family:var(--mono);font-size:.95rem;margin-bottom:8px';q.textContent=`${i+1}. ${prob.prompt}`;
+    const rowc=el('div');rowc.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+    const inp=el('input');inp.type='text';inp.placeholder='your answer';inp.style.cssText='flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--softline);border-radius:7px;font-family:var(--mono)';
+    const btn=el('button','btn','check');
+    const fb=el('div');fb.style.cssText='font-size:.88rem;margin-top:6px;min-height:1em';
+    let solved=false;
+    function grade(){if(solved)return;const ok=prob.check(inp.value);done++;
+      if(ok){solved=true;correct++;refresh();inp.style.borderColor='var(--green)';fb.innerHTML=`<span style="color:var(--green);font-weight:700">✓ correct.</span> ${prob.solution}`;}
+      else{inp.style.borderColor='var(--accent)';fb.innerHTML=`<span style="color:var(--accent);font-weight:700">not yet.</span> Try again, or click “show.”`;}}
+    btn.onclick=grade;inp.addEventListener('keydown',e=>{if(e.key==='Enter')grade();});
+    const showBtn=el('button','btn ghost','show');showBtn.onclick=()=>{fb.innerHTML=`<span style="color:var(--muted)">answer:</span> ${prob.solution}`;if(!solved){solved=true;}};
+    rowc.append(inp,btn,showBtn);card.append(q,rowc,fb);
+    if(window.MathJax&&window.MathJax.typesetPromise)setTimeout(()=>window.MathJax.typesetPromise([card]).catch(()=>{}),0);
+    wrap.append(card);
+  }
+  return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
@@ -1121,5 +1210,6 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         matrixGrid,matrixHTML,rrefStepper,systemLines,
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
-        luStepper,quadFormPlot,complexPlane,fourierSynth};
+        luStepper,quadFormPlot,complexPlane,fourierSynth,
+        practiceSet,PROBLEMS};
 })();
