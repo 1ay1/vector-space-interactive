@@ -12,7 +12,7 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
        eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet,rowOpSolver,
-       matmulBuilder,cofactorBuilder,eigenCheck}=VS;
+       matmulBuilder,cofactorBuilder,eigenCheck,gramSchmidtViz}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -1150,7 +1150,12 @@ const cGramSchmidt={id:'gramschmidt',part:'Part X · Orthogonality',title:'Build
 render(root){
   head(root,0,cGramSchmidt);
   root.append(p('Orthonormal vectors (perpendicular + length 1) are the dream basis: coordinates are just dot products, no messy solving. <span class="term">Gram–Schmidt</span> takes any independent set and straightens it into one — subtract off the parts that overlap with what you already have, then normalize.'));
-  const L=lab('Straighten a basis','Play');
+  root.append(h3('Watch the one move: subtract the projection'));
+  root.append(p('Gram–Schmidt is a single geometric idea repeated: keep \\(v_1\\); for \\(v_2\\), <b>subtract off its shadow on \\(v_1\\)</b> so what remains is perpendicular. Drag the vectors and watch \\(v_2^{\\perp}=v_2-\\text{proj}\\) form.'));
+  const Lv=lab('Orthogonalize, geometrically','See','see');
+  Lv.append(gramSchmidtViz());
+  root.append(Lv);
+  const L=lab('Straighten a basis (numbers)','Play');
   const g=matrixGrid({rows:2,cols:2,values:[[3,1],[1,2]]});
   const out=el('div');out.style.cssText='margin-top:10px';const nar=narrate('Columns are your starting vectors.');
   const btn=el('button','btn','orthonormalize the columns');
@@ -1237,7 +1242,16 @@ render(root){
   root.append(quiz({question:'The steady state of a Markov chain is…',
     options:[{t:'An eigenvector of the transition matrix with eigenvalue 1',ok:true,why:'Yes — π = Mπ means applying the process doesn\'t change it. That\'s exactly an eigenvector for λ=1.'},
       {t:'The state you started in',ok:false,why:'The steady state is independent of the start — you converge to it from almost anywhere.'}]}));
-  root.append(summary(['A step = multiply the state by a transition matrix.','Repeat → converge to a steady state π = Mπ.','Steady state = dominant eigenvector (λ=1).','PageRank is literally this eigenvector on the web graph.']));
+  root.append(h3('Compute a steady state by hand'));
+  root.append(worked({title:'the weather\'s long-run forecast',
+    prompt:'Sunny days stay sunny 90% of the time; rainy days turn sunny 50% of the time. Find the steady-state fractions \\((s, r)\\).',
+    steps:[
+      'Steady state means the distribution doesn\'t change: \\(0.9s + 0.5r = s\\) and \\(s+r=1\\) (it\'s a distribution).',
+      'Rearrange the first: \\(0.5r = 0.1s\\Rightarrow r = 0.2s\\).',
+      'Substitute into \\(s+r=1\\): \\(s + 0.2s = 1 \\Rightarrow 1.2s = 1 \\Rightarrow s = \\tfrac{5}{6}\\).'],
+    result:'\\((s,r) = (5/6,\\,1/6) \\approx (83\\%,\\,17\\%)\\) — matching the bars in the demo. Notice we solved \\(\\pi = M\\pi\\): finding the \\(\\lambda=1\\) eigenvector, then normalizing so it sums to 1.'}));
+  root.append(box('trap','the constraint people forget','\\(\\pi = M\\pi\\) alone has infinitely many solutions (any scalar multiple of the eigenvector). What pins down THE steady state is the extra rule that a probability distribution must <b>sum to 1</b>. Eigenvector gives the direction; normalization gives the actual answer.'));
+  root.append(summary(['A step = multiply the state by a transition matrix.','Repeat → converge to a steady state π = Mπ.','Steady state = dominant eigenvector (λ=1), normalized to sum 1.','PageRank is literally this eigenvector on the web graph.']));
 }};
 
 const cGraphics={id:'graphics',part:'Part XII · Applications',title:'Graphics, robotics & 3D',

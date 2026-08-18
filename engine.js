@@ -1514,6 +1514,103 @@ function matrixLab(opts){
    (B) JUSTIFY: for each step, pick the reason from choices.
    opts:{claim, steps:[{text, reason, choices:[...]}]}
    ========================================================= */
+/* =========================================================
+   GRAMSCHMIDTVIZ — watch two vectors get orthogonalized:
+   drag them; see v2's projection onto v1 subtracted off to
+   make the perpendicular component. Step through it.
+   ========================================================= */
+function gramSchmidtViz(){
+  const W=340,H=340,unit=40;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;let v1={x:3,y:1},v2={x:1,y:2.5};let step=2;
+  const nar=narrate('Drag either vector. Watch v₂ lose its “v₁ component” to become perpendicular.');
+  const toPx=(x,y)=>[ox+x*unit,oy-y*unit];
+  function arrow(x,y,color,lw,label){const[ex,ey]=toPx(x,y);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=lw;
+    ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+    const a=Math.atan2(ey-oy,ex-ox),s=10;ctx.beginPath();ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-s*Math.cos(a-.4),ey-s*Math.sin(a-.4));ctx.lineTo(ex-s*Math.cos(a+.4),ey-s*Math.sin(a+.4));ctx.closePath();ctx.fill();
+    if(label){ctx.font='700 13px sans-serif';ctx.fillText(label,ex+6,ey-4);}}
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.soft;for(let g=ox%unit;g<W;g+=unit){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+    for(let g=oy%unit;g<H;g+=unit){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    // projection of v2 onto v1
+    const t=(v1.x*v2.x+v1.y*v2.y)/(v1.x*v1.x+v1.y*v1.y);
+    const proj={x:t*v1.x,y:t*v1.y};
+    const perp={x:v2.x-proj.x,y:v2.y-proj.y};
+    arrow(v1.x,v1.y,C.accentb,3.5,'v₁');
+    if(step>=1){arrow(v2.x,v2.y,C.muted,2.5,'v₂');}
+    if(step>=2){
+      // projection (dashed) + the subtraction
+      const[px,py]=toPx(proj.x,proj.y);const[v2x,v2y]=toPx(v2.x,v2.y);
+      ctx.strokeStyle=C.accent;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(v2x,v2y);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
+      arrow(proj.x,proj.y,C.accent,2,'proj');
+      arrow(perp.x,perp.y,C.accentc,3.5,'v₂⊥');
+    }
+    const dot=v1.x*perp.x+v1.y*perp.y;
+    nar.say(step<2?'v₂ still leans along v₁. Click “orthogonalize”.':`<span class="g">v₂⊥ = v₂ − proj is now perpendicular to v₁</span> (their dot product = ${dot.toFixed(2)} ≈ 0). Normalize both and you have an orthonormal basis — that\'s Gram–Schmidt, and the QR decomposition.`);
+  }
+  let drag=0;const ev=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/unit,-(e.clientY-r.top-oy)/unit];};
+  cv.addEventListener('pointerdown',e=>{const[x,y]=ev(e);drag=(Math.hypot(x-v1.x,y-v1.y)<Math.hypot(x-v2.x,y-v2.y))?1:2;cv.setPointerCapture?.(e.pointerId);e.preventDefault();});
+  cv.addEventListener('pointermove',e=>{if(drag){const[x,y]=ev(e);if(drag===1)v1={x,y};else v2={x,y};render();}});
+  window.addEventListener('pointerup',()=>drag=0);
+  const btn=el('button','btn','orthogonalize v₂');btn.onclick=()=>{step=2;render();};
+  const ctr=el('div','controls');ctr.append(btn);
+  const wrap=el('div');const s=el('div','stage');s.append(cv,el('div','grow'));wrap.append(s,ctr,nar);render();
+  return wrap;
+}
+
+/* =========================================================
+   FOURSUBSPACES — for an editable 2x2, draw the row space &
+   null space (in input R²) and column space & left-null space
+   (in output R²), showing the perpendicularity.
+   ========================================================= */
+function fourSubspaces(){
+  const wrap=el('div');
+  const grid=matrixGrid({rows:2,cols:2,values:[[1,2],[2,4]],onChange:v=>{M=v;render();}});
+  let M=[[1,2],[2,4]];
+  const S=150,unit=22;
+  function mkCanvas(){const c=el('canvas');c.width=S;c.height=S;return c;}
+  const cin=mkCanvas(),cout=mkCanvas();const xin=hidpi(cin),xout=hidpi(cout);
+  const nar=narrate('');
+  function drawSpace(ctx,lines){const o=S/2;ctx.clearRect(0,0,S,S);
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,o);ctx.lineTo(S,o);ctx.moveTo(o,0);ctx.lineTo(o,S);ctx.stroke();
+    lines.forEach(({dir,color,label,whole})=>{
+      if(whole){ctx.fillStyle=color+'22';ctx.fillRect(0,0,S,S);return;}
+      if(!dir)return;const n=Math.hypot(dir[0],dir[1])||1;const dx=dir[0]/n,dy=dir[1]/n,far=200;
+      ctx.strokeStyle=color;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(o-dx*far,o+dy*far);ctx.lineTo(o+dx*far,o-dy*far);ctx.stroke();
+    });}
+  function render(){
+    const a=M[0][0],b=M[0][1],c=M[1][0],d=M[1][1];
+    const det=a*d-b*c;
+    // row space: span of rows (a,b),(c,d); null space: perp to row space
+    const rowDir=[a,b];const rank=(Math.abs(det)>1e-9)?2:((a||b||c||d)?1:0);
+    // INPUT space (R^2): row space (blue) + null space (orange, perp)
+    if(rank===2){drawSpace(xin,[{whole:true,color:'#2a7de1'}]);}
+    else if(rank===1){drawSpace(xin,[{dir:rowDir,color:C.accentb},{dir:[-rowDir[1],rowDir[0]],color:C.accent}]);}
+    else drawSpace(xin,[]);
+    // OUTPUT space (R^2): column space (teal) + left null (violet)
+    const colDir=[a,c];
+    if(rank===2){drawSpace(xout,[{whole:true,color:'#17a398'}]);}
+    else if(rank===1){drawSpace(xout,[{dir:colDir,color:C.accentc},{dir:[-colDir[1],colDir[0]],color:C.accentd}]);}
+    else drawSpace(xout,[]);
+    nar.say(rank===2
+      ? 'Full rank: row space = all of input R², column space = all of output R², and both null spaces are just {0}. No collapse.'
+      : rank===1
+        ? '<span class="k">Rank 1.</span> <span style="color:var(--accentb)">Row space</span> (a line) ⊥ <span style="color:var(--accent)">null space</span> in the input; <span style="color:var(--accentc)">column space</span> ⊥ <span style="color:var(--accentd)">left-null space</span> in the output. The perpendicular pairs ARE the fundamental theorem.'
+        : 'Zero matrix: null space is everything, column space is just {0}.');
+  }
+  const legend=el('div');legend.style.cssText='font-size:.78rem;color:var(--muted);margin-top:6px';
+  legend.innerHTML='input R²: <span style="color:var(--accentb)">row space</span> ⊥ <span style="color:var(--accent)">null space</span> &nbsp;·&nbsp; output R²: <span style="color:var(--accentc)">column space</span> ⊥ <span style="color:var(--accentd)">left-null</span>';
+  const row=el('div');row.style.cssText='display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-top:8px';
+  const b1=el('div');b1.style.cssText='text-align:center';b1.append(cin);b1.insertAdjacentHTML('beforeend','<div style="font-size:.72rem;color:var(--muted)">input space ℝ²</div>');
+  const b2=el('div');b2.style.cssText='text-align:center';b2.append(cout);b2.insertAdjacentHTML('beforeend','<div style="font-size:.72rem;color:var(--muted)">output space ℝ²</div>');
+  row.append(b1,b2);
+  wrap.append(el('div',null,'<b style="font-size:.9rem">A =</b>'),grid.el,row,legend,nar);render();
+  return wrap;
+}
+
 function proofBuilder(opts){
   const wrap=el('div');
   wrap.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:14px 0';
@@ -1695,5 +1792,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder,gramSchmidtViz,fourSubspaces};
 })();

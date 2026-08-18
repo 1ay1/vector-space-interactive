@@ -7,7 +7,7 @@
 const {el,knob,vboard,narrate,rangeRow,quiz,clamp,fmt,C,
        matrixGrid,matrixHTML,rrefStepper,board3d,spanBoard,
        eigenExplorer,detArea,leastSquares,pcaCloud,worked,
-       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph,svdPhoto,practiceSet}=VS;
+       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph,svdPhoto,practiceSet,fourSubspaces}=VS;
 
 /* re-declare chrome helpers (mirror chapters.js) */
 function head(root,n,c){
@@ -86,8 +86,14 @@ render(root){head(root,0,this);
    \u2022 <b>Column space</b> (dim \\(r\\)) \u2014 what \\(A\\) reaches.<br>
    \u2022 <b>Left null space</b> (dim \\(m-r\\)) \u2014 what \\(A^{T}\\) kills. <em>Perpendicular to the column space.</em>`));
  root.append(math('\\underbrace{\\text{row space} \\perp \\text{null space}}_{\\text{in }\\mathbb R^n} \\qquad \\underbrace{\\text{col space} \\perp \\text{left null space}}_{\\text{in }\\mathbb R^m}'));
- root.append(box('aha-box','the fundamental theorem, in words','The row space and null space are perpendicular and together fill all of \\(\\mathbb R^n\\): every input splits uniquely into \u201ca part the matrix acts on\u201d (row space) + \u201ca part it destroys\u201d (null space). Same story for outputs. The matrix is a clean map from row space onto column space \u2014 a perfect one-to-one correspondence in dimension \\(r\\).'));
- root.append(summary(['Every matrix \u2192 four subspaces, two in each space.','row space \u22a5 null space; column space \u22a5 left null space.','Dimensions: r, n\u2212r, r, m\u2212r.','A maps the row space one-to-one onto the column space.']));
+ root.append(box('aha-box','the fundamental theorem, in words','The row space and null space are perpendicular and together fill all of \(\mathbb R^n\): every input splits uniquely into “a part the matrix acts on” (row space) + “a part it destroys” (null space). Same story for outputs. The matrix is a clean map from row space onto column space — a perfect one-to-one correspondence in dimension \(r\).'));
+ root.append(h3('See all four — and their perpendicularity'));
+ root.append(p('For a 2×2, both spaces are \(\mathbb R^2\). Edit \(A\) and watch: at full rank each space fills entirely; make it <b>rank 1</b> (e.g. rows proportional) and the four subspaces appear as <em>perpendicular line pairs</em> — the fundamental theorem, drawn.'));
+ const Lv=lab('The four subspaces, live','See','see');
+ Lv.append(fourSubspaces());
+ root.append(Lv);
+ root.append(box('key','why perpendicular pairs matter','Row space ⊥ null space means: split any input into “the part \(A\) sees” + “the part it kills,” and those parts are perpendicular. That clean split is exactly what makes projection, least squares, and the SVD work. Set the matrix rank-1 above and the two orange/blue lines are always at right angles.'));
+ root.append(summary(['Every matrix → four subspaces, two in each space.','row space ⊥ null space; column space ⊥ left null space.','Dimensions: r, n−r, r, m−r.','A maps the row space one-to-one onto the column space.']));
 }});
 
 NEW.push({id:'ranknullity',part:'Part XIV · Fundamental theorem',title:'Rank\u2013nullity: conservation of dimension',
@@ -172,7 +178,13 @@ render(root){head(root,0,this);
  root.append(p('A complex number \\(a+bi\\) is really the 2D vector \\((a,b)\\) \u2014 but with a bonus: multiplication that <em>rotates</em>. Multiplying by \\(i\\) is a 90\u00b0 turn. Drag a complex number and rotate it:'));
  const L=lab('The complex plane','Play');L.append(complexPlane());root.append(L);
  root.append(box('aha-box','why complex entries matter','With complex numbers, <em>every</em> matrix has a full set of eigenvalues (rotations that had none in the reals now do \u2014 their eigenvalues are complex). The dot product upgrades to the <b>Hermitian</b> inner product (conjugate one side), and \u201cperpendicular\u201d and \u201clength\u201d still work perfectly. Complex vector spaces are where the theory becomes complete.'));
- root.append(box('key','the special complex matrices','<b>Hermitian</b> (\\(A=A^{*}\\), conjugate-transpose) \u2014 the complex version of symmetric; real eigenvalues; these are quantum-mechanical observables. <b>Unitary</b> (\\(U^{*}U=I\\)) \u2014 complex rotations; preserve length; quantum time-evolution. The Fourier transform is unitary.'));
+ root.append(box('key','the special complex matrices','<b>Hermitian</b> (\(A=A^{*}\), conjugate-transpose) — the complex version of symmetric; real eigenvalues; these are quantum-mechanical observables. <b>Unitary</b> (\(U^{*}U=I\)) — complex rotations; preserve length; quantum time-evolution. The Fourier transform is unitary.'));
+ root.append(worked({title:'a rotation\'s eigenvalues are complex',
+   prompt:'The 90° rotation \(R=\begin{bmatrix}0&-1\\1&0\end{bmatrix}\) leaves NO real direction unturned. Find its eigenvalues.',
+   steps:['Solve \(\det(R-\lambda I)=0\): \(\det\begin{bmatrix}-\lambda&-1\\1&-\lambda\end{bmatrix}=\lambda^2+1=0\).',
+     'So \(\lambda^2=-1\), giving \(\lambda=\pm i\) — no real solutions, exactly as expected.',
+     'The eigenvalues \(\pm i\) have magnitude 1 (rotations don\'t stretch) and “angle” 90° — encoding the rotation itself.'],
+   result:'Over the reals this matrix looked eigenvalue-less; over \(\mathbb C\) it has \(\pm i\). This is WHY we need complex numbers: they complete the eigenvalue story for every matrix.'}));
  root.append(quiz({question:'What does multiplying a complex number by i do geometrically?',
    options:[{t:'Rotates it 90\u00b0 about the origin',ok:true,why:'Yes \u2014 i is a quarter-turn. That built-in rotation is what makes complex numbers perfect for waves and oscillations.'},
      {t:'Doubles its length',ok:false,why:'|i| = 1, so length is unchanged. Multiplying by i is a pure 90\u00b0 rotation.'}]}));
