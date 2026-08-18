@@ -26,8 +26,10 @@
   }
 
   /* ---- sidebar nav ---- */
+  let navButtons=[];
   function buildNav(){
     chapnav.innerHTML='';
+    navButtons=[];
     let lastPart=null;
     CHAPTERS.forEach((c,i)=>{
       if(c.part && c.part!==lastPart){
@@ -36,13 +38,19 @@
       }
       const b=document.createElement('button');
       b.className='chap-link';
+      b.dataset.idx=i;
       b.innerHTML=`<span class="chap-num">${i+1}</span>
-        <span><span class="chap-title">${c.title}</span><br>
+        <span class="chap-meta"><span class="chap-title">${c.title}</span>
         <span class="chap-sub">${shortSub(c.sub)}</span></span>`;
-      b.onclick=()=>go(i);
       chapnav.append(b);
+      navButtons.push(b);
     });
   }
+  // one delegated listener — a click anywhere in a chap-link goes to that chapter
+  chapnav.addEventListener('click',e=>{
+    const b=e.target.closest('.chap-link');
+    if(b){ go(parseInt(b.dataset.idx,10)); }
+  });
   function shortSub(s){return s.length>60? s.slice(0,58)+'…':s;}
 
   function buildDots(){
@@ -56,7 +64,7 @@
   }
 
   function refreshChrome(){
-    [...chapnav.children].forEach((b,i)=>{
+    navButtons.forEach((b,i)=>{
       b.classList.toggle('active',i===idx);
       b.classList.toggle('done',seen.has(CHAPTERS[i].id)&&i!==idx);
     });
@@ -66,6 +74,9 @@
     });
     prevBtn.disabled=idx===0;
     nextBtn.textContent = idx===CHAPTERS.length-1?'finish ✓':'next →';
+    // keep the active chapter visible in the scrolling nav
+    const active=navButtons[idx];
+    if(active && active.scrollIntoView) active.scrollIntoView({block:'nearest'});
     updateProgress();
   }
 
