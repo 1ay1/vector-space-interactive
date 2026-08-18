@@ -1207,6 +1207,84 @@ const PROBLEMS = {
       solution:`Sum of the diagonal: ${A[0][0]} + ${A[1][1]} + ${A[2][2]} = ${ans}.`};},
 };
 
+/* =========================================================
+   ROWOPSOLVER — the user performs Gaussian elimination BY HAND:
+   choose a row operation, the app applies it and checks progress
+   toward RREF. Teaches the procedure, not just the answer.
+   ========================================================= */
+function rowOpSolver(opts){
+  const start=(opts&&opts.matrix)||[[1,2,5],[3,4,11]];
+  let M=start.map(r=>r.slice());
+  const rows=M.length, cols=M[0].length;
+  const wrap=el('div');
+  const disp=el('div');disp.style.cssText='margin:8px 0';
+  const nar=narrate('Goal: reach reduced row echelon form (leading 1s, zeros elsewhere in pivot columns). Pick an operation.');
+  const hist=el('div');hist.style.cssText='font-size:.8rem;color:var(--muted);margin-top:6px';
+  const log=[];
+  function isRREF(A){
+    // quick check: every pivot is 1 and alone in its column
+    let lastPivotCol=-1;
+    for(let i=0;i<A.length;i++){
+      let pc=A[i].findIndex(x=>Math.abs(x)>1e-9);
+      if(pc===-1) continue;
+      if(pc<=lastPivotCol) return false;
+      lastPivotCol=pc;
+      if(Math.abs(A[i][pc]-1)>1e-9) return false;
+      for(let k=0;k<A.length;k++) if(k!==i && Math.abs(A[k][pc])>1e-9) return false;
+    }
+    return true;
+  }
+  function render(){
+    disp.innerHTML=matrixHTML(M.map(r=>r.map(x=>Math.abs(x)<1e-9?0:x)));
+    hist.innerHTML=log.length?('steps: '+log.join('  →  ')):'';
+    if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([disp]).catch(()=>{});
+    if(isRREF(M)) nar.say('<span class="g">✓ Reduced row echelon form reached!</span> You drove the matrix there yourself, one legal move at a time.');
+  }
+  // controls: swap Ri<->Rj, scale Ri by k, add k*Ri to Rj
+  const ctr=el('div');ctr.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:6px';
+  function rowSel(){const s=el('select');s.style.cssText='padding:5px;border-radius:6px;border:1px solid var(--softline)';
+    for(let i=0;i<rows;i++){const o=el('option');o.value=i;o.textContent='R'+(i+1);s.append(o);}return s;}
+  function numIn(v,w){const n=el('input');n.type='number';n.value=v;n.step='any';n.style.cssText=`width:${w||52}px;padding:5px;border-radius:6px;border:1px solid var(--softline);text-align:center`;return n;}
+  // op 1: scale
+  const r1=el('div');r1.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+  const sSel=rowSel(),sK=numIn(1);const sBtn=el('button','btn ghost','scale');
+  sBtn.onclick=()=>{const i=+sSel.value,k=parseFloat(sK.value);if(!k){nar.say('<span class="r">Can\'t scale by 0.</span>');return;}
+    M[i]=M[i].map(x=>x*k);log.push(`R${i+1}×${k}`);render();};
+  r1.append(el('span',null,'multiply'),sSel,el('span',null,'by'),sK,sBtn);
+  // op 2: add k*Ri to Rj
+  const r2=el('div');r2.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+  const aK=numIn(-1),aI=rowSel(),aJ=rowSel();const aBtn=el('button','btn ghost','add');
+  aBtn.onclick=()=>{const k=parseFloat(aK.value),i=+aI.value,j=+aJ.value;if(i===j){nar.say('<span class="r">Pick two different rows.</span>');return;}
+    M[j]=M[j].map((x,c)=>x+k*M[i][c]);log.push(`R${j+1}+=${k}·R${i+1}`);render();};
+  r2.append(el('span',null,'add'),aK,el('span',null,'×'),aI,el('span',null,'to'),aJ,aBtn);
+  // op 3: swap
+  const r3=el('div');r3.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+  const wI=rowSel(),wJ=rowSel();const wBtn=el('button','btn ghost','swap');
+  wBtn.onclick=()=>{const i=+wI.value,j=+wJ.value;if(i===j)return;[M[i],M[j]]=[M[j],M[i]];log.push(`R${i+1}↔R${j+1}`);render();};
+  r3.append(el('span',null,'swap'),wI,el('span',null,'and'),wJ,wBtn);
+  // reset + auto-hint
+  const r4=el('div');r4.style.cssText='display:flex;gap:8px;margin-top:4px';
+  const reset=el('button','btn ghost','reset');reset.onclick=()=>{M=start.map(r=>r.slice());log.length=0;render();nar.say('Reset. Pick an operation.');};
+  const hint=el('button','btn','hint: next move');
+  hint.onclick=()=>{
+    // suggest a move toward RREF using LA.rrefSteps difference heuristic
+    // find first column with a pivot not yet normalized/cleared
+    for(let c=0;c<cols-1;c++){
+      // find a row with nonzero in col c at/after diagonal
+      let piv=-1;for(let i=c;i<rows;i++) if(Math.abs(M[i][c])>1e-9){piv=i;break;}
+      if(piv===-1) continue;
+      if(piv!==c && piv<rows){nar.say(`Hint: swap R${piv+1} and R${c+1} to bring a pivot up.`);return;}
+      if(Math.abs(M[c][c]-1)>1e-9){nar.say(`Hint: scale R${c+1} by ${(1/M[c][c]).toFixed(2)} to make the pivot 1.`);return;}
+      for(let i=0;i<rows;i++) if(i!==c && Math.abs(M[i][c])>1e-9){nar.say(`Hint: add ${(-M[i][c]).toFixed(2)}·R${c+1} to R${i+1} to clear that entry.`);return;}
+    }
+    nar.say('Looks done — already in RREF!');
+  };
+  r4.append(reset,hint);
+  ctr.append(r1,r2,r3,r4);
+  wrap.append(disp,ctr,hist,nar);render();
+  return wrap;
+}
+
 function practiceSet(kinds, n){
   n=n||6;
   const wrap=el('div');
@@ -1247,5 +1325,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS};
+        practiceSet,PROBLEMS,rowOpSolver};
 })();

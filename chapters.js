@@ -11,7 +11,7 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        worked,gallery,matrixBoard,analogyDemo,
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
-       eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet}=VS;
+       eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet,rowOpSolver}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -429,7 +429,17 @@ render(root){
   root.append(quiz({question:'You re-describe a vector in a new basis; all its numbers change. Did the vector change?',
     options:[{t:'No — only its coordinates (its shadow) changed',ok:true,why:'Exactly. The vector is basis-independent; the numbers are how you read it in chosen rulers.'},
       {t:'Yes — new numbers, new vector',ok:false,why:'The classic trap. The point stayed put; you changed the measuring rulers.'}]}));
-  root.append(summary(['A basis = your chosen rulers.','Coordinates = "how much of each ruler."','Change basis → numbers change, vector doesn\'t.','Smart bases power compression and denoising.']));
+  root.append(h3('Actually computing new coordinates'));
+  root.append(p('“Change of basis” isn\'t vague — it\'s a concrete calculation, and it\'s just solving a system (Part VI again).'));
+  root.append(worked({title:'re-express (4, 2) in a new basis',
+    prompt:'New rulers are \\(\\mathbf b_1=(1,1)\\) and \\(\\mathbf b_2=(1,-1)\\). Find the coordinates of \\((4,2)\\) in this basis.',
+    steps:[
+      'We need \\(c_1(1,1)+c_2(1,-1)=(4,2)\\).',
+      'Component equations: \\(c_1+c_2=4\\) and \\(c_1-c_2=2\\).',
+      'Add them: \\(2c_1=6\\Rightarrow c_1=3\\). Subtract: \\(2c_2=2\\Rightarrow c_2=1\\).'],
+    result:'In the new basis, \\((4,2)\\) has coordinates \\((3,1)\\) — meaning \\(3\\mathbf b_1+1\\mathbf b_2\\). Same point, new numbers. The matrix whose columns are \\(\\mathbf b_1,\\mathbf b_2\\) converts <em>new</em> coords back to standard; its inverse goes the other way.'}));
+  root.append(box('key','the change-of-basis matrix','Put the new basis vectors in the columns of a matrix \\(P\\). Then \\(P\\) turns new-coordinates into standard ones, and \\(P^{-1}\\) turns standard into new. That\'s the whole mechanism — and it\'s why “similar matrices” (Part IX) look like \\(P^{-1}AP\\): sandwich the map between a basis change and its undo.'));
+  root.append(summary(['A basis = your chosen rulers.','Coordinates = "how much of each ruler."','Change basis → numbers change, vector doesn\'t.','New coords = solve c₁b₁+c₂b₂+… = v; the basis matrix P (and P⁻¹) convert.']));
 }};
 
 /* ============================================================
@@ -468,6 +478,11 @@ render(root){
   root.append(quiz({question:'Length of the 4-D vector (1, 2, 2, 4)?',
     options:[{t:'5',ok:true,why:'√(1+4+4+16)=√25=5. You measured a distance in a space you can\'t see, with grade-school arithmetic.'},
       {t:'9',ok:false,why:'That\'s 1+2+2+4 (no squaring). Square first: 1+4+4+16=25, √25=5.'}]}));
+  root.append(box('trap','the mistake almost everyone makes once','“Length of \\((3,4)\\) is \\(3+4=7\\).” <b>No.</b> You must <em>square</em> first: \\(\\sqrt{3^2+4^2}=\\sqrt{25}=5\\), not 7. Adding the raw numbers ignores the right-angle — it would only be right if the vector went purely along one axis. Square, add, <em>then</em> root, always in that order.'));
+  const Lpl=lab('Practice: lengths','Practice','');
+  Lpl.append(p('Square, add, root. Type the number.'));
+  Lpl.append(practiceSet(['length'],4));
+  root.append(Lpl);
   root.append(summary(['Length = √(sum of squares) — Pythagoras, any dimension.','Distance = length of the difference vector.','This is the backbone of "similarity" in tech.']));
 }};
 
@@ -775,6 +790,11 @@ render(root){
   const L=lab('Elimination, one move at a time','Play');
   L.append(rrefStepper({rows:3,cols:4,values:[[1,2,1,2],[2,1,-1,1],[1,-1,2,3]]}));
   root.append(L);
+  root.append(h3('Now you drive'));
+  root.append(p('Watching isn\'t doing. Below, <b>you</b> choose the row operations — scale, add, swap — and reach reduced row echelon form yourself. Stuck? Hit “hint” for the next move. This is where the procedure becomes muscle memory.'));
+  const Ld=lab('Reach RREF yourself','Play');
+  Ld.append(rowOpSolver({matrix:[[2,4,-2,2],[1,3,1,5]]}));
+  root.append(Ld);
   root.append(box('aha-box','why the three moves are “legal”','Each move is <em>reversible</em> and preserves the solution set — swapping the order of equations, rescaling one, or adding one equation to another never changes which points satisfy them all. So the final, simple system has the <em>same</em> answers as the scary original.'));
   root.append(box('key','echelon vs reduced echelon','<b>Echelon form:</b> a staircase of leading entries, zeros below. <b>Reduced (RREF):</b> also zeros <em>above</em> each leading 1, and each leading entry is 1. RREF is unique — the canonical fingerprint of the matrix.'));
   root.append(h3('A full solve, start to finish'));
@@ -886,7 +906,16 @@ render(root){
   row.append(wa,wb);const ctr=el('div','controls');ctr.append(btn);
   L.append(row,ctr,out,nar);root.append(L);
   root.append(box('aha-box','the rule, finally sensible','The (i,j) entry of A·B is “row i of A” · “column j of B” because column j of B says where the j-th basis vector goes under B, and then A moves that result. Row-times-column is just “track where each basis vector ends up after both transforms.”'));
-  root.append(box('trap','order matters','\\(AB \\neq BA\\) in general — putting on socks then shoes ≠ shoes then socks. Matrix multiplication is <em>not</em> commutative. (It <em>is</em> associative: \\(A(BC)=(AB)C\\).)'));
+  root.append(worked({title:'a full 2×2 product, entry by entry',
+    prompt:'Multiply \\(\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix}\\begin{bmatrix}5&6\\\\7&8\\end{bmatrix}\\).',
+    steps:[
+      'Top-left = (row 1 of A)·(col 1 of B) = \\(1\\cdot5 + 2\\cdot7 = 19\\).',
+      'Top-right = (row 1)·(col 2) = \\(1\\cdot6 + 2\\cdot8 = 22\\).',
+      'Bottom-left = (row 2)·(col 1) = \\(3\\cdot5 + 4\\cdot7 = 43\\).',
+      'Bottom-right = (row 2)·(col 2) = \\(3\\cdot6 + 4\\cdot8 = 50\\).'],
+    result:'\\(\\begin{bmatrix}19&22\\\\43&50\\end{bmatrix}\\). Each entry is one row dotted with one column — four little dot products.'}));
+  root.append(box('key','the dimension rule: inner sizes must match','\\(A\\) is \\(m\\times n\\), \\(B\\) is \\(p\\times q\\). The product \\(AB\\) only exists if \\(n=p\\) (A\'s columns = B\'s rows), because you\'re dotting A\'s rows with B\'s columns — they must be the same length. The result is \\(m\\times q\\) (outer sizes). Mnemonic: \\((m\\times \\underline{n})(\\underline{n}\\times q)=m\\times q\\) — the inner \\(n\\)\'s cancel.'));
+  root.append(box('trap','order matters','\\(AB \\neq BA\\) in general — putting on socks then shoes ≠ shoes then socks. Matrix multiplication is <em>not</em> commutative. (It <em>is</em> associative: \\(A(BC)=(AB)C\\).) In fact \\(BA\\) may not even exist if the dimensions don\'t line up both ways!'));
   root.append(quiz({question:'In the product A·B applied to a vector, which transform happens first?',
     options:[{t:'B — it\'s closest to the vector: A(B(x))',ok:true,why:'Right. A·B·x = A(B(x)): B acts first, then A. Read right-to-left.'},
       {t:'A — it\'s written first',ok:false,why:'Written first, but applied LAST. The matrix nearest the vector acts first.'}]}));
@@ -1001,6 +1030,15 @@ render(root){
       'Expand: \\((2-\\lambda)^2 - 1 = 0\\).',
       '\\(\\lambda^2 -4\\lambda +3 = 0 \\Rightarrow (\\lambda-1)(\\lambda-3)=0\\).'],
     result:'\\(\\lambda = 1\\) and \\(\\lambda = 3\\). One direction is unchanged (×1), the other stretched ×3 — exactly the two eigenlines in the demo.'}));
+  root.append(worked({title:'now find the eigenVECTOR for λ = 3',
+    prompt:'For \\(A=\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}\\) and \\(\\lambda=3\\), find a vector \\(\\mathbf v\\) with \\(A\\mathbf v=3\\mathbf v\\).',
+    steps:[
+      'Form \\(A-3I = \\begin{bmatrix}2-3&1\\\\1&2-3\\end{bmatrix} = \\begin{bmatrix}-1&1\\\\1&-1\\end{bmatrix}\\).',
+      'Solve \\((A-3I)\\mathbf v=\\mathbf 0\\): the top row says \\(-v_1+v_2=0\\), i.e. \\(v_1=v_2\\).',
+      'So any vector with equal components works — pick the simplest, \\(\\mathbf v=(1,1)\\).',
+      'Check: \\(A(1,1)=(2{+}1,\\;1{+}2)=(3,3)=3(1,1)\\). ✓'],
+    result:'The eigenvector for \\(\\lambda=3\\) is \\((1,1)\\) (or any multiple). Eigenvectors always come as a whole line — direction matters, length doesn\'t. Repeat with \\(\\lambda=1\\) to get \\((1,-1)\\), perpendicular to it (as the spectral theorem promises for symmetric \\(A\\)).'}));
+  root.append(box('trap','a common mistake: forgetting eigenvectors are a whole line','\\((1,1)\\), \\((2,2)\\), \\((-5,-5)\\) are all the <em>same</em> eigenvector direction — don\'t treat them as different answers. And never “solve” \\((A-\\lambda I)\\mathbf v=\\mathbf 0\\) by inverting \\(A-\\lambda I\\): its determinant is 0 by design (that\'s how you found \\(\\lambda\\)!), so it has no inverse. You must read the solution off the dependent rows.'));
   root.append(box('key','why anyone cares','Eigenvectors are the directions where a complicated transform becomes <em>simple multiplication</em>. That unlocks: raising a matrix to a huge power (repeated application), <b>PageRank</b>, the long-run state of a <b>Markov chain</b>, the vibration modes of a bridge, and <b>PCA</b> (the eigenvectors of your data\'s covariance are its main axes). We\'ll build several of these.'));
   root.append(quiz({question:'A·v = λv means…',
     options:[{t:'The matrix only scales v (by λ) without changing its direction',ok:true,why:'Exactly — that\'s the definition of an eigenvector v with eigenvalue λ.'},
