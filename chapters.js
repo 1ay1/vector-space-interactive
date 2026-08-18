@@ -325,7 +325,14 @@ render(root){
   const L2=lab('Stretch vs steer','See','see');L2.append(row2,stageOf(board,[ro]),nar2);apply(1.5);root.append(L2);
   root.append(math('c\\,\\mathbf v = (c\\,v_1,\\; c\\,v_2,\\; \\dots,\\; c\\,v_n)'));
   root.append(box('trap','the trap','"Scaling steers the vector." No — positive scaling only changes length. Every line grows by the same factor, so the ratios (the direction) stay fixed. Stretch ≠ steer.'));
-  root.append(summary(['Scale = multiply every line by one number.','0× → zero vector; −1× → flip; positive → stretch, same direction.','Photo brightness is scaling in a million dimensions.']));
+  root.append(worked({title:'scale to make a unit vector',
+    prompt:'Rescale \\(\\mathbf v=(3,4)\\) so it has length 1 but points the same way (a “unit vector”).',
+    steps:[
+      'Find the current length: \\(\\lVert\\mathbf v\\rVert=\\sqrt{3^2+4^2}=5\\).',
+      'Scale by \\(1/\\lVert\\mathbf v\\rVert=1/5\\): \\(\\tfrac{1}{5}(3,4)=(0.6,\\,0.8)\\).',
+      'Check: \\(\\sqrt{0.6^2+0.8^2}=\\sqrt{0.36+0.64}=1\\). ✓'],
+    result:'\\((0.6, 0.8)\\) — same direction, length 1. “Normalizing” (dividing by the length) is scaling in disguise, and it\'s everywhere: it\'s how you separate a vector\'s <em>direction</em> from its <em>size</em>.'}));
+  root.append(summary(['Scale = multiply every line by one number.','0× → zero vector; −1× → flip; positive → stretch, same direction.','Normalize = scale by 1/length to get a unit vector (pure direction).','Photo brightness is scaling in a million dimensions.']));
 }};
 
 /* ============================================================
@@ -449,6 +456,7 @@ render(root){
       'Add them: \\(2c_1=6\\Rightarrow c_1=3\\). Subtract: \\(2c_2=2\\Rightarrow c_2=1\\).'],
     result:'In the new basis, \\((4,2)\\) has coordinates \\((3,1)\\) — meaning \\(3\\mathbf b_1+1\\mathbf b_2\\). Same point, new numbers. The matrix whose columns are \\(\\mathbf b_1,\\mathbf b_2\\) converts <em>new</em> coords back to standard; its inverse goes the other way.'}));
   root.append(box('key','the change-of-basis matrix','Put the new basis vectors in the columns of a matrix \\(P\\). Then \\(P\\) turns new-coordinates into standard ones, and \\(P^{-1}\\) turns standard into new. That\'s the whole mechanism — and it\'s why “similar matrices” (Part IX) look like \\(P^{-1}AP\\): sandwich the map between a basis change and its undo.'));
+  root.append(box('connect','connects to','Choosing a clever basis is a superpower used everywhere: <a onclick="vsGoTo(\'basis\')">here</a> it just relabels a point, but the same move powers <a onclick="vsGoTo(\'pca\')">PCA</a> (pick the data\'s own axes), <a onclick="vsGoTo(\'fourier\')">Fourier</a> (pick sine-wave axes), <a onclick="vsGoTo(\'diag\')">diagonalization</a> (pick the eigenvector axes), and the whole <a onclick="vsGoTo(\'similar\')">similarity</a> story \\(P^{-1}AP\\).'));
   root.append(summary(['A basis = your chosen rulers.','Coordinates = "how much of each ruler."','Change basis → numbers change, vector doesn\'t.','New coords = solve c₁b₁+c₂b₂+… = v; the basis matrix P (and P⁻¹) convert.']));
 }};
 
@@ -532,6 +540,13 @@ render(root){
   root.append(quiz({question:'Two vectors have dot product exactly 0. They are…',
     options:[{t:'perpendicular / unrelated',ok:true,why:'Zero dot product = right angle = "nothing in common, direction-wise."'},
       {t:'identical',ok:false,why:'Identical vectors have a large positive dot product.'}]}));
+  root.append(worked({title:'cosine similarity (the real ML use)',
+    prompt:'Two documents as word-count vectors: \\(\\mathbf a=(3,0,4)\\), \\(\\mathbf b=(6,0,8)\\). How similar are they? Use cosine similarity \\(\\dfrac{\\mathbf a\\cdot\\mathbf b}{\\lVert\\mathbf a\\rVert\\lVert\\mathbf b\\rVert}\\).',
+    steps:[
+      'Dot product: \\(3\\cdot6+0+4\\cdot8 = 18+32 = 50\\).',
+      'Lengths: \\(\\lVert\\mathbf a\\rVert=\\sqrt{9+16}=5\\), \\(\\lVert\\mathbf b\\rVert=\\sqrt{36+64}=10\\).',
+      'Cosine similarity \\(=\\dfrac{50}{5\\cdot10}=\\dfrac{50}{50}=1\\).'],
+    result:'Similarity = 1 (a perfect match!). Makes sense: \\(\\mathbf b=2\\mathbf a\\) points the exact same way — one document is just a longer version of the other. Cosine ignores length and measures pure <em>direction</em>, which is why it\'s the standard tool for comparing text and embeddings.'}));
   const Lpd=lab('Practice: dot products & angles','Practice','');
   Lpd.append(p('Compute the dot product, and read the angle where asked.'));
   Lpd.append(practiceSet(['dot','angle','length'],5));
@@ -559,6 +574,7 @@ render(root){
   Lp.append(p('Find \\(t=(a\\cdot b)/(a\\cdot a)\\), the amount of a in b\'s shadow.'));
   Lp.append(practiceSet(['projscalar','dot'],4));
   root.append(Lp);
+  root.append(box('connect','connects to','“Closest point + perpendicular error” is one idea reused constantly: it becomes <a onclick="vsGoTo(\'lsq\')">least squares</a> (fit a line to data), <a onclick="vsGoTo(\'gramschmidt\')">Gram–Schmidt</a> (subtract projections to orthogonalize), <a onclick="vsGoTo(\'pca\')">PCA</a> (project onto the top directions), and every “residual” in statistics.'));
   root.append(summary(['Projection = shadow of v on a direction.','Its length = dot product with the unit direction.','Sanity check: the leftover (v − projection) is perpendicular.','Decomposing into parts underlies compression, denoising, and fitting.']));
 }};
 
@@ -789,6 +805,16 @@ render(root){
   root.append(quiz({question:'Two random vectors in very high dimensions are almost always…',options:[
     {t:'nearly perpendicular',ok:true,why:'The concentration effect — and the reason embeddings can pack so much meaning.'},
     {t:'nearly parallel',ok:false,why:'The opposite — they crowd toward 90°, not 0°.'}]}));
+  root.append(h3('The formula card — keep this'));
+  root.append(box('key','every core formula in one place',`
+    <b>length</b> \\(\\;\\lVert\\mathbf v\\rVert=\\sqrt{v_1^2+\\dots+v_n^2}\\) &nbsp;·&nbsp; <b>distance</b> \\(\\;\\lVert\\mathbf a-\\mathbf b\\rVert\\)<br>
+    <b>dot</b> \\(\\;\\mathbf a\\cdot\\mathbf b=\\textstyle\\sum a_ib_i=\\lVert\\mathbf a\\rVert\\lVert\\mathbf b\\rVert\\cos\\theta\\)<br>
+    <b>projection</b> \\(\\;\\dfrac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a}\\,\\mathbf a\\)<br>
+    <b>2×2 det</b> \\(\\;ad-bc\\) (signed area) &nbsp;·&nbsp; <b>2×2 inverse</b> \\(\\;\\dfrac{1}{ad-bc}\\begin{bmatrix}d&-b\\\\-c&a\\end{bmatrix}\\)<br>
+    <b>eigen</b> \\(\\;A\\mathbf v=\\lambda\\mathbf v\\) via \\(\\det(A-\\lambda I)=0\\)<br>
+    <b>diagonalize</b> \\(\\;A=PDP^{-1}\\Rightarrow A^{k}=PD^{k}P^{-1}\\) &nbsp;·&nbsp; <b>trace</b>=Σλ, <b>det</b>=Πλ<br>
+    <b>rank–nullity</b> \\(\\;\\text{rank}+\\text{nullity}=n\\) &nbsp;·&nbsp; <b>least squares</b> \\(\\;A^{T}A\\hat x=A^{T}b\\)<br>
+    <b>SVD</b> \\(\\;A=U\\Sigma V^{T}\\) (every matrix)`));
   root.append(h3('Glossary to keep'));
   const terms=[['vector','a list of numbers you can add and scale'],['dimension','how many independent numbers in the list'],
     ['linear combination','scale some vectors, then add — a "smoothie"'],['span','every point reachable by scaling & adding some vectors'],
@@ -888,6 +914,7 @@ render(root){
   root.append(quiz({question:'A consistent system has 5 unknowns and rank 5. How many solutions?',
     options:[{t:'Exactly one',ok:true,why:'rank = number of unknowns and consistent → unique solution. No free variables.'},
       {t:'Infinitely many',ok:false,why:'That needs rank < unknowns. Here rank = 5 = unknowns, so every variable is pinned.'}]}));
+  root.append(box('connect','connects to','Rank is the master number: it decides <a onclick="vsGoTo(\'inverse\')">invertibility</a> (full rank ⇔ invertible), splits space into the <a onclick="vsGoTo(\'fourspaces\')">four fundamental subspaces</a>, obeys <a onclick="vsGoTo(\'ranknullity\')">rank + nullity = n</a>, and equals the count of nonzero <a onclick="vsGoTo(\'svd\')">singular values</a>.'));
   root.append(summary(['Rank = number of pivots = independent equations/columns.','rank = unknowns (consistent) → unique solution.','rank < unknowns (consistent) → free variables → infinite solutions.','Contradiction row (0 = nonzero) → no solution.']));
 }};
 
