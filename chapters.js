@@ -11,7 +11,7 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        worked,gallery,matrixBoard,analogyDemo,
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
-       eigenExplorer,detArea,leastSquares,pcaCloud}=VS;
+       eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -375,7 +375,17 @@ render(root){
   root.append(quiz({question:'Two vectors point in different directions in 2D. Their span is…',
     options:[{t:'the entire plane',ok:true,why:'Yes — two real directions reach anywhere. They form a basis for 2D.'},
       {t:'only the region between them',ok:false,why:'Scaling can be negative and large, so you escape "between" and fill the whole plane.'}]}));
-  root.append(summary(['Span = all points reachable by scale-and-add.','Different directions → whole plane; same direction → just a line.','Spanning is how vectors build a space.']));
+  root.append(h3('Is a given vector in the span? (the acid test)'));
+  root.append(p('“Span” becomes concrete when you ask: <em>can I build this specific target?</em> That\'s just solving a system — which ties Part II straight to Part VI.'));
+  root.append(worked({title:'is (7, 4) in the span of (2, 1) and (1, 3)?',
+    prompt:'Find scalars \\(c_1, c_2\\) with \\(c_1(2,1) + c_2(1,3) = (7,4)\\), or show none exist.',
+    steps:[
+      'Write the two component equations: \\(2c_1 + c_2 = 7\\) and \\(c_1 + 3c_2 = 4\\).',
+      'From the second, \\(c_1 = 4 - 3c_2\\). Substitute: \\(2(4-3c_2)+c_2 = 7 \\Rightarrow 8 - 5c_2 = 7 \\Rightarrow c_2 = \\tfrac15\\).',
+      'Then \\(c_1 = 4 - 3\\cdot\\tfrac15 = \\tfrac{17}{5}\\).'],
+    result:'Yes — \\((7,4) = \\tfrac{17}{5}(2,1) + \\tfrac15(1,3)\\). “Is it in the span?” ALWAYS means “does this system have a solution?” — and since the two vectors are independent, the answer here is yes for <em>every</em> target.'}));
+  root.append(box('key','span in 3D: line, plane, or all of space','One nonzero vector spans a <b>line</b>. Two independent vectors span a <b>plane</b> (through the origin). Three independent vectors span <b>all of \\(\\mathbb R^3\\)</b>. Add a fourth vector in 3D and it\'s guaranteed redundant — there\'s no room for a fourth independent direction. The number of independent vectors = the dimension of the span.'));
+  root.append(summary(['Span = all points reachable by scale-and-add.','“Is v in the span?” = “does c₁a+c₂b+…=v have a solution?”','3D spans: 1 vec → line, 2 → plane, 3 → all of space.','Different directions → whole space; dependent → something smaller.']));
 }};
 
 const cIndep={id:'indep',part:'Part II · Structure',title:'Independence — is a vector redundant?',
@@ -497,6 +507,10 @@ render(root){
   root.append(quiz({question:'Two vectors have dot product exactly 0. They are…',
     options:[{t:'perpendicular / unrelated',ok:true,why:'Zero dot product = right angle = "nothing in common, direction-wise."'},
       {t:'identical',ok:false,why:'Identical vectors have a large positive dot product.'}]}));
+  const Lpd=lab('Practice: dot products & angles','Practice','');
+  Lpd.append(p('Compute the dot product, and read the angle where asked.'));
+  Lpd.append(practiceSet(['dot','angle','length'],5));
+  root.append(Lpd);
   root.append(summary(['Dot product = multiply matching numbers, sum.','Sign: ＋ agree, 0 perpendicular, − clash.','It equals ‖a‖‖b‖cosθ — it secretly holds the angle.','Cosine similarity = the core of modern search/recommendation.']));
 }};
 
@@ -763,7 +777,20 @@ render(root){
   root.append(L);
   root.append(box('aha-box','why the three moves are “legal”','Each move is <em>reversible</em> and preserves the solution set — swapping the order of equations, rescaling one, or adding one equation to another never changes which points satisfy them all. So the final, simple system has the <em>same</em> answers as the scary original.'));
   root.append(box('key','echelon vs reduced echelon','<b>Echelon form:</b> a staircase of leading entries, zeros below. <b>Reduced (RREF):</b> also zeros <em>above</em> each leading 1, and each leading entry is 1. RREF is unique — the canonical fingerprint of the matrix.'));
-  root.append(box('key','try it yourself','Edit the numbers above and re-run. Try a system with a zero row at the end (dependent equations) and watch a pivot go missing — that\'s where “infinitely many solutions” comes from.'));
+  root.append(h3('A full solve, start to finish'));
+  root.append(p('Elimination gets you to a staircase; then <b>back-substitution</b> reads off the answer from the bottom up. Here\'s the whole round trip on a 3-variable system.'));
+  root.append(worked({title:'solve a 3×3 system completely',
+    prompt:'Solve \\(x+y+z=6,\\; 2y+5z=-4,\\; 2x+5y-z=27\\).',
+    steps:[
+      'Eliminate \\(x\\) from equation 3: subtract 2×(eq 1) → \\(3y-3z=15\\), i.e. \\(y-z=5\\).',
+      'Now equations are \\(x+y+z=6\\), \\(2y+5z=-4\\), \\(y-z=5\\). Eliminate \\(y\\): from eq 2 minus 2×(eq 3): \\(7z=-14\\Rightarrow z=-2\\).',
+      'Back-substitute \\(z=-2\\) into \\(y-z=5\\): \\(y=3\\).',
+      'Back-substitute into eq 1: \\(x+3-2=6\\Rightarrow x=5\\).'],
+    result:'\\((x,y,z)=(5,3,-2)\\). Forward elimination makes the staircase; back-substitution climbs it. Check by plugging back in — all three equations hold.'}));
+  const Lp=lab('Practice: solve 2×2 systems','Practice','');
+  Lp.append(p('Each has a whole-number solution. Give x and y.'));
+  Lp.append(practiceSet(['solve2'],4));
+  root.append(Lp);
   root.append(quiz({question:'Which row operation is NOT allowed (would change the solutions)?',
     options:[{t:'Multiply a row by 0',ok:true,why:'Correct — that\'s forbidden. Scaling by 0 destroys the equation (0=0) and loses information. You may scale only by NONzero numbers.'},
       {t:'Swap two rows',ok:false,why:'Swapping is fine — order of equations doesn\'t matter.'},
@@ -814,6 +841,20 @@ render(root){
   root.append(math('A x = b \\quad\\Longrightarrow\\quad x = A^{-1} b'));
   root.append(box('aha-box','why inverse solves systems instantly','If \\(Ax=b\\), multiply both sides by \\(A^{-1}\\): \\(x = A^{-1}b\\). One matrix-times-vector and you\'re done — <em>if</em> the inverse exists. (In practice, elimination is faster and more stable, but the inverse is the clean idea.)'));
   root.append(box('trap','not everything is invertible','Only <b>square</b> matrices can have inverses, and only when \\(\\det \\neq 0\\) (“non-singular”). A determinant of 0 means the matrix flattened space — information was destroyed, so there\'s nothing to reverse. This is the same “you lost a dimension” idea as rank < n.'));
+  root.append(h3('The 2×2 inverse formula — and why it works'));
+  root.append(p('For 2×2 there\'s a memorable closed form. It\'s worth knowing <em>and</em> understanding.'));
+  root.append(math('\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}^{-1} = \\frac{1}{ad-bc}\\begin{bmatrix}d&-b\\\\-c&a\\end{bmatrix}'));
+  root.append(worked({title:'why that formula is the inverse',
+    prompt:'Check that multiplying \\(A\\) by the claimed inverse gives \\(I\\).',
+    steps:[
+      'Swap the diagonal (\\(a\\leftrightarrow d\\)), negate the off-diagonal (\\(b,c\\)), and divide by \\(\\det=ad-bc\\).',
+      'Multiply: \\(\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\begin{bmatrix}d&-b\\\\-c&a\\end{bmatrix} = \\begin{bmatrix}ad-bc&0\\\\0&ad-bc\\end{bmatrix}\\).',
+      'That is \\((ad-bc)\\,I\\). Dividing by \\(ad-bc\\) leaves exactly \\(I\\).'],
+    result:'So the formula really is \\(A^{-1}\\) — and you can see the division by \\(\\det\\) is what breaks when \\(\\det=0\\): you\'d be dividing by zero, i.e. no inverse exists.'}));
+  const Lp=lab('Practice: 2×2 inverses','Practice','');
+  Lp.append(p('Give the top-left entry of \\(A^{-1}\\) (a fraction like 3/5 is fine).'));
+  Lp.append(practiceSet(['inv2'],4));
+  root.append(Lp);
   root.append(quiz({question:'When does a square matrix FAIL to have an inverse?',
     options:[{t:'When its determinant is 0 (it squashes space, losing a dimension)',ok:true,why:'Exactly. det = 0 = singular = not invertible = rank < n. All the same fact.'},
       {t:'When it has negative entries',ok:false,why:'Negative entries are fine. Invertibility is purely about det ≠ 0.'}]}));
@@ -903,6 +944,21 @@ render(root){
     result:'det = 10 — this matrix scales every area by 10 and keeps orientation.'}));
   root.append(box('key','the properties worth remembering','\\(\\det(AB)=\\det(A)\\det(B)\\) (areas multiply when you compose). \\(\\det(A^{T})=\\det(A)\\). \\(\\det(A^{-1})=1/\\det(A)\\). Swapping two rows flips the sign. A repeated row makes det = 0.'));
   root.append(box('aha-box','why det(AB) = det(A)·det(B)','It has to be true, geometrically. Apply \\(B\\), then \\(A\\). \\(B\\) scales every area by \\(\\det B\\); then \\(A\\) scales <em>that</em> by \\(\\det A\\). Scaling twice multiplies the factors, so the combined map \\(AB\\) scales area by \\(\\det A\\cdot\\det B\\). And since \\(A A^{-1}=I\\) (area factor 1), \\(\\det A\\cdot\\det A^{-1}=1\\) — which is exactly why \\(\\det A^{-1}=1/\\det A\\), and why \\(\\det A=0\\) can\'t be inverted (you can\'t scale zero area back up to 1).'));
+  root.append(h3('Bigger matrices: cofactor expansion'));
+  root.append(p('For 3×3 and up, break the determinant into smaller ones. Pick a row, and for each entry multiply it by the determinant of the little matrix left when you delete that entry\'s row and column — with a checkerboard of signs \\(+\,-\,+\).'));
+  root.append(worked({title:'a 3×3 determinant by cofactors',
+    prompt:'Find \\(\\det\\begin{bmatrix}2&1&0\\\\1&3&1\\\\0&2&2\\end{bmatrix}\\), expanding along the top row.',
+    steps:[
+      'Entry 2 (sign +): delete its row & column, leaving \\(\\begin{bmatrix}3&1\\\\2&2\\end{bmatrix}\\), det \\(=6-2=4\\). Contribution \\(+2\\cdot4=8\\).',
+      'Entry 1 (sign −): leftover \\(\\begin{bmatrix}1&1\\\\0&2\\end{bmatrix}\\), det \\(=2\\). Contribution \\(-1\\cdot2=-2\\).',
+      'Entry 0 (sign +): contributes \\(0\\).',
+      'Add: \\(8-2+0=6\\).'],
+    result:'det = 6. The 3×3 became three 2×2s. The same recipe (with alternating signs) handles any size — though for big matrices, elimination is far faster.'}));
+  root.append(box('trap','common mistake: forgetting the signs','The cofactor signs alternate \\(+\,-\,+\,-\dots\) across the row — the middle term is <em>subtracted</em>. Forgetting that flips your answer. And you can expand along <em>any</em> row or column: pick the one with the most zeros to save work.'));
+  const Lp=lab('Practice: determinants','Practice','');
+  Lp.append(p('Mixed 2×2 and 3×3 determinants. Type the number.'));
+  Lp.append(practiceSet(['det2','det3','trace'],5));
+  root.append(Lp);
   root.append(quiz({question:'A 3×3 matrix has determinant 0. What did it do to 3D space?',
     options:[{t:'Squashed it into a plane or line — volume became 0, so it\'s not invertible',ok:true,why:'Exactly. det=0 means a collapsed dimension: the output is flat, information is lost, no inverse exists.'},
       {t:'Doubled every volume',ok:false,why:'That would be det=2. Zero means the volume collapsed to nothing.'}]}));

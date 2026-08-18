@@ -52,6 +52,10 @@ render(root){head(root,0,cCross);
  root.append(quiz({question:'What is a×b geometrically?',
    options:[{t:'A vector perpendicular to both a and b, with length equal to their parallelogram\'s area',ok:true,why:'Exactly — direction perpendicular to both (right-hand rule), magnitude = ‖a‖‖b‖sinθ = the spanned area.'},
      {t:'A number measuring how aligned they are',ok:false,why:'That\'s the dot product. The cross product returns a whole perpendicular vector.'}]}));
+ const Lpc=lab('Practice: cross products','Practice','');
+ Lpc.append(p('Compute all three components of a×b.'));
+ Lpc.append(practiceSet(['cross'],4));
+ root.append(Lpc);
  root.append(summary(['Cross product: two 3D vectors → a perpendicular vector.','Length = ‖a‖‖b‖sinθ = parallelogram area (dot uses cos).','Each component is a little 2×2 determinant.','Unique to 3D; used for normals, torque, orientation.']));
 }};
 insertAfter('dot', cCross);
@@ -169,9 +173,9 @@ const cExam={id:'exam',part:'Part XXI \u00b7 Numerical & capstone',title:'The ma
  sub:'Twelve mixed problems spanning the whole course \u2014 no hints about which topic. If you can clear these cold, you have genuinely internalized linear algebra.',
 render(root){head(root,0,cExam);
  root.append(el('div','pull','This is the real test of internalization: problems arrive with no label. You have to see what each one is asking and reach for the right tool automatically.'));
- root.append(p('Twelve problems drawn from across everything: vectors, dot products, lengths, determinants, matrix products, rank, nullity, eigenvalues. Fresh set every visit.'));
- const L=lab('Comprehensive exam \u2014 12 problems','Exam','weird');
- L.append(practiceSet(['add','scale','dot','length','det2','matvec','matmul','eig','rank','nullity'], 12));
+ root.append(p('Fifteen problems drawn from across everything: vectors, dot products, lengths, angles, cross products, determinants (2×2 and 3×3), trace, matrix products, systems, inverses, rank, nullity, eigenvalues. Fresh set every visit.'));
+ const L=lab('Comprehensive exam — 15 problems','Exam','weird');
+ L.append(practiceSet(['add','scale','dot','length','angle','cross','det2','det3','trace','matvec','matmul','solve2','inv2','eig','rank','nullity'], 15));
  root.append(L);
  root.append(box('aha-box','scoring yourself honestly','<b>10\u201312:</b> you own the mechanics \u2014 go build something (an SVD compressor, a tiny neural net, a physics sim). <b>7\u20139:</b> solid; revisit the two or three types that tripped you. <b>&lt;7:</b> replay the relevant checkpoints \u2014 no shame, that\'s exactly what they\'re for. Mastery is built by return visits, not one pass.'));
  root.append(box('key','what you can now do','You can read any equation of the form \\(A\\mathbf x = \\mathbf b\\) or \\(A\\mathbf v = \\lambda\\mathbf v\\) and <em>know what it means geometrically</em>. You can look at a matrix and see the transformation. You can decompose, project, and diagonalize. That vocabulary is the foundation of machine learning, graphics, quantum mechanics, statistics, and control theory \u2014 every one of them is this toolkit, specialized.'));

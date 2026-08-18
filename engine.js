@@ -1169,6 +1169,42 @@ const PROBLEMS = {
     return {prompt:`A matrix has ${cols} columns and rank ${rank}. What is its nullity (dim of kernel)?`,answer:ans,
       check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
       solution:`Rank + nullity = columns → nullity = ${cols} − ${rank} = ${ans}.`};},
+  solve2:()=>{ // 2x2 system with an integer solution
+    const x=_ri(-3,4),y=_ri(-3,4);let a,b,c,d;
+    do{a=_ri(-3,4);b=_ri(-3,4);c=_ri(-3,4);d=_ri(-3,4);}while(a*d-b*c===0);
+    const e=a*x+b*y, f=c*x+d*y;
+    return {prompt:`Solve: ${a}x + ${b}y = ${e},  ${c}x + ${d}y = ${f}   (give x, y)`,answer:[x,y],
+      check:u=>{const n=_parseNums(u);return n.length>=2&&n[0]===x&&n[1]===y;},
+      solution:`det = ${a*d-b*c}. By elimination/Cramer: x = ${x}, y = ${y}.`};},
+  inv2:()=>{ // top-left entry of the inverse
+    let a,b,c,d,det;do{a=_ri(-3,4);b=_ri(-3,4);c=_ri(-3,4);d=_ri(-3,4);det=a*d-b*c;}while(det===0||Math.abs(det)>6);
+    const ans=d/det;
+    return {prompt:`For A = [[${a}, ${b}],[${c}, ${d}]], what is the TOP-LEFT entry of A⁻¹?`,answer:ans,
+      check:u=>{const n=_parseNums(u);if(n.length>=1&&_approx(n[0],ans,0.02))return true;
+        // accept 'd/det' style fractions
+        const m=u.match(/(-?\d+)\s*\/\s*(-?\d+)/);return m&&_approx(parseInt(m[1])/parseInt(m[2]),ans,0.02);},
+      solution:`A⁻¹ = (1/det)·[[d, −b],[−c, a]] with det = ${det}. Top-left = d/det = ${d}/${det} = ${ans.toFixed(3)}.`};},
+  det3:()=>{ // 3x3 determinant, small integers
+    const A=_mat(3,3,-2,3);const ans=LA.det(A);
+    return {prompt:`det [[${A[0].join(', ')}], [${A[1].join(', ')}], [${A[2].join(', ')}]]`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:`Cofactor-expand along row 1: ${A[0][0]}·(${A[1][1]}·${A[2][2]}−${A[1][2]}·${A[2][1]}) − ${A[0][1]}·(…) + ${A[0][2]}·(…) = ${ans}.`};},
+  angle:()=>{ // angle between two vectors, from a clean set
+    const pairs=[[[1,0],[1,1],45],[[1,0],[0,1],90],[[1,0],[-1,0],180],[[1,1],[-1,1],90],[[1,0],[1,-1],45],[[2,0],[0,3],90]];
+    const[[a,b,deg]]=[pairs[_ri(0,pairs.length-1)]];
+    return {prompt:`Angle (in degrees) between (${a.join(', ')}) and (${b.join(', ')})`,answer:deg,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&_approx(n[0],deg,1);},
+      solution:`cosθ = (a·b)/(‖a‖‖b‖) = ${a[0]*b[0]+a[1]*b[1]}/(${Math.hypot(...a).toFixed(2)}·${Math.hypot(...b).toFixed(2)}) → θ = ${deg}°.`};},
+  cross:()=>{ // cross product, one component asked
+    const a=_mat(1,3,-3,3)[0],b=_mat(1,3,-3,3)[0];
+    const cx=[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+    return {prompt:`(${a.join(', ')}) × (${b.join(', ')})   (all three components)`,answer:cx,
+      check:u=>{const n=_parseNums(u);return n.length===3&&n.every((x,i)=>x===cx[i]);},
+      solution:`(a₂b₃−a₃b₂, a₃b₁−a₁b₃, a₁b₂−a₂b₁) = (${cx.join(', ')}).`};},
+  trace:()=>{const A=_mat(3,3,-4,6);const ans=A[0][0]+A[1][1]+A[2][2];
+    return {prompt:`Trace of [[${A[0].join(', ')}], [${A[1].join(', ')}], [${A[2].join(', ')}]]`,answer:ans,
+      check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
+      solution:`Sum of the diagonal: ${A[0][0]} + ${A[1][1]} + ${A[2][2]} = ${ans}.`};},
 };
 
 function practiceSet(kinds, n){
