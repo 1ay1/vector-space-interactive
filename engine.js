@@ -1205,6 +1205,25 @@ const PROBLEMS = {
     return {prompt:`Trace of [[${A[0].join(', ')}], [${A[1].join(', ')}], [${A[2].join(', ')}]]`,answer:ans,
       check:u=>{const n=_parseNums(u);return n.length>=1&&n[0]===ans;},
       solution:`Sum of the diagonal: ${A[0][0]} + ${A[1][1]} + ${A[2][2]} = ${ans}.`};},
+  projscalar:()=>{ // scalar projection of b onto a = a.b / a.a  (pick clean cases)
+    const clean=[[[1,0],[3,4]],[[0,1],[3,4]],[[1,1],[2,4]],[[2,0],[5,3]],[[1,2],[3,1]]];
+    const [a,b]=clean[_ri(0,clean.length-1)];
+    const ab=a[0]*b[0]+a[1]*b[1], aa=a[0]*a[0]+a[1]*a[1];const ans=ab/aa;
+    return {prompt:`Scalar t so that t·(${a.join(', ')}) is the projection of (${b.join(', ')}) onto (${a.join(', ')}).  [t = (a·b)/(a·a)]`,answer:ans,
+      check:u=>{const n=_parseNums(u);if(n.length>=1&&_approx(n[0],ans,0.02))return true;const m=u.match(/(-?\d+)\s*\/\s*(-?\d+)/);return m&&_approx(parseInt(m[1])/parseInt(m[2]),ans,0.02);},
+      solution:`t = (a·b)/(a·a) = ${ab}/${aa} = ${ans.toFixed(3)}.`};},
+  subspace:()=>{ // is this set a subspace? conceptual
+    const sets=[
+      {t:'all vectors (x, y) with y = 2x',ok:true,why:'a line through the origin — closed under add & scale, contains 0. Subspace.'},
+      {t:'all vectors (x, y) with y = 2x + 1',ok:false,why:'does NOT contain the origin (0,0 fails), so not a subspace.'},
+      {t:'all vectors with x ≥ 0',ok:false,why:'not closed under scaling by −1 (flips the sign). Not a subspace.'},
+      {t:'all vectors (x, y, z) with x + y + z = 0',ok:true,why:'a plane through the origin — closed under add & scale. Subspace.'},
+      {t:'just the single point (0, 0)',ok:true,why:'the trivial subspace {0} — perfectly valid.'},
+      {t:'all vectors of length 1',ok:false,why:'the unit circle doesn\'t contain 0 and isn\'t closed under scaling. Not a subspace.'}];
+    const s=sets[_ri(0,sets.length-1)];
+    return {prompt:`Is this a subspace? “${s.t}”  (answer yes or no)`,answer:s.ok?'yes':'no',
+      check:u=>{const y=/^\s*(y|yes|true|1)/i.test(u.trim());const no=/^\s*(n|no|false|0)/i.test(u.trim());return (y&&s.ok)||(no&&!s.ok);},
+      solution:`${s.ok?'Yes':'No'} — ${s.why}`};},
 };
 
 /* =========================================================

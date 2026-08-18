@@ -7,7 +7,7 @@
 const {el,knob,vboard,narrate,rangeRow,quiz,clamp,fmt,C,
        matrixGrid,matrixHTML,rrefStepper,board3d,spanBoard,
        eigenExplorer,detArea,leastSquares,pcaCloud,worked,
-       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph,svdPhoto}=VS;
+       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph,svdPhoto,practiceSet}=VS;
 
 /* re-declare chrome helpers (mirror chapters.js) */
 function head(root,n,c){
@@ -65,7 +65,12 @@ render(root){head(root,0,this);
  root.append(quiz({question:'A linear map has a nonzero vector in its kernel. Can it be invertible?',
    options:[{t:'No \u2014 it sends a nonzero vector to 0, so it destroys information and can\'t be undone',ok:true,why:'Exactly. Nonzero kernel \u21d2 not injective \u21d2 not invertible \u21d2 det = 0.'},
      {t:'Yes, kernels don\'t affect invertibility',ok:false,why:'A nonzero kernel is precisely why a map fails to be invertible.'}]}));
- root.append(summary(['Subspace = flat piece through the origin, closed under +/\u00d7.','Kernel = what a map sends to 0 (directions destroyed).','Image = column space = everywhere the map can reach.','Kernel = {0} \u21d4 injective \u21d4 (square) invertible.']));
+ root.append(box('key','the three-part test for a subspace','A set \(S\) is a subspace iff: (1) it contains the <b>zero vector</b>, (2) it\'s <b>closed under addition</b> (\(u,v\in S\Rightarrow u+v\in S\)), and (3) it\'s <b>closed under scaling</b> (\(v\in S\Rightarrow cv\in S\)). Fail any one and it\'s not a subspace. The quickest disqualifier: <em>does it contain the origin?</em> If not, done — not a subspace.'));
+ const Lp=lab('Practice: is it a subspace?','Practice','');
+ Lp.append(p('Answer yes or no. The fastest check is usually “does it contain (0,0)?”'));
+ Lp.append(practiceSet(['subspace'],5));
+ root.append(Lp);
+ root.append(summary(['Subspace = flat piece through the origin, closed under +/×.','Kernel = what a map sends to 0 (directions destroyed).','Image = column space = everywhere the map can reach.','Kernel = {0} ⇔ injective ⇔ (square) invertible.']));
 }});
 
 /* ============================================================ XIV — FOUR FUNDAMENTAL SUBSPACES */

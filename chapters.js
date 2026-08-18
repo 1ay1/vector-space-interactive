@@ -386,6 +386,7 @@ render(root){
       'Then \\(c_1 = 4 - 3\\cdot\\tfrac15 = \\tfrac{17}{5}\\).'],
     result:'Yes — \\((7,4) = \\tfrac{17}{5}(2,1) + \\tfrac15(1,3)\\). “Is it in the span?” ALWAYS means “does this system have a solution?” — and since the two vectors are independent, the answer here is yes for <em>every</em> target.'}));
   root.append(box('key','span in 3D: line, plane, or all of space','One nonzero vector spans a <b>line</b>. Two independent vectors span a <b>plane</b> (through the origin). Three independent vectors span <b>all of \\(\\mathbb R^3\\)</b>. Add a fourth vector in 3D and it\'s guaranteed redundant — there\'s no room for a fourth independent direction. The number of independent vectors = the dimension of the span.'));
+  root.append(box('trap','the tempting wrong picture','It\'s natural to imagine the span of \\(\\mathbf a\\) and \\(\\mathbf b\\) as the <em>region between them</em> — like a pizza slice. <b>Wrong.</b> The scalars can be <em>negative</em> and <em>bigger than 1</em>, so you shoot out past both vectors and behind the origin in every direction. Two independent 2D vectors don\'t span a wedge — they span the <em>entire plane</em>. “Between” is a convex-combination idea; span is a linear-combination idea, and linear is much bigger.'));
   root.append(summary(['Span = all points reachable by scale-and-add.','“Is v in the span?” = “does c₁a+c₂b+…=v have a solution?”','3D spans: 1 vec → line, 2 → plane, 3 → all of space.','Different directions → whole space; dependent → something smaller.']));
 }};
 
@@ -1123,6 +1124,19 @@ render(root){
   root.append(p('You have noisy points and want the best straight line. There\'s usually <em>no</em> line through them all — the system \\(Ax=b\\) has no exact solution. So we find the \\(x\\) making \\(Ax\\) as <b>close as possible</b> to \\(b\\): project \\(b\\) onto the column space of \\(A\\). Hit the button and watch the residuals.'));
   const L=lab('Fit the best line','Play');L.append(leastSquares());root.append(L);
   root.append(math('A^{T}A\\,\\hat x = A^{T}b \\quad(\\text{the normal equations})'));
+  root.append(h3('Where the normal equations come from'));
+  root.append(worked({title:'deriving AᵀA x̂ = Aᵀb',
+    prompt:'We want \\(\\hat x\\) making \\(A\\hat x\\) the closest point in the column space to \\(b\\). Turn “closest” into an equation.',
+    steps:[
+      'The residual \\(b - A\\hat x\\) must be <b>perpendicular to the column space</b> — that\'s what “closest” means (Part X).',
+      'Perpendicular to every column of \\(A\\) means each column dotted with the residual is 0: \\(A^{T}(b - A\\hat x) = \\mathbf 0\\).',
+      'Distribute: \\(A^{T}b - A^{T}A\\hat x = \\mathbf 0\\).'],
+    result:'Rearranged: \\(A^{T}A\\hat x = A^{T}b\\) — the normal equations. Same one idea as every projection: <b>make the error perpendicular.</b> \\(A^{T}A\\) is square and (usually) invertible, so \\(\\hat x=(A^{T}A)^{-1}A^{T}b\\).'}));
+  root.append(box('trap','the tempting wrong path','“Just invert \\(A\\) and compute \\(x=A^{-1}b\\).” You <em>can\'t</em> — for real data \\(A\\) is tall (more rows than columns), so it isn\'t square and has no inverse. The fix isn\'t to force an inverse; it\'s to accept there\'s no exact solution and project. That\'s why we form the <em>square</em> matrix \\(A^{T}A\\) instead.'));
+  const Lp=lab('Practice: scalar projection','Practice','');
+  Lp.append(p('Compute \\(t=(a\\cdot b)/(a\\cdot a)\\), the amount of a in the projection of b onto a.'));
+  Lp.append(practiceSet(['projscalar'],4));
+  root.append(Lp);
   root.append(box('aha-box','no exact answer? project.','When \\(Ax=b\\) is unsolvable, you can\'t hit \\(b\\) — so you hit the closest reachable point instead: the projection of \\(b\\) onto everything \\(A\\) can produce. The red residual lines are the leftover errors; least squares makes their total <em>squared</em> length as small as possible.'));
   root.append(box('key','where you\'ve used this without knowing','Every trend line, every “line of best fit,” every linear regression in statistics and machine learning is this exact projection. The “learning” in the simplest ML models <em>is</em> solving the normal equations.'));
   root.append(quiz({question:'Why can\'t we usually solve Ax=b exactly for real data?',
