@@ -1519,6 +1519,60 @@ function matrixLab(opts){
    drag them; see v2's projection onto v1 subtracted off to
    make the perpendicular component. Step through it.
    ========================================================= */
+/* =========================================================
+   TRANSFORMQUIZ — a hidden matrix deforms the grid; the
+   learner names the transformation type. Trains reading
+   geometry directly from what a matrix DOES.
+   ========================================================= */
+function transformQuiz(){
+  const W=280,H=280,unit=40;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;
+  const kinds=[
+    {m:[[0,-1],[1,0]],label:'rotation',hint:'lengths & angles preserved, det=+1, no fixed direction'},
+    {m:[[1,1],[0,1]],label:'shear',hint:'one axis slides parallel to itself; det=1 but not a rotation'},
+    {m:[[2,0],[0,2]],label:'uniform scale',hint:'everything grows by the same factor; det=4'},
+    {m:[[-1,0],[0,1]],label:'reflection',hint:'a mirror flip; det=−1'},
+    {m:[[1,0],[0,0]],label:'projection',hint:'squashes onto a line; det=0, not reversible'},
+    {m:[[2,0],[0,1]],label:'stretch (one axis)',hint:'grows along x only; det=2'},
+  ];
+  let cur, answered=false;
+  const nar=narrate('');
+  function apply(x,y,m){return [m[0][0]*x+m[0][1]*y, m[1][0]*x+m[1][1]*y];}
+  function draw(m){
+    ctx.clearRect(0,0,W,H);
+    for(let i=-5;i<=5;i++){ctx.strokeStyle=(i===0)?'#c9bfb0':'#efe9df';ctx.lineWidth=1;
+      let p=apply(i,-5,m),q=apply(i,5,m);let a=[ox+p[0]*unit,oy-p[1]*unit],b=[ox+q[0]*unit,oy-q[1]*unit];
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+      p=apply(-5,i,m);q=apply(5,i,m);a=[ox+p[0]*unit,oy-p[1]*unit];b=[ox+q[0]*unit,oy-q[1]*unit];
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
+    // basis arrows
+    function arr(vx,vy,c){const e=[ox+vx*unit,oy-vy*unit];ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(e[0],e[1]);ctx.stroke();
+      const ang=Math.atan2(e[1]-oy,e[0]-ox),s=9;ctx.beginPath();ctx.moveTo(e[0],e[1]);
+      ctx.lineTo(e[0]-s*Math.cos(ang-.4),e[1]-s*Math.sin(ang-.4));ctx.lineTo(e[0]-s*Math.cos(ang+.4),e[1]-s*Math.sin(ang+.4));ctx.closePath();ctx.fill();}
+    arr(m[0][0],m[1][0],C.accent);arr(m[0][1],m[1][1],C.accentb);
+  }
+  const opts=el('div');opts.style.cssText='display:flex;flex-wrap:wrap;gap:7px;margin-top:10px';
+  function newRound(){
+    answered=false;cur=kinds[Math.floor(Math.random()*kinds.length)];draw(cur.m);
+    opts.innerHTML='';
+    // shuffle labels
+    const labels=kinds.map(k=>k.label).sort(()=>Math.random()-0.5);
+    labels.forEach(lb=>{const b=el('button','opt',lb);b.style.cssText='display:inline-block;width:auto;margin:0';
+      b.onclick=()=>{if(answered&&lb===cur.label)return;
+        if(lb===cur.label){b.style.borderColor='var(--green)';b.style.background='#EBF7EF';answered=true;
+          nar.say(`<span class="g">✓ ${lb}.</span> ${cur.hint}. The matrix is [[${cur.m[0].join(', ')}], [${cur.m[1].join(', ')}]]. Click “new” for another.`);}
+        else{b.style.borderColor='var(--accent)';b.style.background='#FDEEE8';
+          nar.say('Not that one — look at what happens to the two basis arrows and whether area/angles are preserved.');}};
+      opts.append(b);});
+    nar.say('What kind of transformation is this? Read the deformed grid and the basis arrows.');
+  }
+  const nb=el('button','btn','new transformation');nb.onclick=newRound;
+  const ctr=el('div','controls');ctr.append(nb);
+  const wrap=el('div');const s=el('div','stage');s.append(cv,el('div','grow'));wrap.append(s,opts,ctr,nar);newRound();
+  return wrap;
+}
+
 function gramSchmidtViz(){
   const W=340,H=340,unit=40;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
   const ox=W/2,oy=H/2;let v1={x:3,y:1},v2={x:1,y:2.5};let step=2;
@@ -1792,5 +1846,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder,gramSchmidtViz,fourSubspaces};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder,gramSchmidtViz,fourSubspaces,transformQuiz};
 })();

@@ -12,7 +12,7 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
        eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet,rowOpSolver,
-       matmulBuilder,cofactorBuilder,eigenCheck,gramSchmidtViz}=VS;
+       matmulBuilder,cofactorBuilder,eigenCheck,gramSchmidtViz,transformQuiz}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -357,7 +357,14 @@ render(root){
   const L=lab('Reach the star by mixing');const g=el('div','grow');g.append(ro,rA,rB);const s=el('div','stage');s.append(board,g);
   L.append(s,nar);upd();root.append(L);
   root.append(box('aha-box','the phrase, demystified','"Linear combination" sounds intimidating; it means "a smoothie." Scoops of each ingredient, blended. If you can customise a smoothie order, you understand it.'));
-  root.append(summary(['Linear combination = scale each, then add.','It\'s the engine every later idea is built from.','Two different-direction 2D vectors can combine to reach anywhere.']));
+  root.append(worked({title:'find the exact recipe',
+    prompt:'What combination of \\(\\mathbf a=(1,2)\\) and \\(\\mathbf b=(3,1)\\) equals \\((5,5)\\)?',
+    steps:[
+      'Set up \\(c_1(1,2)+c_2(3,1)=(5,5)\\), giving \\(c_1+3c_2=5\\) and \\(2c_1+c_2=5\\).',
+      'From the first, \\(c_1=5-3c_2\\). Sub into the second: \\(2(5-3c_2)+c_2=5\\Rightarrow 10-5c_2=5\\Rightarrow c_2=1\\).',
+      'Then \\(c_1=5-3=2\\).'],
+    result:'\\((5,5)=2\\mathbf a+1\\mathbf b\\). “Reach a target by mixing” always turns into a small system — which is exactly the bridge to Part VI. Sanity check: \\(2(1,2)+(3,1)=(2,4)+(3,1)=(5,5)\\). ✓'}));
+  root.append(summary(['Linear combination = scale each, then add.','It\'s the engine every later idea is built from.','“Reach a target” = solve a small system for the coefficients.','Two different-direction 2D vectors can combine to reach anywhere.']));
 }};
 
 const cSpan={id:'span',part:'Part II · Structure',title:'Span — everywhere you can reach',
@@ -689,6 +696,11 @@ render(root){
       'Combine: \\((2x+y,\\; 3y)\\).'],
     result:'A matrix moves the whole space, but each vector just rides its <em>own</em> linear combination of “where the basis went.” It\'s our two moves again.'}));
   root.append(box('aha-box','why matrices are everywhere','Rotating a game character, warping a photo, one layer of a neural network, a Google-search ranking step — all are “apply a matrix to a vector.” The <span class="term">determinant</span> you saw (the area factor) tells you if the transform squashes information (det = 0) or is reversible. <span class="aha">Everything deeper — eigenvectors, PCA, transformers — is built on this one picture.</span>'));
+  root.append(h3('Read the geometry: name that transformation'));
+  root.append(p('A matrix\'s <em>type</em> is written in what it does to the grid. Rotations preserve lengths and angles; shears slide one axis; a determinant of 0 squashes onto a line. Identify each one — it trains you to see the geometry <em>in</em> the numbers.'));
+  const Lt=lab('Name that transformation','Play');
+  Lt.append(transformQuiz());
+  root.append(Lt);
   root.append(quiz({question:'A matrix squashes the whole plane onto a single line (determinant 0). What did it lose?',
     options:[{t:'Information — many different inputs now map to the same output, so you can\'t undo it',ok:true,why:'Exactly. Zero determinant = not reversible = the transform threw away a dimension. This is “singular.”'},
       {t:'Nothing — it\'s fully reversible',ok:false,why:'A collapse to a line means countless inputs share one output; you can\'t recover which. Not reversible.'}]}));
@@ -851,6 +863,13 @@ render(root){
     • a pivot in the “=” column (like \\(0=1\\)) → <span style="color:var(--accent)">no solution</span> (contradiction).`));
   root.append(h3('Free variables = the shape of the solution set'));
   root.append(p('If rank &lt; number of unknowns, the leftover unknowns are <b>free</b> — you can set them to anything and the rest follow. Each free variable adds a dimension to the solution set: one free variable → the solutions form a line; two → a plane; and so on.'));
+  root.append(worked({title:'find the rank by elimination',
+    prompt:'Find the rank of \\(\\begin{bmatrix}1&2&3\\\\2&4&6\\\\1&1&1\\end{bmatrix}\\).',
+    steps:[
+      'Row 2 is exactly \\(2\\times\\)row 1, so \\(R_2\\to R_2-2R_1\\) makes it all zeros.',
+      'Clear row 3: \\(R_3\\to R_3-R_1 = (0,-1,-2)\\). Now the matrix is \\(\\begin{bmatrix}1&2&3\\\\0&0&0\\\\0&-1&-2\\end{bmatrix}\\).',
+      'Swap to get the staircase: two nonzero rows remain — two pivots.'],
+    result:'Rank = 2. One row was redundant (row 2 = 2·row 1), so only 2 of the 3 rows are independent. The rank counts the genuinely independent rows — which always equals the number of independent columns.'}));
   root.append(worked({title:'counting solutions from rank',
     prompt:'A system has 4 unknowns. Elimination gives 2 pivots and no contradiction. Describe the solutions.',
     steps:['Rank = 2 (two pivots), unknowns = 4.',
