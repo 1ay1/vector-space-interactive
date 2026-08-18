@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vector Space — learn it like never before</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside id="sidebar">
+  <div class="brand">
+    <div class="logo">▚</div>
+    <div>
+      <div class="brand-title">Vector<span>Space</span></div>
+      <div class="brand-sub">learn it by touching it</div>
+    </div>
+  </div>
+  <nav id="chapnav"><!-- filled by JS --></nav>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0% explored</div>
+  </div>
+  <button class="reset-progress" id="resetProgress">reset progress</button>
+</aside>
+
+<button id="menuToggle" aria-label="menu">☰</button>
+
+<!-- ===================== MAIN ===================== -->
+<main id="main">
+  <div id="content"><!-- active chapter rendered here --></div>
+
+  <div class="chapter-foot">
+    <button class="navbtn" id="prevChap">← previous</button>
+    <div class="dotline" id="dotline"></div>
+    <button class="navbtn primary" id="nextChap">next →</button>
+  </div>
+</main>
+
+<!-- landing overlay -->
+<div id="landing">
+  <div class="landing-inner">
+    <div class="landing-badge">interactive course · self-contained · no signup</div>
+    <h1>Understand <em>vector spaces</em><br>the way no textbook lets you.</h1>
+    <p class="landing-lead">Not formulas first. <b>Intuition first</b> — you'll drag,
+      predict, and watch, until a 900-dimensional space feels as ordinary as a
+      shopping list. Twelve short interactive chapters. Start anywhere.</p>
+    <div class="landing-cta">
+      <button id="startBtn" class="big-cta">Start chapter 1 →</button>
+      <button id="jumpBtn" class="ghost-cta">jump to the map</button>
+    </div>
+    <div class="landing-marquee" id="landingChips"></div>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="chapters.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
