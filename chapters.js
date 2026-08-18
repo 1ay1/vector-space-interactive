@@ -10,7 +10,8 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
        worked,gallery,matrixBoard,analogyDemo,
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
-       matrixGrid,matrixHTML,rrefStepper,systemLines}=VS;
+       matrixGrid,matrixHTML,rrefStepper,systemLines,
+       eigenExplorer,detArea}=VS;
 
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
@@ -809,8 +810,147 @@ render(root){
   root.append(summary(['Inverse A⁻¹ undoes A: A⁻¹A = I.','Exists only for square matrices with det ≠ 0.','Solves Ax=b in one shot: x = A⁻¹b.','det = 0 ⇔ singular ⇔ rank < n ⇔ no inverse.']));
 }};
 
+/* ============================================================
+   PART VII — MATRICES DEEP
+   ============================================================ */
+
+const cMatmul={id:'matmul',part:'Part VII · Matrices deep',title:'Multiplying matrices = chaining transforms',
+  sub:'Matrix multiplication looks like a weird bookkeeping rule. It isn\'t — it\'s “do transform B, then transform A.” Composition of verbs.',
+render(root){
+  head(root,0,cMatmul);
+  root.append(p('Why is matrix multiplication defined by that strange “row-times-column” rule? Because a matrix is a <em>transform</em> (Part V), and multiplying two of them means <b>apply one, then the other</b>. \\(AB\\) means “do B first, then A” — the result is a single matrix that does both in one step.'));
+  const L=lab('Compose two transforms','Play');
+  const gA=matrixGrid({rows:2,cols:2,values:[[0,-1],[1,0]]});   // rotate 90
+  const gB=matrixGrid({rows:2,cols:2,values:[[2,0],[0,1]]});   // stretch x
+  const out=el('div');out.style.cssText='margin-top:10px';const nar=narrate('Edit A and B, then multiply.');
+  const btn=el('button','btn','compute A·B');
+  btn.onclick=()=>{const A=gA.get(),B=gB.get();const AB=LA.matmul(A,B);
+    out.innerHTML=`A·B = ${matrixHTML(AB)} <span style="color:var(--muted)">(apply B first, then A)</span>`;
+    const BA=LA.matmul(B,A);const same=JSON.stringify(AB)===JSON.stringify(BA);
+    nar.say(`Each entry of A·B is a row of A dotted with a column of B. ${same?'':'<b>Order matters:</b> A·B ≠ B·A here — rotating then stretching ≠ stretching then rotating.'}`);
+    if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([out]).catch(()=>{});};
+  const row=el('div');row.style.cssText='display:flex;gap:16px;align-items:center;flex-wrap:wrap';
+  const wa=el('div');wa.innerHTML='<div style="font-size:.8rem;color:var(--muted)">A (2nd)</div>';wa.append(gA.el);
+  const wb=el('div');wb.innerHTML='<div style="font-size:.8rem;color:var(--muted)">B (1st)</div>';wb.append(gB.el);
+  row.append(wa,wb);const ctr=el('div','controls');ctr.append(btn);
+  L.append(row,ctr,out,nar);root.append(L);
+  root.append(box('aha-box','the rule, finally sensible','The (i,j) entry of A·B is “row i of A” · “column j of B” because column j of B says where the j-th basis vector goes under B, and then A moves that result. Row-times-column is just “track where each basis vector ends up after both transforms.”'));
+  root.append(box('trap','order matters','\\(AB \\neq BA\\) in general — putting on socks then shoes ≠ shoes then socks. Matrix multiplication is <em>not</em> commutative. (It <em>is</em> associative: \\(A(BC)=(AB)C\\).)'));
+  root.append(quiz({question:'In the product A·B applied to a vector, which transform happens first?',
+    options:[{t:'B — it\'s closest to the vector: A(B(x))',ok:true,why:'Right. A·B·x = A(B(x)): B acts first, then A. Read right-to-left.'},
+      {t:'A — it\'s written first',ok:false,why:'Written first, but applied LAST. The matrix nearest the vector acts first.'}]}));
+  root.append(summary(['Matrix product = compose transforms (do the right one first).','(i,j) entry = row i of A · column j of B.','AB ≠ BA (order matters); A(BC)=(AB)C (associative).']));
+}};
+
+const cTranspose={id:'transpose',part:'Part VII · Matrices deep',title:'Transpose & special matrices',
+  sub:'Flip a matrix across its diagonal and a surprising amount of structure appears — symmetry, orthogonal matrices, and the shapes that make later theorems work.',
+render(root){
+  head(root,0,cTranspose);
+  root.append(p('The <span class="term">transpose</span> \\(A^{T}\\) swaps rows and columns — flip the matrix across its main diagonal. Simple move, deep consequences.'));
+  const L=lab('Flip it','Play');
+  const g=matrixGrid({rows:2,cols:3,values:[[1,2,3],[4,5,6]]});
+  const out=el('div');out.style.cssText='margin-top:10px';const btn=el('button','btn','transpose');
+  btn.onclick=()=>{out.innerHTML='Aᵀ = '+matrixHTML(LA.transpose(g.get()));};
+  const ctr=el('div','controls');ctr.append(btn);L.append(g.el,ctr,out);root.append(L);
+  root.append(box('key','the special matrices to know',`
+    <b>Symmetric</b> (\\(A^{T}=A\\)) — mirror across the diagonal; always has real eigenvalues & perpendicular eigenvectors (huge for PCA).<br>
+    <b>Diagonal</b> — only the diagonal is nonzero; just scales each axis independently.<br>
+    <b>Identity</b> \\(I\\) — the “do nothing” matrix; \\(IA=A\\).<br>
+    <b>Orthogonal</b> (\\(Q^{T}Q=I\\)) — columns are perpendicular unit vectors; rotations & reflections, they preserve length and angle.`));
+  root.append(box('aha-box','why transpose matters','\\((AB)^{T}=B^{T}A^{T}\\), and the dot product is \\(\\mathbf a\\cdot\\mathbf b=\\mathbf a^{T}\\mathbf b\\). Transpose is the bridge between “transforms” and “geometry” — it\'s how length, angle, and projection get written in matrix language (Part X).'));
+  root.append(quiz({question:'A matrix Q has perpendicular unit-length columns (QᵀQ = I). What does it do to shapes?',
+    options:[{t:'Rotates/reflects them without changing sizes or angles',ok:true,why:'Yes — orthogonal matrices are rigid motions. Lengths and angles are preserved; only orientation changes.'},
+      {t:'Stretches them by the determinant',ok:false,why:'That\'s a general matrix. Orthogonal ones have |det|=1 and preserve all distances.'}]}));
+  root.append(summary(['Transpose Aᵀ = swap rows/columns (flip across diagonal).','Symmetric: Aᵀ=A. Orthogonal: QᵀQ=I (rigid motion).','(AB)ᵀ=BᵀAᵀ; the dot product is aᵀb.','These shapes power the big theorems ahead.']));
+}};
+
+/* ============================================================
+   PART VIII — DETERMINANTS
+   ============================================================ */
+
+const cDet={id:'det',part:'Part VIII · Determinants',title:'The determinant is an area factor',
+  sub:'One number that captures what a matrix does to size and orientation. Zero means “collapsed a dimension.” Watch the unit square deform.',
+render(root){
+  head(root,0,cDet);
+  root.append(p('Every 2×2 matrix turns the unit square into a parallelogram. The <span class="term">determinant</span> is <b>the area of that parallelogram</b> (with a sign for orientation). Slide the entries and watch area = det.'));
+  const L=lab('det = how area scales','See','see');L.append(detArea());root.append(L);
+  root.append(box('aha-box','what the number means','<b>|det| = 2</b> → the transform doubles areas. <b>det &lt; 0</b> → space was flipped (mirrored). <b>det = 0</b> → the square was squashed to a line: a whole dimension collapsed — which is exactly why det=0 means <em>not invertible</em> (Part VI). In 3D it\'s a volume factor; in n-D, an n-volume factor.'));
+  root.append(worked({title:'2×2 determinant by hand',
+    prompt:'Find \\(\\det\\begin{bmatrix}3&1\\\\2&4\\end{bmatrix}\\).',
+    steps:['For \\(\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\), the determinant is \\(ad-bc\\).',
+      'Here \\(a=3,b=1,c=2,d=4\\): \\(3\\cdot4 - 1\\cdot2\\).',
+      '\\(12 - 2 = 10\\).'],
+    result:'det = 10 — this matrix scales every area by 10 and keeps orientation.'}));
+  root.append(box('key','the properties worth remembering','\\(\\det(AB)=\\det(A)\\det(B)\\) (areas multiply when you compose). \\(\\det(A^{T})=\\det(A)\\). \\(\\det(A^{-1})=1/\\det(A)\\). Swapping two rows flips the sign. A repeated row makes det = 0.'));
+  root.append(quiz({question:'A 3×3 matrix has determinant 0. What did it do to 3D space?',
+    options:[{t:'Squashed it into a plane or line — volume became 0, so it\'s not invertible',ok:true,why:'Exactly. det=0 means a collapsed dimension: the output is flat, information is lost, no inverse exists.'},
+      {t:'Doubled every volume',ok:false,why:'That would be det=2. Zero means the volume collapsed to nothing.'}]}));
+  root.append(summary(['det = signed area/volume scale factor of the transform.','det < 0 = orientation flipped; det = 0 = dimension collapsed.','det(AB)=det(A)det(B); det=0 ⇔ singular ⇔ no inverse.']));
+}};
+
+/* ============================================================
+   PART IX — EIGENVALUES & EIGENVECTORS
+   ============================================================ */
+
+const cEigen={id:'eigen',part:'Part IX · Eigen',title:'Eigenvectors — the directions a matrix won\'t turn',
+  sub:'Most vectors get rotated when a matrix hits them. A special few only get stretched, never turned. Those are eigenvectors — the secret skeleton of the transform.',
+render(root){
+  head(root,0,cEigen);
+  root.append(p('Apply a matrix to a vector and usually it <em>rotates</em>. But for special directions, the output points the <b>same way</b> — the matrix only stretches (or flips) it. Those directions are <span class="term">eigenvectors</span>; the stretch factor is the <span class="term">eigenvalue</span> \\(\\lambda\\). Drag v and hunt for the directions that don\'t turn.'));
+  const L=lab('Find the un-turning directions','Play');
+  const ee=eigenExplorer({matrix:[[2,1],[1,2]]});
+  L.append(ee);
+  // matrix picker
+  const g=matrixGrid({rows:2,cols:2,values:[[2,1],[1,2]]});
+  const btn=el('button','btn ghost','use this matrix');btn.onclick=()=>ee.setMatrix(g.get());
+  const ctr=el('div','controls');ctr.append(el('span',null,'<span style="font-size:.85rem;color:var(--muted)">try a matrix:</span>'),g.el,btn);
+  L.append(ctr);root.append(L);
+  root.append(math('A\\mathbf v = \\lambda \\mathbf v \\quad(\\text{output = a scalar multiple of the input})'));
+  root.append(box('aha-box','the defining equation','\\(A\\mathbf v=\\lambda\\mathbf v\\) says: the matrix acting on \\(\\mathbf v\\) is the <em>same</em> as just scaling \\(\\mathbf v\\) by \\(\\lambda\\). No rotation, no shear — pure stretch. Eigenvectors are the axes the transform is “built around.”'));
+  root.append(worked({title:'finding eigenvalues (2×2)',
+    prompt:'Find the eigenvalues of \\(A=\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}\\).',
+    steps:['Solve \\(\\det(A-\\lambda I)=0\\): \\(\\det\\begin{bmatrix}2-\\lambda&1\\\\1&2-\\lambda\\end{bmatrix}=0\\).',
+      'Expand: \\((2-\\lambda)^2 - 1 = 0\\).',
+      '\\(\\lambda^2 -4\\lambda +3 = 0 \\Rightarrow (\\lambda-1)(\\lambda-3)=0\\).'],
+    result:'\\(\\lambda = 1\\) and \\(\\lambda = 3\\). One direction is unchanged (×1), the other stretched ×3 — exactly the two eigenlines in the demo.'}));
+  root.append(box('key','why anyone cares','Eigenvectors are the directions where a complicated transform becomes <em>simple multiplication</em>. That unlocks: raising a matrix to a huge power (repeated application), <b>PageRank</b>, the long-run state of a <b>Markov chain</b>, the vibration modes of a bridge, and <b>PCA</b> (the eigenvectors of your data\'s covariance are its main axes). We\'ll build several of these.'));
+  root.append(quiz({question:'A·v = λv means…',
+    options:[{t:'The matrix only scales v (by λ) without changing its direction',ok:true,why:'Exactly — that\'s the definition of an eigenvector v with eigenvalue λ.'},
+      {t:'v is the largest column of A',ok:false,why:'No relation. It means applying A to v just stretches v.'}]}));
+  root.append(summary(['Eigenvector: a direction the matrix only stretches, never rotates.','Eigenvalue λ: the stretch factor. A·v = λv.','Found via det(A − λI) = 0.','They turn hard transforms into simple scalings — the key to powers, PageRank, PCA.']));
+}};
+
+const cDiag={id:'diag',part:'Part IX · Eigen',title:'Diagonalization & matrix powers',
+  sub:'In its eigenbasis, a matrix becomes pure scaling — diagonal. That makes applying it a million times almost free, and explains long-run behaviour.',
+render(root){
+  head(root,0,cDiag);
+  root.append(p('If you rewrite a matrix in the coordinate system of its own eigenvectors, it becomes <b>diagonal</b> — it just scales each eigen-axis by its eigenvalue. That\'s <span class="term">diagonalization</span>: \\(A = PDP^{-1}\\), where \\(D\\) is the diagonal of eigenvalues and \\(P\\)\'s columns are the eigenvectors.'));
+  root.append(math('A = P D P^{-1}, \\qquad A^{k} = P D^{k} P^{-1}'));
+  root.append(box('aha-box','why this is a superpower','To apply \\(A\\) a million times you\'d normally multiply a million matrices. But \\(A^{k}=PD^{k}P^{-1}\\), and \\(D^{k}\\) is trivial — just raise each diagonal eigenvalue to the k. Change to the eigenbasis, scale, change back. A hard repeated process becomes one easy exponent.'));
+  const L=lab('Watch which eigenvalue wins','See','see');
+  const nar=narrate('');const l1s=rangeRow({label:'λ₁',min:0,max:1.5,step:.05,value:1.1,fmt:v=>v.toFixed(2),onInput:()=>upd()});
+  const l2s=rangeRow({label:'λ₂',min:0,max:1.5,step:.05,value:0.6,fmt:v=>v.toFixed(2),onInput:()=>upd()});
+  const bar=el('div');bar.style.cssText='margin-top:8px';
+  function upd(){const l1=parseFloat(l1s.input.value),l2=parseFloat(l2s.input.value);
+    let a=1,b=1;let html='';for(let k=0;k<=8;k++){
+      html+=`<div style="display:flex;gap:8px;align-items:center;font-size:.8rem"><span style="width:34px;color:var(--muted)">k=${k}</span>
+        <div style="height:12px;background:var(--accent);width:${Math.min(180,a*40)}px;border-radius:3px"></div>
+        <div style="height:12px;background:var(--accentb);width:${Math.min(180,b*40)}px;border-radius:3px"></div></div>`;
+      a*=l1;b*=l2;}
+    bar.innerHTML=html;
+    const winner=l1>l2?'λ₁':'λ₂';const big=Math.max(l1,l2);
+    nar.say(`Component along <span style="color:var(--accent)">λ₁</span> ×${l1.toFixed(2)} each step; <span style="color:var(--accentb)">λ₂</span> ×${l2.toFixed(2)}. After many steps the <b>${winner}</b> direction ${big>1?'blows up and dominates':big<1?'shrinks slowest and dominates the leftovers':'holds steady'}. <span class="g">The largest eigenvalue decides the long-run behaviour.</span>`);}
+  L.append(l1s,l2s,bar,nar);upd();root.append(L);
+  root.append(box('key','the punchline for applications','The <b>biggest</b> eigenvalue (and its eigenvector) dominates after many steps. That single fact <em>is</em> PageRank (the web\'s ranking vector), the steady state of a Markov chain, and population growth models. The long-run future points along the top eigenvector.'));
+  root.append(quiz({question:'Why is A¹⁰⁰ easy once you\'ve diagonalized A = PDP⁻¹?',
+    options:[{t:'A¹⁰⁰ = P D¹⁰⁰ P⁻¹, and D¹⁰⁰ is just each eigenvalue to the 100th',ok:true,why:'Exactly. Diagonalizing turns a 100-fold matrix product into one exponent per eigenvalue.'},
+      {t:'Because A¹⁰⁰ = 100A',ok:false,why:'Powers aren\'t multiples. The trick is D¹⁰⁰ being trivial in the eigenbasis.'}]}));
+  root.append(summary(['Diagonalization: A = PDP⁻¹ (eigenvectors in P, eigenvalues in D).','In the eigenbasis, A is pure scaling.','Aᵏ = PDᵏP⁻¹ makes huge powers cheap.','The largest eigenvalue dominates long-run behaviour (PageRank, Markov).']));
+}};
+
 return [c0,cRep,cBox,cPoint,cDiff,cWebspace,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
         cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,
         cSysGeo,cElim,cRank,cInverse,
+        cMatmul,cTranspose,cDet,cEigen,cDiag,
         cUsed,cAxioms,cReview];
 })();

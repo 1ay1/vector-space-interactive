@@ -865,9 +865,90 @@ function systemLines(){
   return wrap;
 }
 
+/* =========================================================
+   EIGENEXPLORER — drag a vector v; show A·v. When A·v is
+   parallel to v, you've found an eigenvector. Eigenlines drawn.
+   ========================================================= */
+function eigenExplorer(opts){
+  const W=340,H=340,unit=42;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;let M=opts.matrix||[[2,1],[1,2]];let v={x:1,y:0.3};
+  const nar=narrate('');
+  const toPx=(x,y)=>[ox+x*unit,oy-y*unit];
+  function arrow(x,y,color,lw,label){const[ex,ey]=toPx(x,y);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=lw;
+    ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+    const a=Math.atan2(ey-oy,ex-ox),s=11;ctx.beginPath();ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-s*Math.cos(a-.4),ey-s*Math.sin(a-.4));ctx.lineTo(ex-s*Math.cos(a+.4),ey-s*Math.sin(a+.4));ctx.closePath();ctx.fill();
+    if(label){ctx.font='600 13px sans-serif';ctx.fillText(label,ex+6,ey-4);}}
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.soft;for(let g=ox%unit;g<W;g+=unit){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+    for(let g=oy%unit;g<H;g+=unit){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    // eigenlines
+    const e=LA.eig2(M);
+    if(e.real){e.vectors.forEach((ev,k)=>{const far=400;ctx.strokeStyle=k===0?'#f2a90055':'#9b5de555';ctx.lineWidth=8;
+      ctx.beginPath();ctx.moveTo(ox-ev[0]*far,oy+ev[1]*far);ctx.lineTo(ox+ev[0]*far,oy-ev[1]*far);ctx.stroke();});}
+    // v and Av
+    const Av={x:M[0][0]*v.x+M[0][1]*v.y, y:M[1][0]*v.x+M[1][1]*v.y};
+    arrow(v.x,v.y,C.accentb,3,'v');
+    arrow(Av.x,Av.y,C.accent,3,'A·v');
+    // parallel check
+    const cross=v.x*Av.y-v.y*Av.x;const parallel=Math.abs(cross)<0.06*(Math.hypot(v.x,v.y)*Math.hypot(Av.x,Av.y)+1e-9);
+    if(parallel){const lam=(Math.abs(v.x)>Math.abs(v.y))?Av.x/v.x:Av.y/v.y;
+      nar.say(`<span class="g">Eigenvector found!</span> A·v is parallel to v — the matrix only <b>stretched</b> it, didn\'t rotate it. The stretch factor is the <b>eigenvalue</b> λ ≈ <span class="k">${lam.toFixed(2)}</span>.`);}
+    else nar.say(`A·v points a <em>different</em> way than v — so v is not special. Drag v onto a <span style="color:var(--gold)">gold</span> or <span style="color:var(--accentd)">violet</span> line: those are the eigen-directions the matrix leaves un-rotated.`);
+  }
+  let drag=false;
+  const ev2=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/unit,-(e.clientY-r.top-oy)/unit];};
+  cv.addEventListener('pointerdown',e=>{drag=true;cv.setPointerCapture?.(e.pointerId);const[x,y]=ev2(e);v={x,y};render();e.preventDefault();});
+  cv.addEventListener('pointermove',e=>{if(drag){const[x,y]=ev2(e);v={x,y};render();}});
+  window.addEventListener('pointerup',()=>drag=false);
+  const wrap=el('div');wrap.setMatrix=m=>{M=m;render();};
+  const s=el('div','stage');s.append(cv,el('div','grow'));wrap.append(s,nar);render();
+  return wrap;
+}
+
+/* =========================================================
+   DETAREA — show a 2x2 matrix acting on the unit square;
+   the transformed area = |det|. Live.
+   ========================================================= */
+function detArea(){
+  const W=320,H=320,unit=52;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2+ -40,oy=H/2+40;let M=[[1,0],[0,1]];
+  const nar=narrate('');
+  const toPx=(x,y)=>[ox+x*unit,oy-y*unit];
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.softline;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    // unit square outline (faint)
+    ctx.strokeStyle=C.softline;ctx.setLineDash([4,3]);
+    const u=[[0,0],[1,0],[1,1],[0,1]];ctx.beginPath();u.forEach((p,i)=>{const[x,y]=toPx(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+    // transformed square
+    const t=u.map(p=>[M[0][0]*p[0]+M[0][1]*p[1], M[1][0]*p[0]+M[1][1]*p[1]]);
+    const det=M[0][0]*M[1][1]-M[0][1]*M[1][0];
+    ctx.fillStyle=det<0?'rgba(228,87,46,.25)':'rgba(23,163,152,.25)';
+    ctx.beginPath();t.forEach((p,i)=>{const[x,y]=toPx(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.fill();ctx.stroke();
+    // basis arrows
+    function arr(vx,vy,c){const[ex,ey]=toPx(vx,vy);ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(...toPx(0,0));ctx.lineTo(ex,ey);ctx.stroke();
+      const a=Math.atan2(ey-oy,ex-ox);}
+    arr(M[0][0],M[1][0],C.accent);arr(M[0][1],M[1][1],C.accentb);
+    nar.say(`The unit square (area 1) became a parallelogram of area <b>${Math.abs(det).toFixed(2)}</b>. So <b>det = ${det.toFixed(2)}</b>. ${det<0?'<span class="r">Negative</span> — space got flipped (mirrored).':det===0?'<span class="r">Zero</span> — squashed flat, area gone.':'Positive — orientation preserved.'}`);
+  }
+  function mk(lbl,i,j,val){const r=el('div');r.style.cssText='display:flex;gap:6px;align-items:center';
+    const inp=el('input');inp.type='range';inp.min=-2;inp.max=2;inp.step=.1;inp.value=val;inp.style.width='140px';
+    const out=el('span','big');out.textContent=val.toFixed(1);
+    inp.addEventListener('input',()=>{M[i][j]=parseFloat(inp.value);out.textContent=(+inp.value).toFixed(1);render();});
+    r.append(el('span',null,lbl),inp,out);return r;}
+  const controls=el('div');controls.style.cssText='display:flex;flex-direction:column;gap:6px';
+  controls.append(mk('a',0,0,1),mk('b',0,1,0),mk('c',1,0,0),mk('d',1,1,1));
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');g.append(controls);s.append(cv,g);wrap.append(s,nar);render();
+  return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
         configSpace,possibilityCounter,morphPath,diffVector,webGraph,
-        matrixGrid,matrixHTML,rrefStepper,systemLines};
+        matrixGrid,matrixHTML,rrefStepper,systemLines,
+        eigenExplorer,detArea};
 })();
