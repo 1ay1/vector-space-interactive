@@ -1483,6 +1483,77 @@ function matrixLab(opts){
   return wrap;
 }
 
+/* =========================================================
+   SVDPHOTO — upload (or use sample) an image, watch a REAL
+   SVD low-rank reconstruction compress it live with a slider.
+   The 'I did math to my own photo' moment.
+   ========================================================= */
+function svdPhoto(){
+  const wrap=el('div');
+  const nar=narrate('Upload a photo (or use the sample), then slide the rank down and watch the SVD throw away detail you can barely see.');
+  const SZ=64; // work at 64x64 grayscale for speed
+  let gray=null; // SZ x SZ matrix
+  const srcC=el('canvas');srcC.width=160;srcC.height=160;const sctx=srcC.getContext('2d');
+  const outC=el('canvas');outC.width=160;outC.height=160;const octx=outC.getContext('2d');
+  const work=document.createElement('canvas');work.width=SZ;work.height=SZ;const wctx=work.getContext('2d');
+  const info=el('div');info.style.cssText='font-size:.82rem;color:var(--muted);margin-top:6px';
+  // rank-k reconstruction via power iteration + deflation on the SZxSZ matrix
+  function svdRecon(A,k){
+    const n=A.length; let R=A.map(r=>r.slice());const layers=[];
+    for(let t=0;t<k;t++){
+      let v=Array(n).fill(0).map(()=>Math.random());
+      for(let it=0;it<25;it++){
+        let u=R.map(row=>row.reduce((s,a,j)=>s+a*v[j],0));const un=Math.hypot(...u)||1;u=u.map(x=>x/un);
+        let nv=Array(n).fill(0);for(let i=0;i<n;i++)for(let j=0;j<n;j++)nv[j]+=R[i][j]*u[i];const nvn=Math.hypot(...nv)||1;v=nv.map(x=>x/nvn);
+      }
+      let u=R.map(row=>row.reduce((s,a,j)=>s+a*v[j],0));const sigma=Math.hypot(...u)||1;u=u.map(x=>x/sigma);
+      layers.push({u,v,sigma});
+      for(let i=0;i<n;i++)for(let j=0;j<n;j++)R[i][j]-=sigma*u[i]*v[j];
+    }
+    const out=Array.from({length:n},()=>Array(n).fill(0));
+    layers.forEach(({u,v,sigma})=>{for(let i=0;i<n;i++)for(let j=0;j<n;j++)out[i][j]+=sigma*u[i]*v[j];});
+    return out;
+  }
+  function drawSmall(ctx,mat,size){const cell=size/SZ;for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){const v=clamp(Math.round(mat[y][x]),0,255);ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x*cell,y*cell,cell+1,cell+1);}}
+  function recompute(k){
+    if(!gray)return;const R=svdRecon(gray,k);drawSmall(octx,R,160);
+    const full=SZ*SZ, kept=k*(2*SZ+1);
+    info.innerHTML=`rank <b>${k}</b> of ${SZ} · stored numbers: <b>${kept.toLocaleString()}</b> vs ${full.toLocaleString()} — about <b>${Math.round(kept/full*100)}%</b> of the data`;
+    nar.say(k<=3?'Just the biggest shapes — but you can already tell what it is.':k<=12?'Most of the detail, a fraction of the numbers. <span class="g">This is lossy compression, running the real SVD on YOUR image.</span>':'Nearly perfect — the last layers were almost noise.');
+  }
+  function loadFromCanvas(){
+    wctx.drawImage(srcC,0,0,SZ,SZ);const d=wctx.getImageData(0,0,SZ,SZ).data;gray=[];
+    for(let y=0;y<SZ;y++){gray[y]=[];for(let x=0;x<SZ;x++){const i=(y*SZ+x)*4;gray[y][x]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];}}
+    recompute(parseInt(rk.input.value));
+  }
+  function makeSample(){ // a friendly synthetic 'landscape'
+    sctx.fillStyle='#888';sctx.fillRect(0,0,160,160);
+    for(let y=0;y<160;y++){const t=y/160;const c=Math.round(60+150*t);sctx.fillStyle=`rgb(${c},${c},${c})`;sctx.fillRect(0,y,160,1);}
+    sctx.fillStyle='#fff';sctx.beginPath();sctx.arc(120,40,18,0,7);sctx.fill(); // 'sun'
+    sctx.fillStyle='#333';sctx.beginPath();sctx.moveTo(0,120);sctx.lineTo(50,70);sctx.lineTo(100,120);sctx.closePath();sctx.fill(); // 'mountain'
+    sctx.beginPath();sctx.moveTo(70,120);sctx.lineTo(120,80);sctx.lineTo(160,120);sctx.closePath();sctx.fill();
+    loadFromCanvas();
+  }
+  const rk=rangeRow({label:'rank kept (k)',min:1,max:SZ,step:1,value:6,onInput:v=>recompute(v)});
+  // file upload
+  const fileWrap=el('div');fileWrap.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
+  const file=el('input');file.type='file';file.accept='image/*';file.style.cssText='font-size:.85rem';
+  file.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();
+    img.onload=()=>{sctx.fillStyle='#000';sctx.fillRect(0,0,160,160);
+      // fit
+      const s=Math.min(160/img.width,160/img.height);const w=img.width*s,h=img.height*s;sctx.drawImage(img,(160-w)/2,(160-h)/2,w,h);loadFromCanvas();};
+    img.src=URL.createObjectURL(f);});
+  const sampleBtn=el('button','btn ghost','use sample');sampleBtn.onclick=makeSample;
+  fileWrap.append(el('span',null,'<b style="font-size:.85rem">your photo:</b>'),file,sampleBtn);
+  const imgs=el('div');imgs.style.cssText='display:flex;gap:16px;align-items:center;flex-wrap:wrap';
+  const c1=el('div');c1.style.cssText='text-align:center';c1.append(srcC);c1.insertAdjacentHTML('beforeend','<div style="font-size:.75rem;color:var(--muted)">original</div>');
+  const c2=el('div');c2.style.cssText='text-align:center';c2.append(outC);c2.insertAdjacentHTML('beforeend','<div style="font-size:.75rem;color:var(--muted)">SVD-compressed</div>');
+  imgs.append(c1,c2);
+  wrap.append(fileWrap,rk,imgs,info,nar);
+  makeSample();
+  return wrap;
+}
+
 function eigenCheck(opts){
   const A=(opts&&opts.A)||[[2,1],[1,2]];
   const wrap=el('div');const nar=narrate('Type a vector (x, y). I\'ll compute A·v and check if it\'s an eigenvector.');
@@ -1515,5 +1586,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto};
 })();

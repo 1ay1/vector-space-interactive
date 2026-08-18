@@ -7,7 +7,7 @@
 const {el,knob,vboard,narrate,rangeRow,quiz,clamp,fmt,C,
        matrixGrid,matrixHTML,rrefStepper,board3d,spanBoard,
        eigenExplorer,detArea,leastSquares,pcaCloud,worked,
-       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph}=VS;
+       luStepper,quadFormPlot,complexPlane,fourierSynth,webGraph,svdPhoto}=VS;
 
 /* re-declare chrome helpers (mirror chapters.js) */
 function head(root,n,c){
@@ -234,7 +234,12 @@ render(root){head(root,0,this);
 NEW.push({id:'capstone',part:'Part XXI · Numerical & capstone',title:'Capstone: compress an image with the SVD',
  sub:'Put it ALL together. Watch the singular value decomposition throw away detail you can\'t see and rebuild a recognizable image from a fraction of the data.',
 render(root){head(root,0,this);
- root.append(p('The finale: real image compression, live. This little picture is a matrix of brightness values. Its SVD writes it as a sum of rank-1 layers, ordered by importance (singular value). Keep only the top \\(k\\) layers and watch how few you need before it looks right.'));
+ root.append(p('The finale: real image compression, live — <b>on your own photo</b>. Upload any image (it never leaves your browser) and slide the rank down. The SVD writes the image as a sum of importance-ordered rank-1 layers; keep only the top \\(k\\) and watch how few you need before it still looks like you.'));
+ const Lu=lab('Compress YOUR photo with the SVD','✦ Signature','weird');
+ Lu.append(svdPhoto());
+ root.append(Lu);
+ root.append(box('aha-box','you just did real math to a real image','That slider is running an actual singular value decomposition — power iteration finding the top singular vectors, one rank-1 layer at a time — on the pixels of your photo, entirely in your browser. At low rank it stores a tiny fraction of the numbers yet stays recognizable, because the SVD ranks directions by how much they matter. <span class="aha">This is the exact principle inside JPEG-style compression.</span>'));
+ root.append(p('Below, the same thing on a built-in pattern, with a per-layer view:'));
  const L=lab('SVD image compression','Play','see');
  // build a small synthetic image and do a crude rank-k reconstruction via power-iteration-free approach:
  const N=24; const img=[]; for(let y=0;y<N;y++){img[y]=[];for(let x=0;x<N;x++){
