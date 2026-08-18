@@ -292,6 +292,13 @@ render(root){
   const L2=lab('Tip-to-tail','See','see');L2.append(stageOf(board,[ro]),nar);root.append(L2);
   root.append(math('\\mathbf a + \\mathbf b = (a_1+b_1,\\; a_2+b_2,\\; \\dots,\\; a_n+b_n)'));
   root.append(box('aha-box','why dimension is a non-issue','Because the rule touches each line alone, the <em>identical</em> procedure works for 5 lines or 5 billion. A rule that treats each line separately literally cannot tell how long the list is.'));
+  root.append(worked({title:'add three vectors (order doesn\'t matter)',
+    prompt:'Compute \\((1,2)+(3,-1)+(-2,4)\\), then check that regrouping gives the same answer.',
+    steps:[
+      'Add the first two: \\((1,2)+(3,-1)=(4,1)\\).',
+      'Add the third: \\((4,1)+(-2,4)=(2,5)\\).',
+      'Regroup instead — add the last two first: \\((3,-1)+(-2,4)=(1,3)\\), then \\((1,2)+(1,3)=(2,5)\\). Same!'],
+    result:'\\((2,5)\\) either way. Addition is <b>commutative</b> (order of vectors doesn\'t matter) and <b>associative</b> (grouping doesn\'t matter) — because each coordinate is just ordinary number addition, which has those properties. This is why we can write \\(a+b+c\\) with no parentheses.'}));
   root.append(quiz({question:'(3, −1, 5) + (−3, 1, −5) = ?',
     options:[{t:'(0, 0, 0)',ok:true,why:'Each line cancels. b is the "negative" of a — every vector has one that adds back to zero.'},
       {t:'(6, −2, 10)',ok:false,why:'That\'s a+a. Add line by line: 3+(−3)=0, etc.'}]}));
@@ -422,6 +429,16 @@ render(root){
   const L=lab('Independent or redundant?','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
   root.append(box('aha-box','what dimension really counts','Dimension isn\'t "how many vectors you have" — it\'s how many <em>independent</em> ones. Ten vectors on one line still only span a line (dimension 1). The count of genuinely-new directions is the real dimension.'));
   root.append(box('key','basis, made precise','A <span class="term">basis</span> is a set that is (1) independent — nothing redundant — and (2) spans the whole space. It\'s the <em>smallest</em> set of rulers that reaches everywhere: exactly n of them for an n-dimensional space.'));
+  root.append(h3('The fast test: the determinant'));
+  root.append(p('Dragging shows independence <em>geometrically</em>, but there\'s a one-number test. Put the vectors in the columns of a matrix; they\'re independent exactly when its <b>determinant is nonzero</b> (a zero determinant means they collapse — the “cross product” from the drag is really this determinant).'));
+  root.append(worked({title:'are these three vectors independent?',
+    prompt:'Test \\((1,2,3)\\), \\((0,1,4)\\), \\((0,0,5)\\) for independence.',
+    steps:[
+      'Stack them as columns (or rows) and take the determinant. They\'re already in triangular form.',
+      'A triangular matrix\'s determinant is the product of its diagonal: \\(1\\times1\\times5=5\\).',
+      '\\(5\\neq0\\), so the three columns are independent.'],
+    result:'Independent — they span all of \\(\\mathbb R^3\\) and form a basis. Had the determinant been 0, one vector would be a combination of the others. (For 2 vectors it\'s the same test: \\(ad-bc\\neq0\\).)'}));
+  root.append(box('connect','connects to','“Independent” is the same fact as \\(\\det\\neq0\\) (<a onclick="vsGoTo(\'det\')">determinant</a>), full <a onclick="vsGoTo(\'rank\')">rank</a>, and <a onclick="vsGoTo(\'inverse\')">invertibility</a> — all unified in the <a onclick="vsGoTo(\'imt\')">Invertible Matrix Theorem</a>.'));
   root.append(quiz({question:'You have 5 vectors in 2D. The most that can be independent is…',
     options:[{t:'2',ok:true,why:'2D holds at most 2 independent directions; vectors 3–5 must be combinations of the first two. That 2 is the dimension.'},
       {t:'5',ok:false,why:'Having five vectors doesn\'t make five directions. In 2D only 2 can be independent.'}]}));
@@ -501,6 +518,7 @@ render(root){
   Lpl.append(p('Square, add, root. Type the number.'));
   Lpl.append(practiceSet(['length'],4));
   root.append(Lpl);
+  root.append(box('connect','connects to','Length powers the two big “sameness” measures: <b>distance</b> \\(\\lVert\\mathbf a-\\mathbf b\\rVert\\) (used by k-nearest-neighbours and clustering) and, once you divide it out, <a onclick="vsGoTo(\'dot\')">cosine similarity</a> (used by search and embeddings). Normalizing a vector to length 1 is <a onclick="vsGoTo(\'scale\')">scaling</a> by 1/length.'));
   root.append(summary(['Length = √(sum of squares) — Pythagoras, any dimension.','Distance = length of the difference vector.','This is the backbone of "similarity" in tech.']));
 }};
 
@@ -1000,6 +1018,7 @@ render(root){
   root.append(quiz({question:'In the product A·B applied to a vector, which transform happens first?',
     options:[{t:'B — it\'s closest to the vector: A(B(x))',ok:true,why:'Right. A·B·x = A(B(x)): B acts first, then A. Read right-to-left.'},
       {t:'A — it\'s written first',ok:false,why:'Written first, but applied LAST. The matrix nearest the vector acts first.'}]}));
+  root.append(box('connect','connects to','Composition is why deep learning works: a <a onclick="vsGoTo(\'used\')">neural network</a> is a stack of “multiply by a matrix, then bend” layers, and chaining the linear parts is exactly matrix multiplication. It\'s also the whole <a onclick="vsGoTo(\'graphics\')">graphics</a> pipeline (model × view × projection) folded into one product.'));
   root.append(summary(['Matrix product = compose transforms (do the right one first).','(i,j) entry = row i of A · column j of B.','AB ≠ BA (order matters); A(BC)=(AB)C (associative).']));
 }};
 
