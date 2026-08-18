@@ -1488,6 +1488,93 @@ function matrixLab(opts){
    SVD low-rank reconstruction compress it live with a slider.
    The 'I did math to my own photo' moment.
    ========================================================= */
+/* =========================================================
+   PROOFBUILDER — the reader ASSEMBLES a proof.
+   Two modes per proof:
+   (A) ORDER: scrambled steps, click them into the right order.
+   (B) JUSTIFY: for each step, pick the reason from choices.
+   opts:{claim, steps:[{text, reason, choices:[...]}]}
+   ========================================================= */
+function proofBuilder(opts){
+  const wrap=el('div');
+  wrap.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:14px 0';
+  wrap.append(el('div',null,`<div style="font-size:.72rem;font-weight:800;letter-spacing:.5px;color:var(--accentd);text-transform:uppercase">Guided proof</div>
+    <div style="font-weight:700;margin:4px 0 10px">Claim: ${opts.claim}</div>`));
+  const nSteps=opts.steps.length;
+  const correctOrder=opts.steps.map((s,i)=>i); // steps given IN correct order
+  // ---- MODE A: ORDER ----
+  const orderWrap=el('div');
+  const pool=el('div');pool.style.cssText='display:flex;flex-direction:column;gap:7px';
+  // shuffle indices
+  const shuffled=correctOrder.slice();for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  let placed=[]; // indices in the order the user clicked
+  const slots=el('div');slots.style.cssText='display:flex;flex-direction:column;gap:6px;margin-bottom:10px;min-height:20px';
+  const nar=narrate('Click the steps in the order that makes a valid logical argument.');
+  function renderOrder(){
+    slots.innerHTML='';
+    placed.forEach((idx,pos)=>{
+      const correct=(idx===correctOrder[pos]);
+      const d=el('div');d.style.cssText=`display:flex;gap:8px;align-items:flex-start;padding:8px 11px;border-radius:8px;border:1.5px solid ${correct?'var(--green)':'var(--accent)'};background:${correct?'#EBF7EF':'#FDEEE8'}`;
+      d.innerHTML=`<b style="color:${correct?'var(--green)':'var(--accent)'}">${pos+1}.</b> <span>${opts.steps[idx].text}</span>`;
+      slots.append(d);
+    });
+    // pool of remaining
+    pool.innerHTML='';
+    shuffled.filter(i=>!placed.includes(i)).forEach(idx=>{
+      const b=el('button');b.style.cssText='text-align:left;background:var(--soft);border:1px solid var(--softline);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:.92rem';
+      b.innerHTML=opts.steps[idx].text;
+      b.onclick=()=>{placed.push(idx);renderOrder();check();};
+      pool.append(b);
+    });
+    if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([slots,pool]).catch(()=>{});
+  }
+  function check(){
+    const allRight=placed.length===nSteps && placed.every((idx,pos)=>idx===correctOrder[pos]);
+    if(placed.length===nSteps){
+      if(allRight)nar.say('<span class="g">✓ Valid proof!</span> Every step follows from the ones before it. You didn\'t read this argument — you built it.');
+      else nar.say('<span class="r">Not a valid order yet.</span> A red step doesn\'t follow from what precedes it. Reset and rethink the logical flow.');
+    } else {
+      const lastWrong=placed.length>0 && placed[placed.length-1]!==correctOrder[placed.length-1];
+      if(lastWrong)nar.say('That step doesn\'t follow yet — but keep going, or reset. (What must be established <em>before</em> this step is true?)');
+      else nar.say(`Good — ${placed.length}/${nSteps} in place. What comes next?`);
+    }
+  }
+  const resetO=el('button','btn ghost','reset');resetO.onclick=()=>{placed=[];renderOrder();nar.say('Cleared. Click the steps in logical order.');};
+  const ctrO=el('div','controls');ctrO.append(resetO);
+  orderWrap.append(slots,el('div',null,'<div style="font-size:.78rem;color:var(--muted);margin:4px 0">available steps:</div>'),pool,ctrO);
+
+  // ---- MODE B: JUSTIFY (only if steps carry reasons/choices) ----
+  const hasReasons=opts.steps.every(s=>s.reason&&s.choices);
+  const justifyWrap=el('div');
+  if(hasReasons){
+    opts.steps.forEach((s,i)=>{
+      const card=el('div');card.style.cssText='border:1px solid var(--softline);border-radius:9px;padding:10px 12px;margin:7px 0';
+      card.innerHTML=`<div style="margin-bottom:6px"><b>${i+1}.</b> ${s.text}</div><div style="font-size:.78rem;color:var(--muted);margin-bottom:5px">why is this step justified?</div>`;
+      const fb=el('div');fb.style.cssText='font-size:.85rem;margin-top:5px;min-height:1em';
+      s.choices.forEach(ch=>{const b=el('button','opt',ch);b.style.margin='4px 0';
+        b.onclick=()=>{if(ch===s.reason){b.style.borderColor='var(--green)';b.style.background='#EBF7EF';fb.innerHTML='<span style="color:var(--green);font-weight:700">✓ Right justification.</span>';}
+          else{b.style.borderColor='var(--accent)';b.style.background='#FDEEE8';fb.innerHTML='<span style="color:var(--accent);font-weight:700">Not the reason this step holds.</span>';}};
+        card.append(b);});
+      card.append(fb);justifyWrap.append(card);
+    });
+    if(window.MathJax&&window.MathJax.typesetPromise)setTimeout(()=>window.MathJax.typesetPromise([justifyWrap]).catch(()=>{}),0);
+  }
+  // ---- mode tabs ----
+  const tabs=el('div');tabs.style.cssText='display:flex;gap:6px;margin-bottom:10px';
+  const tabO=el('button','btn','1 · order the steps');
+  const tabJ=el('button','btn ghost','2 · justify each step');
+  const body=el('div');
+  function show(which){
+    body.innerHTML='';
+    if(which==='order'){tabO.className='btn';tabJ.className='btn ghost';body.append(orderWrap);renderOrder();}
+    else{tabO.className='btn ghost';tabJ.className='btn';body.append(justifyWrap);}
+  }
+  tabO.onclick=()=>show('order');tabJ.onclick=()=>show('justify');
+  tabs.append(tabO);if(hasReasons)tabs.append(tabJ);
+  wrap.append(tabs,body,nar);show('order');
+  return wrap;
+}
+
 function svdPhoto(){
   const wrap=el('div');
   const nar=narrate('Upload a photo (or use the sample), then slide the rank down and watch the SVD throw away detail you can barely see.');
@@ -1549,7 +1636,10 @@ function svdPhoto(){
   const c1=el('div');c1.style.cssText='text-align:center';c1.append(srcC);c1.insertAdjacentHTML('beforeend','<div style="font-size:.75rem;color:var(--muted)">original</div>');
   const c2=el('div');c2.style.cssText='text-align:center';c2.append(outC);c2.insertAdjacentHTML('beforeend','<div style="font-size:.75rem;color:var(--muted)">SVD-compressed</div>');
   imgs.append(c1,c2);
-  wrap.append(fileWrap,rk,imgs,info,nar);
+  const dlBtn=el('button','btn','⬇ download compressed');
+  dlBtn.onclick=()=>{const a=document.createElement('a');a.download='svd-compressed.png';a.href=outC.toDataURL('image/png');a.click();};
+  const dlRow=el('div','controls');dlRow.append(dlBtn);
+  wrap.append(fileWrap,rk,imgs,info,dlRow,nar);
   makeSample();
   return wrap;
 }
@@ -1586,5 +1676,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder};
 })();
