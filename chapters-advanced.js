@@ -90,7 +90,15 @@ NEW.push({id:'ranknullity',part:'Part XIV · Fundamental theorem',title:'Rank\u2
 render(root){head(root,0,this);
  root.append(p('Here is a conservation law for dimension. For any \\(m\\times n\\) matrix:'));
  root.append(math('\\underbrace{\\text{rank}}_{\\dim(\\text{image})} + \\underbrace{\\text{nullity}}_{\\dim(\\text{kernel})} = n \\;(\\text{number of columns})'));
- root.append(box('aha-box','nothing is lost or created','Every one of your \\(n\\) input dimensions goes exactly one of two places: it survives (contributing to the rank/image) or it gets crushed to zero (contributing to the nullity/kernel). No dimension vanishes uncounted. Rank measures what gets through; nullity measures what\'s lost; together they must be \\(n\\).'));
+ root.append(box('aha-box','nothing is lost or created','Every one of your \(n\) input dimensions goes exactly one of two places: it survives (contributing to the rank/image) or it gets crushed to zero (contributing to the nullity/kernel). No dimension vanishes uncounted. Rank measures what gets through; nullity measures what\'s lost; together they must be \(n\).'));
+ root.append(h3('Why it\'s true — counting columns after elimination'));
+ root.append(p('This isn\'t a slogan; it\'s forced by elimination. Reduce the matrix to row echelon form and count.'));
+ root.append(worked({title:'the one-line proof',
+   prompt:'Row-reduce \(A\) (with \(n\) columns) and sort the columns into two kinds.',
+   steps:['Each column either gets a <b>pivot</b> or it doesn\'t — there\'s no third option, so (# pivot columns) + (# free columns) = \(n\).',
+     'The <b>pivot columns</b> are exactly the independent ones — their count is the <b>rank</b> (dimension of the image).',
+     'Each <b>free column</b> gives one independent solution of \(A\mathbf x=\mathbf 0\) (set that free variable to 1, solve the rest) — so (# free columns) = the <b>nullity</b>.'],
+   result:'Substituting: rank + nullity = (pivot columns) + (free columns) = \(n\). The conservation law is just “every column is pivot-or-free.”'}));
  root.append(worked({title:'using rank\u2013nullity',
    prompt:'A \\(3\\times5\\) matrix has rank 3. What is the dimension of its null space?',
    steps:['\\(n = 5\\) columns; rank \\(= 3\\).',
@@ -137,7 +145,15 @@ render(root){head(root,0,this);
  root.append(p('For a general matrix, eigenvectors can be skewed or complex. But for a <b>symmetric</b> matrix (\\(A=A^{T}\\)), something perfect happens \u2014 the <span class="term">spectral theorem</span>:'));
  root.append(box('key','the guarantee','A real symmetric matrix always has (1) <b>real</b> eigenvalues, and (2) <b>perpendicular</b> eigenvectors. So it can be written \\(A = Q\\Lambda Q^{T}\\) with \\(Q\\) orthogonal (rotation) and \\(\\Lambda\\) diagonal. In its own eigenbasis, a symmetric matrix is pure, axis-aligned stretching.'));
  root.append(math('A = Q\\,\\Lambda\\,Q^{T}, \\qquad Q^{T}Q = I'));
- root.append(box('aha-box','why you keep meeting it','Covariance matrices (PCA), Hessians (optimization), Gram matrices, graph Laplacians, quantum observables \u2014 all symmetric, so all have clean perpendicular eigen-axes with real values. The spectral theorem is <em>why</em> PCA\'s principal directions are perpendicular and why these fields are so tractable.'));
+ root.append(h3('Why symmetry forces perpendicular eigenvectors'));
+ root.append(p('This is one of the prettiest short proofs in the subject — two eigenvectors with different eigenvalues are <em>automatically</em> perpendicular, purely because \\(A=A^{T}\\).'));
+ root.append(worked({title:'the two-line proof',
+   prompt:'Let \\(A\\mathbf x=\\lambda\\mathbf x\\) and \\(A\\mathbf y=\\mu\\mathbf y\\) with \\(\\lambda\\neq\\mu\\). Show \\(\\mathbf x\\perp\\mathbf y\\).',
+   steps:['Compute \\(\\mathbf x^{T}A\\mathbf y\\) two ways. Directly: \\(\\mathbf x^{T}(A\\mathbf y)=\\mu\\,\\mathbf x^{T}\\mathbf y\\).',
+     'Using symmetry \\(A=A^{T}\\): \\(\\mathbf x^{T}A\\mathbf y=(A\\mathbf x)^{T}\\mathbf y=\\lambda\\,\\mathbf x^{T}\\mathbf y\\).',
+     'So \\(\\lambda\\,\\mathbf x^{T}\\mathbf y=\\mu\\,\\mathbf x^{T}\\mathbf y\\), i.e. \\((\\lambda-\\mu)\\,\\mathbf x^{T}\\mathbf y=0\\).'],
+   result:'Since \\(\\lambda\\neq\\mu\\), we must have \\(\\mathbf x^{T}\\mathbf y=0\\) — the eigenvectors are perpendicular. Symmetry did all the work. (Real eigenvalues follow from the same trick with complex conjugates.)'}));
+ root.append(box('aha-box','why you keep meeting it','Covariance matrices (PCA), Hessians (optimization), Gram matrices, graph Laplacians, quantum observables — all symmetric, so all have clean perpendicular eigen-axes with real values. The spectral theorem is <em>why</em> PCA\'s principal directions are perpendicular and why these fields are so tractable.'));
  root.append(quiz({question:'What does the spectral theorem promise for a symmetric matrix?',
    options:[{t:'Real eigenvalues and perpendicular (orthogonal) eigenvectors',ok:true,why:'Exactly \u2014 symmetry guarantees a real, orthogonal eigen-basis: A = Q\u039bQ\u1d40.'},
      {t:'That it has no eigenvalues',ok:false,why:'The opposite \u2014 it guarantees a full set of real eigenvalues with perpendicular eigenvectors.'}]}));
