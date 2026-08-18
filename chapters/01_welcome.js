@@ -9,12 +9,17 @@ render(root){
   root.append(p('That reaction is 100% avoidable, and it\'s not your fault. It comes from <em>one</em> bad picture that got installed early and never uninstalled. We\'re going to yank it out right now and bolt in a better one — a picture so ordinary you already use it before your first coffee.'));
   root.append(box('key','the whole course in one line','<b>A vector is a list of numbers you can adjust. Each number is an independent thing you can change. The <span class="aha">dimension</span> is just how many numbers are in the list.</b>'));
   root.append(p('That\'s it. That\'s the whole movie. Arrows, length, angle, span, "the 4th dimension," even <em>infinite</em> dimensions — all of it is a consequence of that one sentence. And here\'s the twist: you already think this way every single day and never noticed. Watch:'));
+  root.append(box('trap','three lies your first vector taught you',`Before we go on, let\'s uninstall the bad picture properly. If you believe any of these, that\'s the arrow talking:<br><br>
+    <b>Lie #1: "A vector is an arrow."</b> An arrow is <em>one costume</em> a 2D or 3D vector can wear. A 12-million-dimensional photo owns no arrow and doesn\'t miss it.<br>
+    <b>Lie #2: "Higher dimensions are spooky."</b> The 900th dimension is just… the 900th number in the list. It\'s not hiding in a haunted house. It\'s line 900.<br>
+    <b>Lie #3: "You have to picture it."</b> You have never pictured your bank balance, yet you reason about it fine. Numbers &gt; pictures. Always.`));
   root.append(el('ul',null,`
     <li>your <b>coffee order</b> — (2 shots, 1 syrup, 12 oz milk) — is a 3-dimensional vector, and "make it a double" is vector arithmetic,</li>
     <li>the <b>coins in your pocket</b> are a 4-number vector, and so is your dread when it\'s all pennies,</li>
     <li>a <b>colour</b> on your screen is 3 numbers (red, green, blue) — your phone is juggling a million of these right now,</li>
     <li>a <b>photo</b> is a vector with one number per pixel — twelve <em>million</em> numbers — and nobody, ever, has "pictured" it. They just use it.</li>`));
   root.append(el('p','pull','Notice you never once tried to <em>visualise 4-dimensional coffee</em>. You didn\'t squint. You just set the numbers and moved on with your life. That relaxed, number-by-number, who-cares-what-it-looks-like thinking <em>is</em> exactly how to think in any dimension. You\'ve been fluent for years. We\'re just teaching you the word.'));
+  root.append(box('aha-box','the one promise of this course','By the end, "imagine the 900-dimensional case" will feel exactly as calm as "imagine a longer shopping list." Not because you grew a new lobe of brain — because you stopped trying to <em>see</em> and started trusting the numbers. That swap is the entire trick, and you just did it with coffee.'));
 
   const L=lab('Feel it once: turn three knobs, make a colour');
   L.append(box('ask','predict','The swatch is orange. Drag <em>only</em> the green knob up. What colour appears — before you try it?'));
@@ -39,8 +44,17 @@ render(root){
     {icon:'📷',name:'A phone photo',dims:'~12 million',vec:'(brightness of pixel 1, …, pixel 12M)',note:'one number per pixel. Nobody pictures it — everyone uses it.'},
     {icon:'🎵',name:'One second of audio',dims:'~44,100',vec:'(air pressure at each sample)',note:'a very long list; still just a list.'},
     {icon:'🛒',name:'A grocery cart',dims:'thousands',vec:'(0, …, 6 eggs, …, 2 milk, …)',note:'one slot per product; almost all zero.'},
-    {icon:'♟️',name:'A chess position',dims:'64-ish',vec:'(what\'s on each square)',note:'the whole board as one vector.'}]));
-  root.append(el('div','pull','Every one of these is a list of numbers you already reason about — \"more shots,\" \"double the recipe,\" \"brighter photo.\" That reasoning <em>is</em> vector math. You were fluent before you knew the word.'));
+    {icon:'♟️',name:'A chess position',dims:'64-ish',vec:'(what\'s on each square)',note:'the whole board as one vector.'},
+    {icon:'🐶',name:'Your dog\'s mood',dims:'as many as you dare',vec:'(hunger, zoomies, guilt, ball-focus, …)',note:'yes, even this. If you can list the numbers, it\'s a vector.'}]));
+  root.append(el('div','pull','Every one of these is a list of numbers you already reason about — "more shots," "double the recipe," "brighter photo." That reasoning <em>is</em> vector math. You were fluent before you knew the word.'));
+  const Q=lab('Quick gut-check: count the dimensions','Quiz','');
+  Q.append(quiz({
+    question:'A playlist rates each song on <b>danceability, energy, tempo, and mood</b>. How many dimensions is one song\'s "vibe vector"?',
+    options:[
+      {t:'1 — it\'s just "the vibe"',ok:false,why:'Nope — "the vibe" is the whole vector, not its dimension. Count the independent numbers.'},
+      {t:'4 — one number per rated quality',ok:true,why:'Exactly. Four independent knobs → a 4-dimensional vector. No arrow required, and you didn\'t even flinch.'},
+      {t:'∞ — music is infinite, man',ok:false,why:'Poetic, but we only listed four numbers. Dimension = how many numbers are actually in the list.'}]}));
+  root.append(Q);
   root.append(summary([
     'A vector = a list of numbers you can adjust.',
     'Dimension = how many numbers.',
