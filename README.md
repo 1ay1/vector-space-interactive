@@ -4,7 +4,7 @@ An interactive, self‑contained web course that teaches **vector spaces** from
 zero to deep — intuition first. You **drag, predict, and watch** until a
 900‑dimensional space feels as ordinary as a shopping list.
 
-**▶ Live:** _(enable GitHub Pages — see below)_
+**▶ Live:** <https://1ay1.github.io/vector-space-interactive/>
 
 No build step. No dependencies. No signup. Open `index.html` and it runs.
 
