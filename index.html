@@ -6,6 +6,16 @@
 <title>VectorSpace — internalize n dimensions</title>
 <link rel="stylesheet" href="styles.css" />
 <script>
+  /* apply saved (or system) theme BEFORE first paint — no flash */
+  (function(){
+    try{
+      var t=localStorage.getItem('vs-theme');
+      if(!t) t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      document.documentElement.setAttribute('data-theme',t);
+    }catch(e){}
+  })();
+</script>
+<script>
   window.MathJax = {
     tex:{inlineMath:[['\\(','\\)']], displayMath:[['$$','$$']]},
     svg:{fontCache:'global'},
@@ -25,6 +35,7 @@
       <div class="brand-title">Vector<span>Space</span></div>
       <div class="brand-sub">learn it by touching it</div>
     </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="toggle dark mode" title="Toggle dark mode">🌙</button>
   </div>
   <input id="chapSearch" type="search" placeholder="🔍 search chapters…" autocomplete="off" />
   <nav id="chapnav"><!-- filled by JS --></nav>
@@ -50,6 +61,7 @@
 
 <!-- landing overlay -->
 <div id="landing">
+  <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle dark mode" title="Toggle dark mode">🌙</button>
   <div class="landing-inner">
     <div class="landing-badge">interactive course · 65 chapters · all of linear algebra · graded practice · no signup</div>
     <h1>Master <em>all</em> of linear algebra,<br>by <em>feeling</em> and <em>doing</em> it.</h1>

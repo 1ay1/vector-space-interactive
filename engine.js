@@ -38,10 +38,26 @@ function texPrettify(rootNode){
 if(typeof window!=='undefined') window.texPrettify=texPrettify;
 
 const VS = (() => {
+/* Palette. Defaults match the light theme; C.refresh() re-reads the
+   live CSS custom properties so canvas widgets follow dark mode.
+   The app calls VS.refreshPalette() on every theme switch (via a
+   full re-render), so freshly drawn canvases always match. */
 const C = {
   ink:'#22201C', accent:'#E4572E', accentb:'#2A7DE1', accentc:'#17A398',
   accentd:'#9B5DE5', gold:'#F2A900', muted:'#8A857C', soft:'#EDE7DD',
   softline:'#D8D0C4', paper:'#FAF7F2', dark:'#2B2A28', green:'#4CAF6D'
+};
+C.refresh=function(){
+  try{
+    const cs=getComputedStyle(document.documentElement);
+    const g=(name,fallback)=>{const v=cs.getPropertyValue(name).trim();return v||fallback;};
+    C.ink=g('--ink',C.ink); C.accent=g('--accent',C.accent);
+    C.accentb=g('--accentb',C.accentb); C.accentc=g('--accentc',C.accentc);
+    C.accentd=g('--accentd',C.accentd); C.gold=g('--gold',C.gold);
+    C.muted=g('--muted',C.muted); C.soft=g('--soft',C.soft);
+    C.softline=g('--softline',C.softline); C.paper=g('--surface',C.paper);
+    C.green=g('--green',C.green);
+  }catch(e){}
 };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
@@ -1870,6 +1886,7 @@ function eigenCheck(opts){
 }
 
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
+        refreshPalette:()=>C.refresh(),
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
         configSpace,possibilityCounter,morphPath,diffVector,webGraph,
@@ -1879,3 +1896,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         luStepper,quadFormPlot,complexPlane,fourierSynth,
         practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck,matrixLab,svdPhoto,proofBuilder,gramSchmidtViz,fourSubspaces,transformQuiz};
 })();
+/* initialise the palette from the CSS variables in effect at load */
+if(typeof document!=='undefined'){ try{ VS.C.refresh(); }catch(e){} }

@@ -182,6 +182,32 @@
     go(idx);
   };
 
+  /* ---- theme (dark mode) ---- */
+  const THEME_KEY='vs-theme';
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme')||'light'; }
+  function paintThemeButtons(){
+    const t=currentTheme(); const icon = t==='dark' ? '☀️' : '🌙';
+    ['themeToggle','themeToggleLanding'].forEach(id=>{const b=document.getElementById(id);if(b)b.textContent=icon;});
+  }
+  function setTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    try{ localStorage.setItem(THEME_KEY,t); }catch(e){}
+    paintThemeButtons();
+    // pull the new CSS colours into the canvas palette, then repaint
+    if(window.VS && VS.refreshPalette) VS.refreshPalette();
+    if(!landing || landing.classList.contains('hidden')) go(idx,{noScroll:true});
+  }
+  function toggleTheme(){ setTheme(currentTheme()==='dark'?'light':'dark'); }
+  ['themeToggle','themeToggleLanding'].forEach(id=>{const b=document.getElementById(id);if(b)b.onclick=toggleTheme;});
+  paintThemeButtons();
+  // follow the OS if the user never chose explicitly
+  try{
+    const mq=window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener&&mq.addEventListener('change',e=>{
+      if(!localStorage.getItem(THEME_KEY)) setTheme(e.matches?'dark':'light');
+    });
+  }catch(e){}
+
   /* ---- boot ---- */
   buildNav(); buildDots();
   // deep link via hash
