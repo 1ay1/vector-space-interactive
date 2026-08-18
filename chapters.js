@@ -8,12 +8,16 @@
 const CHAPTERS = (() => {
 const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUnit,
        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
-       worked,gallery,matrixBoard,analogyDemo}=VS;
+       worked,gallery,matrixBoard,analogyDemo,
+       configSpace,possibilityCounter,morphPath,diffVector,webGraph}=VS;
 
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
+  // auto-number from position in the course (ignore hand-passed n)
+  let num=n;
+  try{const i=CHAPTERS.findIndex(x=>x.id===c.id);if(i>=0)num=i+1;}catch(e){}
   if(c.part) root.append(el('div','part-banner',c.part));
-  root.append(el('div','eyebrow',`Chapter ${n}`));
+  root.append(el('div','eyebrow',`Chapter ${num}`));
   root.append(el('h1',null,c.title));
   root.append(el('p','lead-big',c.sub));
 }
@@ -102,6 +106,108 @@ render(root){
     'Every vector = list = arrow = knobs = point. Same object, four views.',
     'List & knobs work in <em>any</em> dimension; arrow & point only up to 3.',
     'Fluency = switching costumes on demand.']));
+}};
+
+/* ============================================================
+   PART ½ — THE BIG PICTURE (what a space really is)
+   ============================================================ */
+
+const cBox={id:'notbox',part:'Part ½ · The big picture',title:'Space is not a box',
+  sub:'Before any machinery, we have to kill one picture you almost certainly carry — that space is an empty container things sit inside. It will sabotage everything later. Swap it now, while it\'s cheap.',
+render(root){
+  head(root,3,cBox);
+  root.append(p('Here\'s the picture your brain defaults to: <b>space is an empty box, and things go in the box.</b> The room existed before you walked in and stays after you leave. Natural — and, for what\'s coming, poisonous.'));
+  root.append(box('trap','the wrong picture','<b>box first, things later.</b> An empty room exists; then you add a chair, a bed, you. Space is the stage; objects are the actors that walk onto it. Natural — and about to cause trouble.'));
+  root.append(box('key','the problem','If space is a box that exists on its own, the box must have <em>positions</em> in it before anything arrives. But a position is a <b>relationship</b> — “2 metres from the wall,” “left of the table.” Take away every object and there\'s nothing to relate to. “Here” relative to what? So the positions were never there. <span class="aha">The box was never there.</span>'));
+  root.append(h3('Feel it: delete the relationships, watch the space vanish'));
+  root.append(p('Below is a little “space” of five cities — the dots are the cities, the lines are the relationships (roads, distances). Hit the button to delete every relationship and watch what\'s left.'));
+  const L=lab('Is the space the dots, or the web?','See','see');
+  L.append(webGraph({
+    nodes:[{label:'Paris',color:C.accent},{label:'Brussels',color:C.accentb},{label:'Amsterdam',color:C.accentc},{label:'Geneva',color:C.accentd},{label:'Berlin',color:C.gold}],
+    edges:[[0,1,3],[1,2,3],[0,3,2],[1,4,2],[3,0,2],[2,4,3]],
+    caption:'Cities + connections = a transport network. The structure is the <b>web of relationships</b>, not the empty air around the dots.'}));
+  root.append(box('aha-box','the swap','<b>Old:</b> space exists first; things go inside. &nbsp; <b>New:</b> things and their relationships come first — <span class="aha">the space IS the web of relationships.</span> Take the cast away and you don\'t get an empty stage; you get no play.'));
+  root.append(el('div','pull','Why swap now? Because in a few chapters I\'ll say “a photograph is a point in a million-dimensional space.” With the box picture that\'s nonsense — <em>where</em> is this space? With the web picture it\'s obvious: a photo relates to other photos in a million measurable ways, and that web is the space.'));
+  root.append(box('key','one honest caveat','Mathematically you <em>can</em> write \\((3,7)\\) with no object there — coordinates are a useful language. The point isn\'t “space can\'t exist empty.” It\'s: <b>don\'t think of a space as a container. Think of it as a system of possible relationships.</b> Coordinates describe the web; they aren\'t the web.'));
+  root.append(quiz({question:'You remove every object and relationship from a space. What remains?',
+    options:[{t:'Nothing meaningful — positions, distances, directions were all relationships',ok:true,why:'Right. “Position” only means something relative to other things. No relationships, no structure, no space.'},
+      {t:'A pristine empty container with all its positions intact',ok:false,why:'That\'s the box myth. A position IS a relationship; with nothing to relate to, there are no positions.'}]}));
+  root.append(summary(['Kill the “space = empty box” picture.','A position is a relationship, not a pre-existing slot.','Space = things + how they relate. The web is the space.','This makes “a photo is a point in a million-D space” sensible later.']));
+}};
+
+const cPoint={id:'point',part:'Part ½ · The big picture',title:'A photograph is a point',
+  sub:'The famous mind-bender, made obvious. A configuration — a whole image — is a single point in a space of possibilities. Build the smallest such space by hand.',
+render(root){
+  head(root,4,cPoint);
+  root.append(p('Think of a machine with one knob per pixel. A <em>setting of all the knobs</em> produces one image. So one image = one list of numbers = <b>one point</b> in the space of all possible images. Let\'s make the tiniest version you can hold in your hand: a 2×2 black-and-white image — just 4 pixels.'));
+  const L=lab('The entire space of 2×2 images','Play');
+  L.append(configSpace());
+  root.append(L);
+  root.append(box('aha-box','the whole space fits on screen','With 4 pixels and 2 values each there are only \\(2^4 = 16\\) possible images — and you\'re looking at <em>all of them</em>. Each little square is one <b>point</b>. “The space” isn\'t a room they float in; it\'s literally this collection of possibilities plus how they relate.'));
+  root.append(h3('Now let the space explode'));
+  root.append(p('Add pixels and brightness levels and count the possibilities. This is where combinatorics meets the space — slide both up.'));
+  const L2=lab('Count the possibilities','Play');L2.append(possibilityCounter());root.append(L2);
+  root.append(worked({title:'how many photographs exist?',
+    prompt:'A real photo: 1,000,000 pixels, each with 256 brightness values. How many possible images?',
+    steps:['Each pixel independently has 256 choices.',
+      'Multiply choices across all pixels: \\(256 \\times 256 \\times \\dots\\) (a million times).',
+      'That\'s \\(256^{1{,}000{,}000}\\) — a number with over two million digits.'],
+    result:'Vastly more than the atoms in the universe. Every possible photograph — every one that ever could be taken — is a single point in that space.'}));
+  root.append(box('key','combinatorics vs. the real thing','Counting works when values are <em>discrete</em> (0 or 1, or 0–255). But let each pixel be any <em>real</em> number and there are <b>infinitely</b> many images — so counting isn\'t what defines the space. What defines it is: <span class="aha">what can these points do together?</span> Can we subtract two? Average them? That structure — next chapter — is the real subject.'));
+  root.append(box('aha-box','why call it a “point”','A million-number photograph feels like a huge complicated object. But relative to the space of <em>all</em> photographs, it\'s just one location — one choice among the possibilities. Calling it a “point” is the mental move that locks everything together: complex object out here, simple point in there.'));
+  root.append(quiz({question:'A 1000×1000 black-and-white (2-value) image — how many possible images, and what is each one?',
+    options:[{t:'2^(1,000,000) images; each image is one point in the space',ok:true,why:'Exactly. A million pixels, 2 choices each. Each specific image = one point among those possibilities.'},
+      {t:'1,000,000 images; each is a pixel',ok:false,why:'A pixel isn\'t an image. Each whole image is one point; there are 2^(1,000,000) of them.'}]}));
+  root.append(summary(['One image = one list of numbers = one point in image-space.','Discrete values → combinatorics counts the points.','Real values → infinitely many points; counting stops mattering.','What matters is what points can do together (next).']));
+}};
+
+const cDiff={id:'diff',part:'Part ½ · The big picture',title:'A difference is a direction',
+  sub:'Here\'s where geometry appears out of thin air. Subtract two configurations and you get a vector that means “how to turn one into the other” — a direction of change, with no physical arrow anywhere.',
+render(root){
+  head(root,5,cDiff);
+  root.append(p('Take two photos A and B. Compare them pixel by pixel: \\(B - A\\) is a new list of numbers — the <b>change</b> that turns A into B. That difference is a vector, and it points in a <em>direction</em> through image-space. Watch a concrete one:'));
+  const L=lab('B − A is the vector “brighten”','See','see');L.append(diffVector());root.append(L);
+  root.append(box('aha-box','direction without north','If B is A-but-brighter, then \\(B-A \\approx (2,2,2,\\dots,2)\\) — “add a little to every pixel.” That\'s a genuine <b>direction</b> in the space, and it means something human: <em>brighter</em>. Not north/up — a <span class="aha">particular way of changing the thing.</span> A direction is just a way to change.'));
+  root.append(h3('Travel along that direction: a path through possibility-space'));
+  root.append(p('If \\(B-A\\) is a direction, then \\(A + t\\,(B-A)\\) walks from A to B as \\(t\\) goes 0→1 — and every step is a <em>real image</em>. Slide it and watch yourself travel through the space.'));
+  const L2=lab('Walk from photo A to photo B','Play');L2.append(morphPath());root.append(L2);
+  root.append(math('A + t\\,(B-A) \\quad\\text{for } t:0\\to1 \\;=\\; \\text{the straight path from } A \\text{ to } B'));
+  root.append(box('key','geometry from nothing physical','Look what we built with only subtract, scale, and add: a <b>direction</b> (\\(B-A\\)), a <b>path</b> (\\(A+t(B-A)\\)), and “keep going past B” (\\(t>1\\)). No room, no physical arrows — just possibilities + operations. <span class="aha">That\'s geometry, created out of relationships alone.</span>'));
+  root.append(worked({title:'continue past B',
+    prompt:'Photos A and B. What is \\(A + 2(B-A)\\), in words?',
+    steps:['\\(B-A\\) is the change “A → B.”',
+      'Doubling it, \\(2(B-A)\\), is “twice that change.”',
+      'Adding to A: keep moving in the same direction, past B, the same distance again.'],
+    result:'You moved along a direction in image-space — e.g. “twice as much brighter.” Same machinery as arrows on paper, zero paper involved.'}));
+  root.append(quiz({question:'A is a dark photo; B is the same photo brighter. What does the vector B−A represent?',
+    options:[{t:'A direction of change — “make every pixel brighter”',ok:true,why:'Yes. Differences are directions; this one means “brighten.” Moving along it changes the image in that specific way.'},
+      {t:'A physical arrow pointing north in a room',ok:false,why:'There\'s no room and no north. “Direction” here means a particular way of changing the configuration.'}]}));
+  root.append(summary(['B−A = the change turning A into B = a vector.','A vector is a <em>direction</em>: a particular way to change a thing.','A + t(B−A) is a path through possibility-space; every point is real.','Geometry emerges from subtract/scale/add alone — no physical space needed.']));
+}};
+
+const cWebspace={id:'webspace',part:'Part ½ · The big picture',title:'Relationships ARE the space',
+  sub:'Put it together. “Closeness,” “direction,” “between” — all of it lives in the relationships between points, not in any background. That web is the space, and it\'s why one machinery fits everything.',
+render(root){
+  head(root,6,cWebspace);
+  root.append(p('Photographs aren\'t a random pile. Some are near (same scene, new lighting), some are far (totally different scenes). That <b>closeness</b> isn\'t physical — it\'s the length of \\(B-A\\), a number you compute. The whole space is this web of near/far/direction relationships.'));
+  const L=lab('The space is the web, not the dots','See','see');
+  L.append(webGraph({
+    nodes:[{label:'A ☀',color:C.accent},{label:'B ☀+',color:C.accentb},{label:'C 🌙',color:C.accentc},{label:'D 🌿',color:C.accentd},{label:'E 🌊',color:C.gold},{label:'F 🔥',color:C.green}],
+    edges:[[0,1,5],[0,2,2],[2,3,3],[3,4,2],[4,5,3],[1,3,1],[0,4,1]],
+    caption:'Photos as points; thick line = very similar, thin = barely. The space is this <b>web of similarities</b>. Delete it and the photos are just an unrelated heap.'}));
+  root.append(box('aha-box','same idea, everywhere','<b>Images:</b> points = photos, relationships = pixel-difference, similarity. <b>Physical space:</b> points = locations, relationships = distance, direction, angle. <b>A network:</b> points = cities, relationships = roads, travel time. Different stuff, <span class="aha">one idea: a world of things + a structure for how they relate.</span>'));
+  root.append(h3('The four sentences to carry forever'));
+  root.append(box('key','lock this in',`
+    <b>space</b> = a world of possibilities (not an empty box)<br>
+    <b>point</b> = one possibility (one configuration — e.g. one photograph)<br>
+    <b>vector</b> = a change/relationship between possibilities (\\(B-A\\))<br>
+    <b>direction</b> = a particular way of changing`));
+  root.append(el('div','pull','Whenever you hear “point in space,” don\'t picture a dot in a room. Ask: <em>point among what possibilities?</em> Physical space → possible locations. Image space → possible images. Audio → possible sounds. Portfolio → possible portfolios. The word “point” just means one particular possibility.'));
+  root.append(box('aha-box','why this unlocks everything','Because the space is relationships — not a container — the <em>same</em> machinery (subtract, scale, add; length; angle) describes photographs, sounds, word-meanings, motion, and portfolios. You\'re no longer memorizing what a vector space is. You\'re starting to <span class="aha">see it.</span>'));
+  root.append(quiz({question:'What is “closeness” between two photographs?',
+    options:[{t:'The length of their difference vector B−A — a computed relationship',ok:true,why:'Exactly. Closeness is mathematical (a number), living in the relationship between points, not in any background space.'},
+      {t:'How near they physically float in an invisible room',ok:false,why:'There\'s no room. Closeness is the size of the difference — pure relationship.'}]}));
+  root.append(summary(['Closeness/direction/between live in the relationships, not a background.','The web of relationships IS the space.','space=possibilities, point=one possibility, vector=a change, direction=a way to change.','One machinery fits images, sound, meaning, motion — because all are webs of relationships.']));
 }};
 
 /* ============================================================
@@ -611,6 +717,6 @@ render(root){
   root.append(box('aha-box','where to go next','You\'ve met matrices (verbs that move whole spaces). Next come <b>eigenvectors</b> (the special directions a matrix only stretches, never turns), <b>PCA</b> (finding the few directions your data actually uses), and the linear algebra inside every neural network. It\'s all this — lists, two moves, geometry, transformations — just stacked. Go forth and out-list the universe.'));
 }};
 
-return [c0,cRep,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
+return [c0,cRep,cBox,cPoint,cDiff,cWebspace,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
         cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,cUsed,cAxioms,cReview];
 })();

@@ -622,7 +622,143 @@ function analogyDemo(){
   render();wrap.append(canvas,nar);return wrap;
 }
 
+/* =========================================================
+   CONFIGSPACE — a tiny 2x2 black/white image space.
+   Click pixels to toggle; shows which of the 16 possible
+   images you're on, laid out as a gallery of all points.
+   ========================================================= */
+function configSpace(){
+  const wrap=el('div');
+  const nar=narrate('Click the four pixels to build an image. There are only 16 possible.');
+  // editable 2x2
+  const edit=el('canvas');edit.width=120;edit.height=120;const ectx=hidpi(edit);
+  let bits=[0,0,0,0]; // 4 pixels, row-major
+  function drawEdit(){for(let i=0;i<4;i++){const x=i%2,y=(i>>1);ectx.fillStyle=bits[i]?'#fff':'#222';
+    ectx.fillRect(x*60,y*60,60,60);ectx.strokeStyle=C.softline;ectx.lineWidth=2;ectx.strokeRect(x*60,y*60,60,60);}}
+  edit.addEventListener('pointerdown',e=>{const r=edit.getBoundingClientRect();const x=Math.floor((e.clientX-r.left)/60),y=Math.floor((e.clientY-r.top)/60);
+    const i=y*2+x;if(i>=0&&i<4){bits[i]^=1;drawEdit();update();}});
+  // gallery of all 16
+  const gal=el('div');gal.style.cssText='display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:10px';
+  const cells=[];
+  for(let n=0;n<16;n++){const c=el('canvas');c.width=34;c.height=34;const cx=hidpi(c);
+    for(let i=0;i<4;i++){const b=(n>>i)&1;const x=i%2,y=(i>>1);cx.fillStyle=b?'#fff':'#222';cx.fillRect(x*17,y*17,17,17);}
+    c.style.cssText='border-radius:4px;cursor:pointer;outline:2px solid transparent';
+    c.onclick=()=>{bits=[0,1,2,3].map(i=>(n>>i)&1);drawEdit();update();};
+    cells.push(c);gal.append(c);}
+  function idx(){return bits[0]|(bits[1]<<1)|(bits[2]<<2)|(bits[3]<<3);}
+  function update(){const k=idx();cells.forEach((c,n)=>c.style.outlineColor=n===k?C.accent:'transparent');
+    nar.say(`You're on image <span class="k">#${k}</span> of 16. Each of the 16 squares below is <em>one point</em> in this tiny image-space — the whole space fits on your screen.`);}
+  const lab1=el('div',null,'<b>your image</b> (click a pixel)');lab1.style.cssText='font-size:.8rem;color:var(--muted);margin-bottom:4px';
+  const lab2=el('div',null,'<b>the entire space</b> — all 16 possible images (click one)');lab2.style.cssText='font-size:.8rem;color:var(--muted);margin:10px 0 0';
+  wrap.append(lab1,edit,lab2,gal,nar);drawEdit();update();
+  return wrap;
+}
+
+/* =========================================================
+   POSSIBILITYCOUNTER — slide pixels & levels, watch the
+   count of possible images explode (log-scaled bar + text).
+   ========================================================= */
+function possibilityCounter(){
+  const wrap=el('div');const nar=narrate('');
+  let pixels=4, levels=2;
+  function bignum(base,exp){
+    // returns human string for base^exp
+    const log10=exp*Math.log10(base);
+    if(log10<15){return Math.round(Math.pow(base,exp)).toLocaleString();}
+    const mant=Math.pow(10,log10-Math.floor(log10));
+    return mant.toFixed(2)+' × 10^'+Math.floor(log10);
+  }
+  const out=el('div','readout','');
+  function upd(){const log10=pixels*Math.log10(levels);
+    out.innerHTML=`${levels}<sup>${pixels}</sup> = <b style="color:var(--accent)">${bignum(levels,pixels)}</b> possible images`;
+    let cmp='';
+    if(log10>80)cmp=' — more than the number of atoms in the observable universe (~10⁸⁰).';
+    else if(log10>18)cmp=' — more than all grains of sand on Earth.';
+    else if(log10>9)cmp=' — more than the population of Earth.';
+    nar.say(`${pixels} pixels, ${levels} levels each → <span class="k">${bignum(levels,pixels)}</span> possible images${cmp} <span class="g">Each is one point in the space.</span>`);}
+  const r1=rangeRow({label:'pixels',min:1,max:1000,step:1,value:4,onInput:v=>{pixels=v;upd();}});
+  const r2=rangeRow({label:'brightness levels each',min:2,max:256,step:1,value:2,onInput:v=>{levels=v;upd();}});
+  wrap.append(r1,r2,out,nar);upd();return wrap;
+}
+
+/* =========================================================
+   MORPHPATH — slide from photo A to photo B and watch the
+   image travel through the space along a straight line.
+   Uses two tiny generated 'photos' (gradient blobs).
+   ========================================================= */
+function morphPath(){
+  const wrap=el('div');const nar=narrate('');
+  const N=16;const A=[],B=[];
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    A.push(clamp(255*(0.5+0.5*Math.sin(x/2.5)*Math.cos(y/3)),0,255));
+    B.push(clamp(255*(0.5+0.5*Math.cos(x/3)*Math.sin(y/2.2)),0,255));}
+  const cv=el('canvas');cv.width=180;cv.height=180;const ctx=hidpi(cv);const cell=180/N;
+  const cvA=el('canvas');cvA.width=70;cvA.height=70;const ca=hidpi(cvA);
+  const cvB=el('canvas');cvB.width=70;cvB.height=70;const cb=hidpi(cvB);
+  function paint(c,data,size){const cl=size/N;for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;const v=Math.round(data[i]);
+    c.fillStyle=`rgb(${v},${v},${v})`;c.fillRect(x*cl,y*cl,cl+.5,cl+.5);}}
+  paint(ca,A,70);paint(cb,B,70);
+  function draw(t){const cur=A.map((a,i)=>a+(B[i]-a)*t);paint(ctx,cur,180);
+    nar.say(`You're at <span class="k">A + ${t.toFixed(2)}·(B−A)</span>. At t=0 you're exactly on photo A; at t=1, photo B. Every value between is a <em>real image</em> — a point on the straight path connecting them through the space.`);}
+  const row=rangeRow({label:'position on the path A→B',min:0,max:1,step:.02,value:0,fmt:v=>'t = '+v.toFixed(2),onInput:draw});
+  const strip=el('div');strip.style.cssText='display:flex;align-items:center;gap:12px;margin-top:8px';
+  const tagA=el('div',null,'A');tagA.style.cssText='font-weight:700;color:var(--accentb)';
+  const tagB=el('div',null,'B');tagB.style.cssText='font-weight:700;color:var(--accentc)';
+  strip.append(tagA,cvA,cv,cvB,tagB);
+  wrap.append(row,strip,nar);draw(0);return wrap;
+}
+
+/* =========================================================
+   DIFFVECTOR — two small images + their difference shown as
+   a per-pixel signed heatmap = the vector B - A.
+   ========================================================= */
+function diffVector(){
+  const wrap=el('div');const nar=narrate('');
+  const N=8;
+  const A=[],B=[];
+  for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;A.push(80+40*Math.sin(x/1.5));B.push(80+40*Math.sin(x/1.5)+30);} // B = A brighter
+  function mk(size){const c=el('canvas');c.width=size;c.height=size;return c;}
+  const cA=mk(96),cB=mk(96),cD=mk(96);
+  const xa=hidpi(cA),xb=hidpi(cB),xd=hidpi(cD);const cell=96/N;
+  function gray(ctx,data){for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;const v=clamp(Math.round(data[i]),0,255);ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x*cell,y*cell,cell+.5,cell+.5);}}
+  function diff(ctx){for(let i=0;i<N*N;i++){const x=i%N,y=(i/N)|0;const d=B[i]-A[i];
+    ctx.fillStyle=d>0?`rgba(228,87,46,${clamp(Math.abs(d)/60,0,1)})`:d<0?`rgba(42,125,225,${clamp(Math.abs(d)/60,0,1)})`:'#eee';
+    ctx.fillRect(x*cell,y*cell,cell+.5,cell+.5);}}
+  gray(xa,A);gray(xb,B);diff(xd);
+  const row=el('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px';
+  function tag(t){const d=el('div',null,t);d.style.cssText='font-size:.8rem;color:var(--muted);text-align:center';return d;}
+  const wrapCanvas=(c,label)=>{const box=el('div');box.style.cssText='text-align:center';box.append(c,tag(label));return box;};
+  row.append(wrapCanvas(cA,'photo A'),el('div',null,'<b>→ B−A →</b>'),wrapCanvas(cB,'photo B'),el('div',null,'<b>=</b>'),wrapCanvas(cD,'the difference vector'));
+  nar.say('B is just A with every pixel brightened. So <span class="k">B−A</span> is almost all the same value — a vector that means <b>“brighten.”</b> Orange = pixel went up. That single arrow is a <em>direction</em> in image-space.');
+  wrap.append(row,nar);return wrap;
+}
+
+/* =========================================================
+   WEBGRAPH — nodes (photos/cities) connected by weighted
+   relationships. Illustrates 'space = things + relations'.
+   opts:{nodes:[{label,color}], edges:[[i,j,w]], caption}
+   ========================================================= */
+function webGraph(opts){
+  const W=380,H=260;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const n=opts.nodes.length;const pos=opts.nodes.map((nd,i)=>{const a=-Math.PI/2+i/n*2*Math.PI;return [W/2+Math.cos(a)*95, H/2+Math.sin(a)*80];});
+  let showEdges=true;
+  function render(){ctx.clearRect(0,0,W,H);
+    if(showEdges)opts.edges.forEach(([i,j,w])=>{ctx.strokeStyle=C.softline;ctx.lineWidth=clamp(w,1,6);
+      ctx.beginPath();ctx.moveTo(pos[i][0],pos[i][1]);ctx.lineTo(pos[j][0],pos[j][1]);ctx.stroke();
+      const mx=(pos[i][0]+pos[j][0])/2,my=(pos[i][1]+pos[j][1])/2;ctx.fillStyle=C.muted;ctx.font='10px sans-serif';
+      if(opts.edgeLabels)ctx.fillText(opts.edgeLabels[opts.edges.indexOf(opts.edges.find(e=>e[0]===i&&e[1]===j))]||'',mx,my);});
+    opts.nodes.forEach((nd,i)=>{ctx.fillStyle=nd.color||C.accent;ctx.beginPath();ctx.arc(pos[i][0],pos[i][1],10,0,7);ctx.fill();
+      ctx.fillStyle=C.ink;ctx.font='600 12px sans-serif';ctx.fillText(nd.label,pos[i][0]+13,pos[i][1]+4);});}
+  const btn=el('button','btn ghost','delete all the relationships');
+  const nar=narrate(opts.caption||'');
+  btn.onclick=()=>{showEdges=!showEdges;render();
+    btn.textContent=showEdges?'delete all the relationships':'restore the relationships';
+    nar.say(showEdges?(opts.caption||''):'<span class="r">The dots are still here — but the space is gone.</span> With no relationships there’s no distance, no direction, no “near.” The web <em>was</em> the space, not the dots.');};
+  const wrap=el('div');const ctr=el('div','controls');ctr.append(btn);wrap.append(cv,ctr,nar);render();return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
-        worked,gallery,matrixBoard,analogyDemo};
+        worked,gallery,matrixBoard,analogyDemo,
+        configSpace,possibilityCounter,morphPath,diffVector,webGraph};
 })();
