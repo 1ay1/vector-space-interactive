@@ -49,7 +49,7 @@
   // one delegated listener — a click anywhere in a chap-link goes to that chapter
   chapnav.addEventListener('click',e=>{
     const b=e.target.closest('.chap-link');
-    if(b){ go(parseInt(b.dataset.idx,10)); }
+    if(b){ go(parseInt(b.dataset.idx,10), {fromNavClick:true}); }
   });
   function shortSub(s){return s.length>60? s.slice(0,58)+'…':s;}
 
@@ -63,7 +63,8 @@
     });
   }
 
-  function refreshChrome(){
+  function refreshChrome(opts){
+    opts=opts||{};
     navButtons.forEach((b,i)=>{
       b.classList.toggle('active',i===idx);
       b.classList.toggle('done',seen.has(CHAPTERS[i].id)&&i!==idx);
@@ -74,13 +75,23 @@
     });
     prevBtn.disabled=idx===0;
     nextBtn.textContent = idx===CHAPTERS.length-1?'finish ✓':'next →';
-    // keep the active chapter visible in the scrolling nav
+    // Only auto-scroll the nav when navigation did NOT come from clicking a
+    // nav row (a click means the row is already under the user's cursor;
+    // scrolling it would shift the list and feel like a mis-click).
     const active=navButtons[idx];
-    if(active && active.scrollIntoView) active.scrollIntoView({block:'nearest'});
+    if(active && !opts.fromNavClick){
+      const navR=chapnav.getBoundingClientRect();
+      const itemR=active.getBoundingClientRect();
+      if(itemR.top < navR.top+4){
+        chapnav.scrollTop -= (navR.top - itemR.top) + 8;
+      }else if(itemR.bottom > navR.bottom-4){
+        chapnav.scrollTop += (itemR.bottom - navR.bottom) + 8;
+      }
+    }
     updateProgress();
   }
 
-  function go(i){
+  function go(i, opts){
     idx=Math.max(0,Math.min(CHAPTERS.length-1,i));
     content.innerHTML='';
     const chapter=document.createElement('div');
@@ -89,12 +100,14 @@
     try{ CHAPTERS[idx].render(chapter); }
     catch(err){ chapter.innerHTML='<p style="color:var(--accent)">Widget error: '+err.message+'</p>'; console.error(err); }
     seen.add(CHAPTERS[idx].id); saveSeen();
-    refreshChrome();
+    refreshChrome(opts);
     // typeset any math in the freshly rendered chapter
     if(window.MathJax && window.MathJax.typesetPromise){
       window.MathJax.typesetPromise([chapter]).catch(()=>{});
     }
-    window.scrollTo(0,0); content.scrollIntoView?.({block:'start'});
+    // scroll only the page/content — never an ancestor of the sidebar
+    window.scrollTo(0,0);
+    if(content.scrollTop) content.scrollTop=0;
     sidebar.classList.remove('open');
     location.hash=CHAPTERS[idx].id;
   }
