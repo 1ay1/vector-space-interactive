@@ -38,6 +38,16 @@ open index.html          # macOS
 python3 -m http.server   # then visit http://localhost:8000
 ```
 
+Works fully offline: if the MathJax CDN is unreachable, formulas fall back to
+readable Unicode (`‖v‖`, `√(x)`, `λ`, …) so nothing shows raw LaTeX.
+
+## Tests
+
+Open `test.html` in a browser (or run it headless). It exercises every
+interactive widget with simulated input and checks that all 18 practice
+generators accept the right answer and reject wrong ones — **59 checks**. Green
+“OK” = pass.
+
 ## Project layout
 
 ```
