@@ -7,7 +7,8 @@
 
 const CHAPTERS = (() => {
 const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUnit,
-       numberline,board3d,spanBoard,fourRep,projectionBoard,ladder}=VS;
+       numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
+       worked,gallery,matrixBoard,analogyDemo}=VS;
 
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
@@ -62,6 +63,18 @@ render(root){
   knobs.append(knob({label:'blue',color:C.accentb,value:46,onInput:v=>{rgb.b=v;upd('blue');}}));
   stage.append(knobs,right);L.append(stage,nar);root.append(L);
   root.append(box('aha-box','what just happened','You moved a point around a 3-dimensional space with your fingers — no arrows, no "seeing" 3D as a shape. You set three numbers. <span class="aha">The exact same move works for 3 numbers or 3 million.</span>'));
+  root.append(h3('A whole world of hidden vectors'));
+  root.append(p('Once you see the pattern, vectors are <em>everywhere</em>. Tap each card to reveal the list of numbers hiding inside an everyday thing — and how many dimensions it secretly has.'));
+  root.append(gallery([
+    {icon:'☕',name:'A coffee order',dims:'3 dimensions',vec:'(2 shots, 1 syrup, 12 oz milk)',note:'change one without touching the others.'},
+    {icon:'🎨',name:'A colour',dims:'3 dimensions',vec:'(228, 87, 46) = orange',note:'red, green, blue — your whole screen is a grid of these.'},
+    {icon:'💰',name:'Coins in your pocket',dims:'4 dimensions',vec:'(3, 2, 4, 7)',note:'£1s, 50ps, 20ps, pennies.'},
+    {icon:'🌦️',name:'Today\'s weather',dims:'4 dimensions',vec:'(22°, 61%, 14 km/h, 1013 hPa)',note:'temperature, humidity, wind, pressure.'},
+    {icon:'📷',name:'A phone photo',dims:'~12 million',vec:'(brightness of pixel 1, …, pixel 12M)',note:'one number per pixel. Nobody pictures it — everyone uses it.'},
+    {icon:'🎵',name:'One second of audio',dims:'~44,100',vec:'(air pressure at each sample)',note:'a very long list; still just a list.'},
+    {icon:'🛒',name:'A grocery cart',dims:'thousands',vec:'(0, …, 6 eggs, …, 2 milk, …)',note:'one slot per product; almost all zero.'},
+    {icon:'♟️',name:'A chess position',dims:'64-ish',vec:'(what\'s on each square)',note:'the whole board as one vector.'}]));
+  root.append(el('div','pull','Every one of these is a list of numbers you already reason about — \"more shots,\" \"double the recipe,\" \"brighter photo.\" That reasoning <em>is</em> vector math. You were fluent before you knew the word.'));
   root.append(summary([
     'A vector = a list of numbers you can adjust.',
     'Dimension = how many numbers.',
@@ -322,6 +335,19 @@ render(root){
   const L=lab('Live Pythagoras','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
   root.append(box('aha-box','distance = length of the difference','How far apart are two vectors? Subtract them (line by line) and take the length. That\'s <em>literally</em> how your photo app decides two images are similar: turn each into a vector, subtract, measure. Small distance = alike.'));
   root.append(math('\\text{dist}(\\mathbf a,\\mathbf b)=\\lVert\\mathbf a-\\mathbf b\\rVert=\\sqrt{\\textstyle\\sum_i (a_i-b_i)^2}'));
+  root.append(worked({title:'length in 4 dimensions',
+    prompt:'Find the length of \\( \\mathbf v = (1,\\,2,\\,2,\\,4) \\). You cannot picture a 4-D arrow — you don\'t need to.',
+    steps:[
+      'Square every number: \\(1^2=1,\\; 2^2=4,\\; 2^2=4,\\; 4^2=16\\).',
+      'Add the squares: \\(1+4+4+16 = 25\\).',
+      'Take the square root: \\(\\sqrt{25}=5\\).'],
+    result:'\\( \\lVert\\mathbf v\\rVert = 5 \\). A distance in a space you can\'t see, from grade-school arithmetic.'}));
+  root.append(worked({title:'distance between two songs',
+    prompt:'Two songs as (tempo, loudness) after scaling: \\(\\mathbf a=(4,1)\\), \\(\\mathbf b=(1,5)\\). How different are they?',
+    steps:[
+      'Subtract line by line: \\(\\mathbf a-\\mathbf b=(4-1,\\;1-5)=(3,-4)\\).',
+      'Length of the difference: \\(\\sqrt{3^2+(-4)^2}=\\sqrt{9+16}=\\sqrt{25}\\).'],
+    result:'distance \\(=5\\). Bigger number = less alike — exactly how a music app rates similarity.'}));
   root.append(quiz({question:'Length of the 4-D vector (1, 2, 2, 4)?',
     options:[{t:'5',ok:true,why:'√(1+4+4+16)=√25=5. You measured a distance in a space you can\'t see, with grade-school arithmetic.'},
       {t:'9',ok:false,why:'That\'s 1+2+2+4 (no squaring). Square first: 1+4+4+16=25, √25=5.'}]}));
@@ -342,6 +368,13 @@ render(root){
       ro.innerHTML=`dot ≈ <b>${dot.toFixed(2)}</b> · angle ≈ ${deg.toFixed(0)}°`;
       nar.say(`<span class="sign ${cls}">${cls==='pos'?'＋':cls==='neg'?'－':'0'}</span> ${txt}.`);}});
   const L=lab('Rotate, watch the sign flip','See','see');L.append(stageOf(board,[ro]),nar);root.append(L);
+  root.append(worked({title:'do these two shoppers agree?',
+    prompt:'Habits as (organic, budget, bulk): \\(\\mathbf p=(2,3,-1)\\), \\(\\mathbf q=(4,-1,2)\\). Compute the dot product and read its sign.',
+    steps:[
+      'Multiply matching numbers: \\(2\\cdot4=8,\\; 3\\cdot(-1)=-3,\\; (-1)\\cdot2=-2\\).',
+      'Add them: \\(8-3-2=3\\).',
+      'The result \\(+3\\) is <b>positive</b> → the vectors broadly agree.'],
+    result:'These shoppers roughly agree. (0 would be “unrelated”; negative would be “opposite tastes.”) This sign-check is the heart of every “you might also like…”'}));
   root.append(box('aha-box','why it rules the internet','"Which direction" survives to any dimension. Turn two photos into 500-number vectors, take their dot product: positive = similar, near-zero = unrelated. That\'s <em>cosine similarity</em>, run billions of times a day. You can\'t picture 500-D arrows — the dot product measures their angle anyway.'));
   root.append(quiz({question:'Two vectors have dot product exactly 0. They are…',
     options:[{t:'perpendicular / unrelated',ok:true,why:'Zero dot product = right angle = "nothing in common, direction-wise."'},
@@ -460,10 +493,43 @@ render(root){
    PART V — PAYOFF & MASTERY
    ============================================================ */
 
+const cMatrix={id:'matrix',part:'Part V · Going deeper',title:'Matrices — verbs for vectors',
+  sub:'So far vectors just sat there. A matrix is a machine that MOVES every vector at once — rotate, stretch, shear the whole space. It\'s the next big idea, and it\'s still just our two moves.',
+render(root){
+  head(root,20,cMatrix);
+  root.append(p('A vector is a <em>noun</em> (a thing). A <span class="term">matrix</span> is a <em>verb</em> — it does something to every vector in the space at once: rotate it, stretch it, flip it, shear it. And here\'s the beautiful part: a matrix is fully described by <b>where it sends the basis vectors</b>. Move the two arrows below and watch the <em>entire grid</em> follow.'));
+  const ro=el('div','readout','');const nar=narrate('Drag the sliders to reshape space.');
+  const board=matrixBoard({onChange:(m,det)=>{
+    ro.innerHTML=`î → (${fmt(m[0])}, ${fmt(m[2])}) &nbsp; ĵ → (${fmt(m[1])}, ${fmt(m[3])}) &nbsp;·&nbsp; area × <b>${fmt(det)}</b>`;
+    const msg = Math.abs(det)<0.05?'<span class="r">area → 0: the whole plane got squashed onto a line!</span>':
+      det<0?'space got <b>flipped</b> (mirror) and scaled.':'space stretched/rotated; area scaled by the number.';
+    nar.say(`The grid is now sheared/scaled so î lands at (${fmt(m[0])}, ${fmt(m[2])}) and ĵ at (${fmt(m[1])}, ${fmt(m[3])}). ${msg}`);}});
+  const rA=rangeRow({label:'î x',min:-2,max:2,step:.1,value:1,fmt:v=>v.toFixed(1),onInput:v=>{const m=board.api.get();board.api.set(v,m[1],m[2],m[3]);}});
+  const rC=rangeRow({label:'î y',min:-2,max:2,step:.1,value:0,fmt:v=>v.toFixed(1),onInput:v=>{const m=board.api.get();board.api.set(m[0],m[1],v,m[3]);}});
+  const rB=rangeRow({label:'ĵ x',min:-2,max:2,step:.1,value:0,fmt:v=>v.toFixed(1),onInput:v=>{const m=board.api.get();board.api.set(m[0],v,m[2],m[3]);}});
+  const rD=rangeRow({label:'ĵ y',min:-2,max:2,step:.1,value:1,fmt:v=>v.toFixed(1),onInput:v=>{const m=board.api.get();board.api.set(m[0],m[1],m[2],v);}});
+  const L=lab('Reshape the whole plane','See','see');
+  const g=el('div','grow');g.append(ro,rA,rC,rB,rD);const s=el('div','stage');s.append(board,g);
+  L.append(s,nar);root.append(L);
+  root.append(box('key','presets to try','<b>Rotate 90°:</b> î→(0,1), ĵ→(−1,0). &nbsp; <b>Stretch x by 2:</b> î→(2,0), ĵ→(0,1). &nbsp; <b>Shear:</b> î→(1,0), ĵ→(1,1). &nbsp; <b>Squash flat:</b> î→(1,0), ĵ→(2,0) — the whole plane collapses to a line (area × 0).'));
+  root.append(worked({title:'applying a matrix is just a linear combination',
+    prompt:'A matrix sends \\(\\hat\\imath\\to(2,0)\\) and \\(\\hat\\jmath\\to(1,3)\\). Where does the vector \\((x,y)\\) go?',
+    steps:[
+      'Any vector is \\(x\\hat\\imath + y\\hat\\jmath\\) — a linear combination of the basis.',
+      'A matrix respects add & scale, so it sends \\(x\\hat\\imath+y\\hat\\jmath \\to x\\,(2,0)+y\\,(1,3)\\).',
+      'Combine: \\((2x+y,\\; 3y)\\).'],
+    result:'A matrix moves the whole space, but each vector just rides its <em>own</em> linear combination of “where the basis went.” It\'s our two moves again.'}));
+  root.append(box('aha-box','why matrices are everywhere','Rotating a game character, warping a photo, one layer of a neural network, a Google-search ranking step — all are “apply a matrix to a vector.” The <span class="term">determinant</span> you saw (the area factor) tells you if the transform squashes information (det = 0) or is reversible. <span class="aha">Everything deeper — eigenvectors, PCA, transformers — is built on this one picture.</span>'));
+  root.append(quiz({question:'A matrix squashes the whole plane onto a single line (determinant 0). What did it lose?',
+    options:[{t:'Information — many different inputs now map to the same output, so you can\'t undo it',ok:true,why:'Exactly. Zero determinant = not reversible = the transform threw away a dimension. This is “singular.”'},
+      {t:'Nothing — it\'s fully reversible',ok:false,why:'A collapse to a line means countless inputs share one output; you can\'t recover which. Not reversible.'}]}));
+  root.append(summary(['A matrix = a verb: it moves every vector at once.','It\'s defined by where the basis vectors land.','Applying it = a linear combination (our two moves).','Determinant = how area scales; 0 means it squashed a dimension.']));
+}};
+
 const cUsed={id:'used',part:'Part V · Payoff',title:'Where this actually lives',
   sub:'You own the whole toolkit now. Here it is running the real world — plus a live similarity search you can play with.',
 render(root){
-  head(root,20,cUsed);
+  head(root,21,cUsed);
   root.append(p('Everything you learned — list, add, scale, length, dot product — is exactly what powers search, recommendations, and AI. Here\'s a toy: three "documents" as 3-number vectors (how much about <b>cats</b>, <b>code</b>, <b>cooking</b>). Tune your query; watch which wins by <em>angle</em>.'));
   const L=lab('Similarity search, live');
   const docs=[{name:'"My cat sat on my keyboard"',v:[.8,.5,.1],color:C.accent},
@@ -482,18 +548,21 @@ render(root){
   L.append(r1,r2,r3,bars,nar);upd();root.append(L);
   root.append(box('aha-box','that\'s the whole magic trick','Real search engines and chatbots do exactly this — with vectors of hundreds or thousands of numbers from a neural net. "Find similar" = "smallest angle." You now understand the core of it.'));
   root.append(h3('More places you\'re now equipped to see it'));
+  root.append(p('The famous one: <b>word embeddings</b> turn words into ~300-D vectors so that <em>directions carry meaning</em>. The step from “man” to “woman” is one fixed vector — and adding it to “king” lands you on “queen.” That\'s <em>literally</em> vector arithmetic. Here it is in a toy 2-D version:'));
+  const La=lab('king − man + woman ≈ queen','See','see');La.append(analogyDemo());root.append(La);
+  root.append(box('aha-box','meaning becomes geometry','When words are vectors, “analogy” becomes <em>subtraction and addition</em>, and “synonym” becomes <em>small angle</em>. The entire field of modern language AI stands on this: turn meaning into vectors, then do our two moves. You already know the moves.'));
   root.append(el('ul',null,`
-    <li><b>Word embeddings</b> — words as ~300-D vectors; "king − man + woman ≈ queen" is literally vector addition.</li>
     <li><b>Recommendations</b> — you and each movie are vectors; your match is a dot product.</li>
-    <li><b>Computer graphics</b> — every rotation, scale, and camera move is linear algebra on 3-vectors.</li>
-    <li><b>Machine learning</b> — a neural network is stacks of "multiply by a matrix, then bend" — matrices are just vectors of vectors.</li>`));
+    <li><b>Computer graphics</b> — every rotation, scale, and camera move is a matrix on 3-vectors (Chapter 20).</li>
+    <li><b>Machine learning</b> — a neural network is stacks of “multiply by a matrix, then bend.”</li>
+    <li><b>Search</b> — your query and every document become vectors; the best matches have the smallest angle.</li>`));
   root.append(summary(['Similarity = angle = dot product, at scale.','Embeddings turn words/images/users into vectors.','You now understand the core operation behind modern AI.']));
 }};
 
 const cAxioms={id:'axioms',part:'Part V · Payoff',title:'The rules of the club (axioms)',
   sub:'What officially makes something a "vector space." They read like legalese but each one is just a promise that your intuition transfers.',
 render(root){
-  head(root,21,cAxioms);
+  head(root,22,cAxioms);
   root.append(p('A <span class="term">vector space</span> is <em>any</em> collection of things you can <b>add</b> and <b>scale</b>, where a short list of promises holds. Not arrows — <em>anything</em>: numbers, functions, matrices, quantum states, financial portfolios. If it keeps the promises, every theorem you learned works for it, free.'));
   const promises=[['Order-blind addition','a + b = b + a. Your cart plus theirs = theirs plus yours.'],
     ['Grouping-blind addition','(a+b)+c = a+(b+c). Add in any grouping.'],
@@ -514,7 +583,7 @@ render(root){
 const cReview={id:'review',part:'Part V · Payoff',title:'You made it — the whole subject, and a review',
   sub:'Everything, compressed. Then a quick self-test to prove it stuck, and a glossary to keep.',
 render(root){
-  head(root,22,cReview);
+  head(root,23,cReview);
   root.append(el('div','pull','You no longer believe in a magic room you can\'t enter. You just see a longer list. That\'s internalized. That\'s the whole thing.'));
   root.append(box('key','the entire course in four lines',`
     <b>• a vector</b> = a list of numbers (equivalently: arrow, knobs, point)<br>
@@ -539,9 +608,9 @@ render(root){
     ['orthogonal','perpendicular; dot product 0'],['vector space','anything you can add & scale that obeys the 7 promises']];
   const g=el('div','glossary');terms.forEach(([t,d])=>{const it=el('div','gitem');it.innerHTML=`<b>${t}</b> — ${d}`;g.append(it);});
   root.append(g);
-  root.append(box('aha-box','where to go next','You\'re ready for matrices (functions that move whole spaces around), determinants (how much they stretch), eigenvectors (the directions a matrix leaves alone), and everything in machine learning. It\'s all this — lists, two moves, geometry — just stacked. Go forth and out-list the universe.'));
+  root.append(box('aha-box','where to go next','You\'ve met matrices (verbs that move whole spaces). Next come <b>eigenvectors</b> (the special directions a matrix only stretches, never turns), <b>PCA</b> (finding the few directions your data actually uses), and the linear algebra inside every neural network. It\'s all this — lists, two moves, geometry, transformations — just stacked. Go forth and out-list the universe.'));
 }};
 
 return [c0,cRep,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
-        cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cUsed,cAxioms,cReview];
+        cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,cUsed,cAxioms,cReview];
 })();

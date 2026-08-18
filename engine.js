@@ -500,6 +500,129 @@ function ladder(){
   return wrap;
 }
 
+/* =========================================================
+   WORKED — a step-by-step worked example that reveals one
+   line at a time. opts:{title, steps:[html,...], result}
+   ========================================================= */
+function worked(opts){
+  const wrap=el('div');wrap.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:16px 0';
+  if(opts.title)wrap.append(el('div',null,`<b style="color:var(--accentb)">Worked example · ${opts.title}</b>`));
+  if(opts.prompt)wrap.insertAdjacentHTML('beforeend',`<p style="margin:.4em 0">${opts.prompt}</p>`);
+  const stepsBox=el('div');stepsBox.style.cssText='margin-top:8px';wrap.append(stepsBox);
+  let shown=0;
+  const btn=el('button','btn ghost','reveal next step ▾');
+  btn.style.marginTop='10px';
+  function showNext(){
+    if(shown<opts.steps.length){
+      const s=el('div');s.style.cssText='padding:8px 0;border-top:1px dashed var(--softline);animation:fade .3s';
+      s.innerHTML=`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accentc);color:#fff;font-size:.75rem;font-weight:700;text-align:center;line-height:22px;margin-right:8px">${shown+1}</span>${opts.steps[shown]}`;
+      stepsBox.append(s);shown++;
+      if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([s]).catch(()=>{});
+    }
+    if(shown>=opts.steps.length){
+      btn.remove();
+      if(opts.result){const r=el('div');r.style.cssText='margin-top:10px;padding:10px 12px;background:var(--soft);border-radius:8px;font-weight:600';
+        r.innerHTML='✓ '+opts.result;stepsBox.append(r);
+        if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([r]).catch(()=>{});}
+    }
+  }
+  btn.onclick=showNext;wrap.append(btn);
+  return wrap;
+}
+
+/* =========================================================
+   GALLERY — real-world things that are vectors. Clickable
+   cards that reveal the vector + its dimension.
+   opts:{items:[{icon,name,dims,vec,note}]}
+   ========================================================= */
+function gallery(items){
+  const wrap=el('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0';
+  items.forEach(it=>{
+    const card=el('div');card.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:14px;cursor:pointer;transition:transform .15s,border-color .15s';
+    card.innerHTML=`<div style="font-size:1.7rem">${it.icon}</div>
+      <div style="font-weight:700;margin-top:4px">${it.name}</div>
+      <div style="font-size:.78rem;color:var(--accentd);font-weight:700">${it.dims}</div>
+      <div class="reveal" style="max-height:0;overflow:hidden;transition:max-height .25s">
+        <div style="font-family:var(--mono);font-size:.82rem;margin-top:8px;color:var(--ink)">${it.vec}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:4px">${it.note}</div></div>
+      <div class="hintline" style="font-size:.72rem;color:var(--muted);margin-top:6px">tap to see its vector</div>`;
+    let open=false;
+    card.onclick=()=>{open=!open;const rv=card.querySelector('.reveal');const hl=card.querySelector('.hintline');
+      rv.style.maxHeight=open?'140px':'0';hl.textContent=open?'— it’s a list of numbers':'tap to see its vector';
+      card.style.borderColor=open?'var(--accentc)':'var(--softline)';};
+    wrap.append(card);
+  });
+  return wrap;
+}
+
+/* =========================================================
+   MATRIXBOARD — apply a 2x2 matrix to the plane. Shows the
+   grid deforming + where the basis vectors land.
+   opts:{onChange}
+   ========================================================= */
+function matrixBoard(opts){
+  const W=320,H=320,unit=34;const canvas=el('canvas');canvas.width=W;canvas.height=H;const ctx=hidpi(canvas);
+  const ox=W/2,oy=H/2;
+  let m=[1,0,0,1]; // a,b,c,d  (columns: i-hat=(a,c), j-hat=(b,d))
+  const toPx=(x,y)=>[ox+x*unit,oy-y*unit];
+  function apply(x,y){return [m[0]*x+m[1]*y, m[2]*x+m[3]*y];}
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    // deformed grid
+    ctx.lineWidth=1;
+    for(let i=-6;i<=6;i++){
+      ctx.strokeStyle=(i===0)?C.softline:C.soft;
+      // vertical line x=i -> from (i,-6) to (i,6) transformed
+      let p=apply(i,-6),q=apply(i,6);let[px,py]=toPx(p[0],p[1]),[qx,qy]=toPx(q[0],q[1]);
+      ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(qx,qy);ctx.stroke();
+      p=apply(-6,i);q=apply(6,i);[px,py]=toPx(p[0],p[1]);[qx,qy]=toPx(q[0],q[1]);
+      ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(qx,qy);ctx.stroke();
+    }
+    // basis vectors
+    function arr(vx,vy,color,label){const[ex,ey]=toPx(vx,vy);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+      const a=Math.atan2(ey-oy,ex-ox),s=10;ctx.beginPath();ctx.moveTo(ex,ey);
+      ctx.lineTo(ex-s*Math.cos(a-.4),ey-s*Math.sin(a-.4));ctx.lineTo(ex-s*Math.cos(a+.4),ey-s*Math.sin(a+.4));ctx.closePath();ctx.fill();
+      ctx.font='600 12px sans-serif';ctx.fillText(label,ex+5,ey-4);}
+    arr(m[0],m[2],C.accent,'î');   // where (1,0) lands
+    arr(m[1],m[3],C.accentb,'ĵ');  // where (0,1) lands
+  }
+  function set(a,b,c,d){m=[a,b,c,d];render();
+    if(opts&&opts.onChange){const det=a*d-b*c;opts.onChange(m,det);}}
+  render();canvas.api={set,render,get:()=>m};
+  return canvas;
+}
+
+/* =========================================================
+   ANALOGY — king - man + woman ≈ queen, as vector arithmetic
+   Purely illustrative with toy 2D coords.
+   ========================================================= */
+function analogyDemo(){
+  const wrap=el('div');
+  const W=380,H=280;const canvas=el('canvas');canvas.width=W;canvas.height=H;const ctx=hidpi(canvas);
+  // toy 'semantic' coordinates: x = royalty, y = gender(+male/-female)
+  const words={man:[1,1.6],woman:[1,-1.6],king:[3.4,1.6],queen:[3.4,-1.6]};
+  const nar=narrate('');
+  function px(v){return [30+v[0]*70, H/2 - v[1]*60];}
+  function dot(v,label,color){const[x,y]=px(v);ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.fill();
+    ctx.font='600 13px sans-serif';ctx.fillText(label,x+9,y+4);}
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.soft;ctx.beginPath();ctx.moveTo(20,H/2);ctx.lineTo(W-10,H/2);ctx.stroke();
+    ctx.fillStyle=C.muted;ctx.font='11px sans-serif';ctx.fillText('more royal →',W-95,H/2+16);
+    dot(words.man,'man',C.accentb);dot(words.woman,'woman',C.accentc);
+    dot(words.king,'king',C.accent);dot(words.queen,'queen',C.accentd);
+    // king - man + woman
+    const res=[words.king[0]-words.man[0]+words.woman[0], words.king[1]-words.man[1]+words.woman[1]];
+    const[rx,ry]=px(res);ctx.strokeStyle=C.gold;ctx.setLineDash([4,3]);ctx.lineWidth=2;
+    const[kx,ky]=px(words.king);ctx.beginPath();ctx.arc(rx,ry,11,0,7);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=C.gold;ctx.font='600 12px sans-serif';ctx.fillText('king−man+woman',rx+14,ry);
+    nar.say(`Compute <span class="k">king − man + woman</span> line by line → (${res[0].toFixed(1)}, ${res[1].toFixed(1)}). That lands right on <b style="color:var(--accentd)">queen</b>. The “male→female” step is one fixed vector — subtract it from king, get queen.`);
+  }
+  render();wrap.append(canvas,nar);return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
-        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder};
+        numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
+        worked,gallery,matrixBoard,analogyDemo};
 })();
