@@ -74,10 +74,11 @@ code, .vec{font-family:var(--mono);background:var(--soft);padding:2px 7px;border
 .navbtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .navbtn.primary:hover{filter:brightness(1.06);color:#fff}
 .navbtn:disabled{opacity:.4;cursor:default}
-.dotline{display:flex;gap:7px}
-.dotline .d{width:9px;height:9px;border-radius:50%;background:var(--softline);cursor:pointer}
-.dotline .d.on{background:var(--accent);transform:scale(1.25)}
-.dotline .d.seen{background:var(--accentc)}
+.dotline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}
+.chap-counter{white-space:nowrap;font-weight:600}
+.chap-minibar{width:120px;height:5px;background:var(--soft);border-radius:4px;overflow:hidden}
+.chap-minibar>div{height:100%;width:0;background:linear-gradient(90deg,var(--accentc),var(--accent));transition:width .3s}
+@media(max-width:520px){.chap-minibar{display:none}}
 
 /* ---------------- CHAPTER TYPOGRAPHY ---------------- */
 .eyebrow{font-size:.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}

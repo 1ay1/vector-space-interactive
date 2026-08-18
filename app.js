@@ -76,13 +76,9 @@
   }
 
   function buildDots(){
-    dotline.innerHTML='';
-    CHAPTERS.forEach((c,i)=>{
-      const d=document.createElement('div');d.className='d';
-      d.title=(i+1)+'. '+c.title;
-      d.onclick=()=>go(i);
-      dotline.append(d);
-    });
+    // 68 dots overflow + are too small to click; show a compact
+    // "chapter N of M" indicator with a slim progress bar instead.
+    dotline.innerHTML='<div class="chap-counter"></div><div class="chap-minibar"><div></div></div>';
   }
 
   function refreshChrome(opts){
@@ -95,6 +91,11 @@
       d.classList.toggle('on',i===idx);
       d.classList.toggle('seen',seen.has(CHAPTERS[i].id)&&i!==idx);
     });
+    // update compact chapter counter + mini progress bar
+    const counter=dotline.querySelector('.chap-counter');
+    const barFill=dotline.querySelector('.chap-minibar > div');
+    if(counter) counter.textContent='Chapter '+(idx+1)+' of '+CHAPTERS.length;
+    if(barFill) barFill.style.width=((idx+1)/CHAPTERS.length*100)+'%';
     prevBtn.disabled=idx===0;
     nextBtn.textContent = idx===CHAPTERS.length-1?'finish ✓':'next →';
     // Only auto-scroll the nav when navigation did NOT come from clicking a
