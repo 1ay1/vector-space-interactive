@@ -104,6 +104,7 @@ render(root){
     <b>Knobs</b> — for feeling the numbers are <em>independent</em>.<br>
     <b>Point</b> — for thinking of a vector as a <em>location</em> among all possibilities.`)).parentNode);
   root.append(box('trap','the costume that fails','Only the <b>arrow</b> and <b>point</b> pictures need your eyes — and both die at 3 numbers. The <b>list</b> and <b>knobs</b> never need eyes. So in high dimensions we simply drop the two visual costumes and keep the two that scale forever. Nothing is lost but the pictures.'));
+  root.append(box('key','the deepest point: the list is a shadow, not the vector','This one idea prevents years of confusion. A vector is the underlying <em>thing</em> (the arrow, the location). Its <b>list of numbers is its shadow in a chosen set of rulers</b> — change the rulers and the numbers change while the vector sits perfectly still. So “the vector \\((3,2)\\)” is really shorthand for “the vector whose coordinates happen to be \\((3,2)\\) in the standard rulers.” When Chapter 11 changes the rulers and the numbers move, remember: the arrow never budged. <span class="aha">Thing vs. shadow — keep them separate and the whole subject stays clear.</span>'));
   root.append(summary([
     'Every vector = list = arrow = knobs = point. Same object, four views.',
     'List & knobs work in <em>any</em> dimension; arrow & point only up to 3.',
@@ -929,6 +930,7 @@ render(root){
       'Consistent + 2 free variables → a 2-dimensional sheet of solutions.'],
     result:'Infinitely many solutions, forming a 2D plane inside 4D space. Rank told us instantly.'}));
   root.append(box('aha-box','rank is independence, counted','Rank = how many rows are truly independent = how many columns are truly independent (these are always equal!). It\'s the “true size” of what the matrix does — the same idea as dimension from Part II, now computable by elimination.'));
+  root.append(box('key','the surprise: row rank = column rank','It\'s genuinely startling that the number of independent <em>rows</em> always equals the number of independent <em>columns</em> — rows and columns look unrelated! Here\'s the intuition: elimination on rows produces the same number of pivots whether you read them as “independent rows” or “pivot columns.” Deeper reason (Part XI): the SVD gives \\(A=U\\Sigma V^{T}\\), and the count of nonzero singular values in \\(\\Sigma\\) <em>is</em> the rank — a single number that doesn\'t care about rows vs columns. This is why \\(\\text{rank}(A)=\\text{rank}(A^{T})\\).'));
   root.append(quiz({question:'A consistent system has 5 unknowns and rank 5. How many solutions?',
     options:[{t:'Exactly one',ok:true,why:'rank = number of unknowns and consistent → unique solution. No free variables.'},
       {t:'Infinitely many',ok:false,why:'That needs rank < unknowns. Here rank = 5 = unknowns, so every variable is pinned.'}]}));
@@ -1000,6 +1002,15 @@ render(root){
   row.append(wa,wb);const ctr=el('div','controls');ctr.append(btn);
   L.append(row,ctr,out,nar);root.append(L);
   root.append(box('aha-box','the rule, finally sensible','The (i,j) entry of A·B is “row i of A” · “column j of B” because column j of B says where the j-th basis vector goes under B, and then A moves that result. Row-times-column is just “track where each basis vector ends up after both transforms.”'));
+  root.append(h3('Where the row×column rule actually comes from'));
+  root.append(p('The rule feels arbitrary until you derive it. It\'s <em>forced</em> by one requirement: \\(AB\\) must be the single matrix that does “B then A.” Watch it fall out.'));
+  root.append(worked({title:'derive the rule from “B then A”',
+    prompt:'\\(AB\\) must satisfy \\((AB)\\mathbf x = A(B\\mathbf x)\\) for every \\(\\mathbf x\\). What must column \\(j\\) of \\(AB\\) be?',
+    steps:[
+      'A matrix\'s column \\(j\\) is just “where it sends the basis vector \\(\\mathbf e_j\\).” So column \\(j\\) of \\(AB\\) is \\((AB)\\mathbf e_j = A(B\\mathbf e_j)\\).',
+      '\\(B\\mathbf e_j\\) is column \\(j\\) of \\(B\\). So column \\(j\\) of \\(AB\\) = \\(A\\times(\\text{column } j \\text{ of } B)\\).',
+      'And \\(A\\) times a vector dots each ROW of \\(A\\) with that vector. So entry \\((i,j)\\) = (row \\(i\\) of \\(A\\)) · (column \\(j\\) of \\(B\\)).'],
+    result:'That IS the multiplication rule — it wasn\'t chosen, it was <em>forced</em> by requiring \\(AB\\) to compose the two maps. Every weird-looking definition in linear algebra has a reason like this hiding behind it.'}));
   root.append(worked({title:'a full 2×2 product, entry by entry',
     prompt:'Multiply \\(\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix}\\begin{bmatrix}5&6\\\\7&8\\end{bmatrix}\\).',
     steps:[
@@ -1129,7 +1140,9 @@ render(root){
       'This says the matrix \(A-\lambda I\) sends a <em>nonzero</em> \(\mathbf v\) to \(\mathbf 0\) — i.e. it has a nonzero kernel.',
       'By the Invertible Matrix Theorem, a matrix with a nonzero kernel is <b>singular</b> — its determinant is 0.'],
     result:'So \(\det(A-\lambda I)=0\). It\'s not a trick: it\'s the ONLY way a nonzero vector can be killed. Solving it gives the \(\lambda\)\'s; then \((A-\lambda I)\mathbf v=\mathbf 0\) gives each eigenvector.'}));
-  root.append(box('key','the characteristic polynomial','Expanding \(\det(A-\lambda I)\) gives a polynomial in \(\lambda\) (degree \(n\) for an \(n\times n\) matrix). Its roots are the eigenvalues — so an \(n\times n\) matrix has exactly \(n\) of them (counting repeats, and allowing complex ones — Part XVII). This is why eigenvalues exist at all.'));
+  root.append(box('key','the characteristic polynomial','Expanding \\(\\det(A-\\lambda I)\\) gives a polynomial in \\(\\lambda\\) (degree \\(n\\) for an \\(n\\times n\\) matrix). Its roots are the eigenvalues — so an \\(n\\times n\\) matrix has exactly \\(n\\) of them (counting repeats, and allowing complex ones — Part XVII). This is why eigenvalues exist at all.'));
+  root.append(box('key','three words people mix up','<b>Eigenvalue</b> = the scalar \\(\\lambda\\) (a number). <b>Eigenvector</b> = a specific nonzero \\(\\mathbf v\\) with \\(A\\mathbf v=\\lambda\\mathbf v\\). <b>Eigenspace</b> = <em>all</em> vectors for that \\(\\lambda\\) (the whole line/plane of them, including \\(\\mathbf 0\\)). One eigenvalue owns a whole eigenspace — that\'s why “the” eigenvector isn\'t unique \((1,1), (2,2), \dots\) are all the same eigenvector direction, and if the eigenspace is a plane there are genuinely different eigenvectors sharing one eigenvalue.'));
+  root.append(box('trap','when an eigenvalue repeats','If \\(\\lambda\\) is a <em>double root</em> of the characteristic polynomial (algebraic multiplicity 2), it <em>might</em> have a 2D eigenspace (two independent eigenvectors) — or it might have only a 1D one. When it comes up short, the matrix is <b>defective</b> and can\'t be diagonalized (that\'s Jordan form, Part XVIII). The gap between “how many times \\(\\lambda\\) repeats” and “how many independent eigenvectors it has” is one of the subtlest points in the subject.'));
   root.append(worked({title:'finding eigenvalues (2×2)',
     prompt:'Find the eigenvalues of \\(A=\\begin{bmatrix}2&1\\\\1&2\\end{bmatrix}\\).',
     steps:['Solve \\(\\det(A-\\lambda I)=0\\): \\(\\det\\begin{bmatrix}2-\\lambda&1\\\\1&2-\\lambda\\end{bmatrix}=0\\).',
