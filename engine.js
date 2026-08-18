@@ -1317,6 +1317,105 @@ function practiceSet(kinds, n){
   return wrap;
 }
 
+/* =========================================================
+   MATMULBUILDER — user fills each entry of A·B; app checks
+   each cell and shows the row·column that produces it.
+   ========================================================= */
+function matmulBuilder(opts){
+  const A=(opts&&opts.A)||[[1,2],[3,4]], B=(opts&&opts.B)||[[2,0],[1,2]];
+  const C=LA.matmul(A,B);const n=A.length,m=B[0].length;
+  const wrap=el('div');
+  const nar=narrate('Fill each entry of the product. Each cell = one row of A dotted with one column of B.');
+  const top=el('div');top.style.cssText='display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:10px';
+  top.innerHTML=`<div><div style="font-size:.75rem;color:var(--muted)">A</div>${matrixHTML(A)}</div>
+    <div style="font-size:1.3rem">×</div>
+    <div><div style="font-size:.75rem;color:var(--muted)">B</div>${matrixHTML(B)}</div>
+    <div style="font-size:1.3rem">=</div>`;
+  const grid=el('div');grid.style.cssText=`display:grid;grid-template-columns:repeat(${m},1fr);gap:6px`;
+  const inputs=[];
+  for(let i=0;i<n;i++){inputs[i]=[];for(let j=0;j<m;j++){
+    const inp=el('input');inp.type='number';inp.style.cssText='width:56px;text-align:center;padding:8px 2px;border:1.5px solid var(--softline);border-radius:7px;font-family:var(--mono)';
+    inp.dataset.i=i;inp.dataset.j=j;
+    inp.addEventListener('input',()=>{const v=parseFloat(inp.value);
+      if(inp.value==='')  {inp.style.borderColor='var(--softline)';return;}
+      if(v===C[i][j]){inp.style.borderColor='var(--green)';inp.style.background='#EBF7EF';checkDone();}
+      else{inp.style.borderColor='var(--accent)';inp.style.background='#FDEEE8';}});
+    inp.addEventListener('focus',()=>{
+      const rowA=A[i].join(', '), colB=B.map(r=>r[j]).join(', ');
+      const terms=A[i].map((a,k)=>`${a}·${B[k][j]}`).join(' + ');
+      nar.say(`Entry (${i+1},${j+1}) = row ${i+1} of A · column ${j+1} of B = (${rowA})·(${colB}) = ${terms}.`);});
+    inputs[i][j]=inp;grid.append(inp);}}
+  function checkDone(){let all=true;for(let i=0;i<n;i++)for(let j=0;j<m;j++)if(parseFloat(inputs[i][j].value)!==C[i][j])all=false;
+    if(all)nar.say('<span class="g">✓ Every entry correct — you built the whole product.</span> Each was a row·column dot product.');}
+  const reveal=el('button','btn ghost','reveal all');reveal.onclick=()=>{for(let i=0;i<n;i++)for(let j=0;j<m;j++){inputs[i][j].value=C[i][j];inputs[i][j].style.borderColor='var(--green)';inputs[i][j].style.background='#EBF7EF';}nar.say('Filled in. Compare each to your row·column reasoning.');};
+  const ctr=el('div','controls');ctr.append(reveal);
+  wrap.append(top,grid,ctr,nar);return wrap;
+}
+
+/* =========================================================
+   COFACTORBUILDER — guided 3x3 determinant by cofactors:
+   user types the three 2x2 minors and the final answer.
+   ========================================================= */
+function cofactorBuilder(opts){
+  const A=(opts&&opts.A)||[[2,1,0],[1,3,1],[0,2,2]];
+  const wrap=el('div');const nar=narrate('Expand along the top row. Type each 2×2 minor, then the total.');
+  wrap.append(el('div',null,`<div style="font-size:.75rem;color:var(--muted)">A</div>`));
+  const disp=el('div');disp.innerHTML=matrixHTML(A);wrap.append(disp);
+  // minors for top row: delete row0, and each column
+  const minor=c=>{const rows=[1,2],cols=[0,1,2].filter(x=>x!==c);
+    return A[rows[0]][cols[0]]*A[rows[1]][cols[1]]-A[rows[0]][cols[1]]*A[rows[1]][cols[0]];};
+  const M=[minor(0),minor(1),minor(2)];
+  const signs=['+','−','+'];
+  const total=A[0][0]*M[0]-A[0][1]*M[1]+A[0][2]*M[2];
+  const rowsBox=el('div');rowsBox.style.cssText='display:flex;flex-direction:column;gap:8px;margin:10px 0';
+  function mkRow(idx){const r=el('div');r.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:.9rem';
+    const inp=el('input');inp.type='number';inp.style.cssText='width:60px;text-align:center;padding:6px;border:1.5px solid var(--softline);border-radius:6px';
+    inp.addEventListener('input',()=>{if(inp.value==='')return;
+      if(parseFloat(inp.value)===M[idx]){inp.style.borderColor='var(--green)';inp.style.background='#EBF7EF';}
+      else{inp.style.borderColor='var(--accent)';inp.style.background='#FDEEE8';}});
+    const cols=[0,1,2].filter(x=>x!==idx);
+    r.innerHTML=`<b>minor ${idx+1}</b> (delete row 1, col ${idx+1}): det [[${A[1][cols[0]]}, ${A[1][cols[1]]}], [${A[2][cols[0]]}, ${A[2][cols[1]]}]] = `;
+    r.append(inp);return r;}
+  rowsBox.append(mkRow(0),mkRow(1),mkRow(2));
+  const totRow=el('div');totRow.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:.95rem;margin-top:4px';
+  const totInp=el('input');totInp.type='number';totInp.style.cssText='width:70px;text-align:center;padding:6px;border:1.5px solid var(--softline);border-radius:6px';
+  totInp.addEventListener('input',()=>{if(totInp.value==='')return;
+    if(parseFloat(totInp.value)===total){totInp.style.borderColor='var(--green)';totInp.style.background='#EBF7EF';nar.say('<span class="g">✓ Correct!</span> det = '+A[0][0]+'·('+M[0]+') − '+A[0][1]+'·('+M[1]+') + '+A[0][2]+'·('+M[2]+') = '+total+'.');}
+    else{totInp.style.borderColor='var(--accent)';totInp.style.background='#FDEEE8';nar.say('Not yet — remember the signs: <b>+ − +</b>. total = '+A[0][0]+'·minor₁ − '+A[0][1]+'·minor₂ + '+A[0][2]+'·minor₃.');}});
+  totRow.innerHTML=`<b>det A</b> = ${A[0][0]}·m₁ − ${A[0][1]}·m₂ + ${A[0][2]}·m₃ = `;totRow.append(totInp);
+  wrap.append(rowsBox,totRow,nar);
+  if(window.MathJax&&window.MathJax.typesetPromise)setTimeout(()=>window.MathJax.typesetPromise([disp]).catch(()=>{}),0);
+  return wrap;
+}
+
+/* =========================================================
+   EIGENCHECK — type a candidate eigenvector; app computes Av
+   and tells you if it's parallel to v (and the eigenvalue).
+   ========================================================= */
+function eigenCheck(opts){
+  const A=(opts&&opts.A)||[[2,1],[1,2]];
+  const wrap=el('div');const nar=narrate('Type a vector (x, y). I\'ll compute A·v and check if it\'s an eigenvector.');
+  wrap.append(el('div',null,`<div style="font-size:.75rem;color:var(--muted)">A</div>`));
+  const disp=el('div');disp.innerHTML=matrixHTML(A);wrap.append(disp);
+  const row=el('div');row.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap';
+  const xi=el('input');xi.type='number';xi.placeholder='x';const yi=el('input');yi.type='number';yi.placeholder='y';
+  [xi,yi].forEach(inp=>inp.style.cssText='width:56px;text-align:center;padding:8px;border:1.5px solid var(--softline);border-radius:7px;font-family:var(--mono)');
+  const btn=el('button','btn','check v = (x, y)');
+  btn.onclick=()=>{const x=parseFloat(xi.value)||0,y=parseFloat(yi.value)||0;
+    if(x===0&&y===0){nar.say('The zero vector is never an eigenvector — try a nonzero one.');return;}
+    const av=[A[0][0]*x+A[0][1]*y, A[1][0]*x+A[1][1]*y];
+    const cross=x*av[1]-y*av[0];
+    const parallel=Math.abs(cross)<1e-9;
+    if(parallel){const lam=Math.abs(x)>Math.abs(y)?av[0]/x:av[1]/y;
+      nar.say(`A·v = (${av[0]}, ${av[1]}) = <span class="k">${lam}</span>·(${x}, ${y}). <span class="g">✓ Yes! v is an eigenvector with eigenvalue λ = ${lam}.</span>`);}
+    else nar.say(`A·v = (${av[0]}, ${av[1]}), which is <span class="r">NOT</span> a multiple of (${x}, ${y}) — the matrix rotated it, so v is not an eigenvector. Try again. (Hint: this A\'s eigenvectors are (1,1) and (1,−1).)`);};
+  xi.addEventListener('keydown',e=>{if(e.key==='Enter')btn.click();});yi.addEventListener('keydown',e=>{if(e.key==='Enter')btn.click();});
+  row.append(el('span',null,'v = ('),xi,el('span',null,','),yi,el('span',null,')'),btn);
+  wrap.append(row,nar);
+  if(window.MathJax&&window.MathJax.typesetPromise)setTimeout(()=>window.MathJax.typesetPromise([disp]).catch(()=>{}),0);
+  return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
@@ -1325,5 +1424,5 @@ return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orth
         eigenExplorer,detArea,
         leastSquares,pcaCloud,
         luStepper,quadFormPlot,complexPlane,fourierSynth,
-        practiceSet,PROBLEMS,rowOpSolver};
+        practiceSet,PROBLEMS,rowOpSolver,matmulBuilder,cofactorBuilder,eigenCheck};
 })();

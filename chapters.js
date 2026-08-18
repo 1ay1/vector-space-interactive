@@ -11,7 +11,8 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        worked,gallery,matrixBoard,analogyDemo,
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
-       eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet,rowOpSolver}=VS;
+       eigenExplorer,detArea,leastSquares,pcaCloud,practiceSet,rowOpSolver,
+       matmulBuilder,cofactorBuilder,eigenCheck}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -914,6 +915,11 @@ render(root){
       'Bottom-left = (row 2)·(col 1) = \\(3\\cdot5 + 4\\cdot7 = 43\\).',
       'Bottom-right = (row 2)·(col 2) = \\(3\\cdot6 + 4\\cdot8 = 50\\).'],
     result:'\\(\\begin{bmatrix}19&22\\\\43&50\\end{bmatrix}\\). Each entry is one row dotted with one column — four little dot products.'}));
+  root.append(h3('Now build one yourself'));
+  root.append(p('Fill in each entry of the product. Click a cell to see which row and column feed it; the box turns green when you\'re right.'));
+  const Lb=lab('Build the product, cell by cell','Play');
+  Lb.append(matmulBuilder({A:[[1,2],[3,4]],B:[[2,0],[1,2]]}));
+  root.append(Lb);
   root.append(box('key','the dimension rule: inner sizes must match','\\(A\\) is \\(m\\times n\\), \\(B\\) is \\(p\\times q\\). The product \\(AB\\) only exists if \\(n=p\\) (A\'s columns = B\'s rows), because you\'re dotting A\'s rows with B\'s columns — they must be the same length. The result is \\(m\\times q\\) (outer sizes). Mnemonic: \\((m\\times \\underline{n})(\\underline{n}\\times q)=m\\times q\\) — the inner \\(n\\)\'s cancel.'));
   root.append(box('trap','order matters','\\(AB \\neq BA\\) in general — putting on socks then shoes ≠ shoes then socks. Matrix multiplication is <em>not</em> commutative. (It <em>is</em> associative: \\(A(BC)=(AB)C\\).) In fact \\(BA\\) may not even exist if the dimensions don\'t line up both ways!'));
   root.append(quiz({question:'In the product A·B applied to a vector, which transform happens first?',
@@ -984,6 +990,11 @@ render(root){
       'Add: \\(8-2+0=6\\).'],
     result:'det = 6. The 3×3 became three 2×2s. The same recipe (with alternating signs) handles any size — though for big matrices, elimination is far faster.'}));
   root.append(box('trap','common mistake: forgetting the signs','The cofactor signs alternate \\(+\,-\,+\,-\dots\) across the row — the middle term is <em>subtracted</em>. Forgetting that flips your answer. And you can expand along <em>any</em> row or column: pick the one with the most zeros to save work.'));
+  root.append(h3('Do the cofactor expansion yourself'));
+  root.append(p('Type each 2×2 minor, then combine them with the \\(+\,-\,+\) signs to get the total. Each box checks itself.'));
+  const Lc=lab('Guided 3×3 determinant','Play');
+  Lc.append(cofactorBuilder({A:[[2,1,0],[1,3,1],[0,2,2]]}));
+  root.append(Lc);
   const Lp=lab('Practice: determinants','Practice','');
   Lp.append(p('Mixed 2×2 and 3×3 determinants. Type the number.'));
   Lp.append(practiceSet(['det2','det3','trace'],5));
@@ -1039,6 +1050,11 @@ render(root){
       'Check: \\(A(1,1)=(2{+}1,\\;1{+}2)=(3,3)=3(1,1)\\). ✓'],
     result:'The eigenvector for \\(\\lambda=3\\) is \\((1,1)\\) (or any multiple). Eigenvectors always come as a whole line — direction matters, length doesn\'t. Repeat with \\(\\lambda=1\\) to get \\((1,-1)\\), perpendicular to it (as the spectral theorem promises for symmetric \\(A\\)).'}));
   root.append(box('trap','a common mistake: forgetting eigenvectors are a whole line','\\((1,1)\\), \\((2,2)\\), \\((-5,-5)\\) are all the <em>same</em> eigenvector direction — don\'t treat them as different answers. And never “solve” \\((A-\\lambda I)\\mathbf v=\\mathbf 0\\) by inverting \\(A-\\lambda I\\): its determinant is 0 by design (that\'s how you found \\(\\lambda\\)!), so it has no inverse. You must read the solution off the dependent rows.'));
+  root.append(h3('Test your own guess'));
+  root.append(p('Type any vector and the app computes \\(A\\mathbf v\\), then tells you whether it came out parallel to \\(\\mathbf v\\) (an eigenvector) or rotated (not). Try (1,1), then something random.'));
+  const Lc=lab('Is it an eigenvector?','Play');
+  Lc.append(eigenCheck({A:[[2,1],[1,2]]}));
+  root.append(Lc);
   root.append(box('key','why anyone cares','Eigenvectors are the directions where a complicated transform becomes <em>simple multiplication</em>. That unlocks: raising a matrix to a huge power (repeated application), <b>PageRank</b>, the long-run state of a <b>Markov chain</b>, the vibration modes of a bridge, and <b>PCA</b> (the eigenvectors of your data\'s covariance are its main axes). We\'ll build several of these.'));
   root.append(quiz({question:'A·v = λv means…',
     options:[{t:'The matrix only scales v (by λ) without changing its direction',ok:true,why:'Exactly — that\'s the definition of an eigenvector v with eigenvalue λ.'},
