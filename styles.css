@@ -241,3 +241,21 @@ mjx-container{font-size:1.05em!important}
   padding:6px 0 6px 16px;margin:20px 0;font-weight:500}
 
 @keyframes fade{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+/* ---------------- ACCESSIBILITY: reduced motion ---------------- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+/* ---------------- PRINT / SAVE-AS-PDF ---------------- */
+@media print{
+  #sidebar,#menuToggle,.chapter-foot,#landing{display:none!important}
+  #main{margin-left:0!important}
+  #content{max-width:none;padding:0}
+  body{background:#fff}
+  .lab,.box,.summary,.narrate{break-inside:avoid;box-shadow:none}
+  .narrate{background:#f4f4f4!important;color:#111!important;border:1px solid #ccc}
+  .opt,.btn,input[type=range],canvas{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+  .chapter h1{page-break-after:avoid}
+}

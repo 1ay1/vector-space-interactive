@@ -126,6 +126,16 @@
     // typeset any math in the freshly rendered chapter
     if(window.MathJax && window.MathJax.typesetPromise){
       window.MathJax.typesetPromise([chapter]).catch(()=>{});
+    } else if(window.__mathjaxFailed && window.texPrettify){
+      // offline / CDN blocked: render formulas as readable Unicode
+      window.texPrettify(chapter);
+    } else {
+      // MathJax not loaded YET — retry, then fall back to the prettifier
+      const target=chapter;
+      setTimeout(()=>{
+        if(window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([target]).catch(()=>{});
+        else if(window.texPrettify) window.texPrettify(target);
+      }, 1200);
     }
     // scroll only the page/content — never an ancestor of the sidebar
     window.scrollTo(0,0);

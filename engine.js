@@ -5,8 +5,39 @@
    ============================================================ */
 'use strict';
 
-const VS = (() => {
+/* Offline fallback: turn common LaTeX into readable Unicode so formulas still
+   make sense if the MathJax CDN can't load (no network). Applied to a DOM node. */
+function texPrettify(rootNode){
+  const map=[
+    [/\\lVert/g,'‖'],[/\\rVert/g,'‖'],[/\\times/g,'×'],[/\\cdot/g,'·'],
+    [/\\lambda/g,'λ'],[/\\mu/g,'μ'],[/\\theta/g,'θ'],[/\\pi/g,'π'],[/\\sigma/g,'σ'],
+    [/\\Sigma/g,'Σ'],[/\\Lambda/g,'Λ'],[/\\perp/g,'⊥'],[/\\neq/g,'≠'],[/\\leq/g,'≤'],
+    [/\\ge(?![a-z])/g,'≥'],[/\\le(?![a-z])/g,'≤'],[/\\geq/g,'≥'],[/\\pm/g,'±'],
+    [/\\Rightarrow/g,'⇒'],[/\\Longrightarrow/g,'⟹'],[/\\to/g,'→'],[/\\infty/g,'∞'],
+    [/\\oplus/g,'⊕'],[/\\in(?![a-z])/g,'∈'],[/\\mathbb R/g,'ℝ'],[/\\sum/g,'Σ'],[/\\int/g,'∫'],
+    [/\\sqrt\{([^{}]*)\}/g,'√($1)'],[/\\dfrac\{([^{}]*)\}\{([^{}]*)\}/g,'($1)/($2)'],
+    [/\\tfrac\{([^{}]*)\}\{([^{}]*)\}/g,'$1/$2'],[/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'($1)/($2)'],
+    [/\\mathbf\s*\{?([A-Za-z])\}?/g,'$1'],[/\\hat\{?([A-Za-z])\}?/g,'$1̂'],
+    [/\\text\{([^{}]*)\}/g,'$1'],[/\\textstyle/g,''],[/\\quad/g,'  '],[/\\qquad/g,'   '],
+    [/\\;|\\,|\\!/g,' '],[/\^\{([^{}]*)\}/g,'^($1)'],[/_\{([^{}]*)\}/g,'_$1'],
+    [/\\imath/g,'ı'],[/\\jmath/g,'j'],[/\\det/g,'det'],[/\\dim/g,'dim'],[/\\dots/g,'…'],
+    [/\\begin\{bmatrix\}/g,'['],[/\\end\{bmatrix\}/g,']'],[/\\\\/g,'; '],[/&/g,', '],
+    [/\\left|\\right/g,''],[/[{}]/g,'']
+  ];
+  function conv(t){ let s=t; map.forEach(([re,rep])=>{s=s.replace(re,rep);}); return s; }
+  // walk text nodes; replace \( … \) and $$ … $$ segments
+  const walker=document.createTreeWalker(rootNode,NodeFilter.SHOW_TEXT);
+  const jobs=[];let n; while((n=walker.nextNode())){ if(/\\\(|\$\$/.test(n.nodeValue)) jobs.push(n); }
+  jobs.forEach(node=>{
+    let v=node.nodeValue;
+    v=v.replace(/\$\$([^$]*)\$\$/g,(_,m)=>conv(m));
+    v=v.replace(/\\\(([^]*?)\\\)/g,(_,m)=>conv(m));
+    node.nodeValue=v;
+  });
+}
+if(typeof window!=='undefined') window.texPrettify=texPrettify;
 
+const VS = (() => {
 const C = {
   ink:'#22201C', accent:'#E4572E', accentb:'#2A7DE1', accentc:'#17A398',
   accentd:'#9B5DE5', gold:'#F2A900', muted:'#8A857C', soft:'#EDE7DD',
