@@ -945,10 +945,71 @@ function detArea(){
   return wrap;
 }
 
+/* =========================================================
+   LEASTSQUARES — scatter points; drag/fit a line; show that
+   the best fit minimizes total squared vertical distance.
+   ========================================================= */
+function leastSquares(){
+  const W=340,H=300,unit=26;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=40,oy=H-40;
+  const pts=[[1,1.2],[2,1.9],[3,3.4],[4,3.9],[5,5.3],[6,5.6],[7,7.4]];
+  const nar=narrate('');let m=1,b=0,fitted=false;
+  function fit(){// least squares slope/intercept
+    const n=pts.length;let sx=0,sy=0,sxx=0,sxy=0;
+    pts.forEach(([x,y])=>{sx+=x;sy+=y;sxx+=x*x;sxy+=x*y;});
+    m=(n*sxy-sx*sy)/(n*sxx-sx*sx);b=(sy-m*sx)/n;fitted=true;render();
+    nar.say(`<span class="g">Best-fit line found.</span> It minimizes the total <b>squared vertical distance</b> to the points — that\'s “least squares.” Slope ${m.toFixed(2)}, intercept ${b.toFixed(2)}. This is a projection: the data\'s “shadow” onto the space of straight lines.`);}
+  function render(){ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.softline;ctx.beginPath();ctx.moveTo(ox,10);ctx.lineTo(ox,oy);ctx.lineTo(W-10,oy);ctx.stroke();
+    // line
+    ctx.strokeStyle=C.accentb;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(ox,oy-b*unit);ctx.lineTo(ox+8*unit,oy-(m*8+b)*unit);ctx.stroke();
+    // residuals + points
+    pts.forEach(([x,y])=>{const px=ox+x*unit,py=oy-y*unit,ly=oy-(m*x+b)*unit;
+      if(fitted){ctx.strokeStyle='#e4572e88';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,ly);ctx.stroke();}
+      ctx.fillStyle=C.accent;ctx.beginPath();ctx.arc(px,py,5,0,7);ctx.fill();});
+  }
+  const btn=el('button','btn','fit the best line');btn.onclick=fit;
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');const ctr=el('div','controls');ctr.append(btn);g.append(ctr,nar);s.append(cv,g);wrap.append(s);render();
+  return wrap;
+}
+
+/* =========================================================
+   PCACLOUD — a 2D data cloud; show its principal axes
+   (eigenvectors of the covariance). Drag spread to see the
+   main direction track the data.
+   ========================================================= */
+function pcaCloud(){
+  const W=320,H=320;const cv=el('canvas');cv.width=W;cv.height=H;const ctx=hidpi(cv);
+  const ox=W/2,oy=H/2;const nar=narrate('');
+  let angle=0.5, spread=2.2;let pts=[];
+  function regen(){pts=[];for(let i=0;i<160;i++){
+    const u=(Math.random()+Math.random()+Math.random()-1.5)*spread;
+    const v=(Math.random()+Math.random()+Math.random()-1.5)*0.6;
+    pts.push([u*Math.cos(angle)-v*Math.sin(angle), u*Math.sin(angle)+v*Math.cos(angle)]);}render();}
+  function render(){ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.softline;ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+    // covariance
+    let cxx=0,cyy=0,cxy=0;pts.forEach(([x,y])=>{cxx+=x*x;cyy+=y*y;cxy+=x*y;});const n=pts.length;cxx/=n;cyy/=n;cxy/=n;
+    const e=LA.eig2([[cxx,cxy],[cxy,cyy]]);
+    const u=28;
+    pts.forEach(([x,y])=>{ctx.fillStyle='#2a7de188';ctx.beginPath();ctx.arc(ox+x*u,oy-y*u,3,0,7);ctx.fill();});
+    if(e.real){e.vectors.forEach((ev,k)=>{const len=Math.sqrt(Math.max(0,e.values[k]))*u*2.2;
+      ctx.strokeStyle=k===0?C.accent:C.accentd;ctx.lineWidth=3;ctx.beginPath();
+      ctx.moveTo(ox,oy);ctx.lineTo(ox+ev[0]*len,oy-ev[1]*len);ctx.stroke();});
+      const big=e.values[0]>e.values[1]?0:1;
+      nar.say(`The <span style="color:var(--accent)">longer</span> arrow is the <b>principal component</b> — the single direction the data varies most along. It\'s the top eigenvector of the covariance matrix. <span class="g">PCA = find the axes the data actually uses.</span>`);}
+  }
+  const rA=rangeRow({label:'cloud angle',min:0,max:3.14,step:.05,value:0.5,fmt:v=>v.toFixed(2),onInput:v=>{angle=v;regen();}});
+  const rS=rangeRow({label:'stretch',min:1,max:3.5,step:.1,value:2.2,fmt:v=>v.toFixed(1),onInput:v=>{spread=v;regen();}});
+  const wrap=el('div');const s=el('div','stage');const g=el('div','grow');g.append(rA,rS,nar);s.append(cv,g);wrap.append(s);regen();
+  return wrap;
+}
+
 return {C,clamp,lerp,fmt,el,hidpi,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,randUnit,
         numberline,board3d,spanBoard,fourRep,projectionBoard,ladder,
         worked,gallery,matrixBoard,analogyDemo,
         configSpace,possibilityCounter,morphPath,diffVector,webGraph,
         matrixGrid,matrixHTML,rrefStepper,systemLines,
-        eigenExplorer,detArea};
+        eigenExplorer,detArea,
+        leastSquares,pcaCloud};
 })();

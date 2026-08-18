@@ -11,8 +11,7 @@ const {el,knob,vboard,narrate,rangeRow,quiz,listAdd,orthoLab,clamp,fmt,C,randUni
        worked,gallery,matrixBoard,analogyDemo,
        configSpace,possibilityCounter,morphPath,diffVector,webGraph,
        matrixGrid,matrixHTML,rrefStepper,systemLines,
-       eigenExplorer,detArea}=VS;
-
+       eigenExplorer,detArea,leastSquares,pcaCloud}=VS;
 /* ---------- chapter chrome helpers ---------- */
 function head(root,n,c){
   // auto-number from position in the course (ignore hand-passed n)
@@ -948,9 +947,161 @@ render(root){
   root.append(summary(['Diagonalization: A = PDP⁻¹ (eigenvectors in P, eigenvalues in D).','In the eigenbasis, A is pure scaling.','Aᵏ = PDᵏP⁻¹ makes huge powers cheap.','The largest eigenvalue dominates long-run behaviour (PageRank, Markov).']));
 }};
 
+/* ============================================================
+   PART X — ORTHOGONALITY & PROJECTIONS
+   ============================================================ */
+
+const cProjDeep={id:'projdeep',part:'Part X · Orthogonality',title:'Projection onto a subspace',
+  sub:'The shadow idea, leveled up: drop any vector onto a whole subspace to get the closest point in it. This single move powers data fitting, compression, and graphics.',
+render(root){
+  head(root,0,cProjDeep);
+  root.append(p('Given a vector \\(\\mathbf b\\) and a subspace (a line, a plane…), the <span class="term">projection</span> is the point <em>in</em> the subspace closest to \\(\\mathbf b\\). The error — what\'s left over — is always <b>perpendicular</b> to the subspace. That perpendicularity is the whole trick.'));
+  root.append(math('\\text{proj}_{\\mathbf a}\\mathbf b = \\frac{\\mathbf a\\cdot\\mathbf b}{\\mathbf a\\cdot\\mathbf a}\\,\\mathbf a'));
+  const nar=narrate('Drag b.');const board=projectionBoard({nar});
+  const L=lab('Closest point in the subspace','See','see');L.append(stageOf(board,[]),nar);root.append(L);
+  root.append(box('aha-box','why “perpendicular error” is everything','The closest point is found by making the leftover error perpendicular to the subspace. Set the error\'s dot product with the subspace to zero and you get the <b>normal equations</b> — the formula behind every least-squares fit. Perpendicular = optimal.'));
+  root.append(summary(['Projection = closest point in a subspace to a given vector.','The error (b − projection) is perpendicular to the subspace.','“Perpendicular error” gives the normal equations = least squares.']));
+}};
+
+const cLSQ={id:'lsq',part:'Part X · Orthogonality',title:'Least squares — the best fit to messy data',
+  sub:'Real data never lands exactly on a line. Least squares finds the line closest to all of it — and it\'s just a projection in disguise.',
+render(root){
+  head(root,0,cLSQ);
+  root.append(p('You have noisy points and want the best straight line. There\'s usually <em>no</em> line through them all — the system \\(Ax=b\\) has no exact solution. So we find the \\(x\\) making \\(Ax\\) as <b>close as possible</b> to \\(b\\): project \\(b\\) onto the column space of \\(A\\). Hit the button and watch the residuals.'));
+  const L=lab('Fit the best line','Play');L.append(leastSquares());root.append(L);
+  root.append(math('A^{T}A\\,\\hat x = A^{T}b \\quad(\\text{the normal equations})'));
+  root.append(box('aha-box','no exact answer? project.','When \\(Ax=b\\) is unsolvable, you can\'t hit \\(b\\) — so you hit the closest reachable point instead: the projection of \\(b\\) onto everything \\(A\\) can produce. The red residual lines are the leftover errors; least squares makes their total <em>squared</em> length as small as possible.'));
+  root.append(box('key','where you\'ve used this without knowing','Every trend line, every “line of best fit,” every linear regression in statistics and machine learning is this exact projection. The “learning” in the simplest ML models <em>is</em> solving the normal equations.'));
+  root.append(quiz({question:'Why can\'t we usually solve Ax=b exactly for real data?',
+    options:[{t:'There are more equations (data points) than unknowns, and noise — so no line hits them all; we project to the closest fit',ok:true,why:'Right. Overdetermined + noisy → no exact solution → least squares finds the nearest reachable point.'},
+      {t:'Because matrices can\'t be inverted',ok:false,why:'A here isn\'t even square. The issue is too many constraints; projection handles it.'}]}));
+  root.append(summary(['Real data → Ax=b usually has no exact solution.','Least squares = project b onto A\'s column space (closest reachable).','Solved by the normal equations AᵀAx = Aᵀb.','This IS linear regression — the core of basic ML.']));
+}};
+
+const cGramSchmidt={id:'gramschmidt',part:'Part X · Orthogonality',title:'Building perfect rulers (Gram–Schmidt)',
+  sub:'Take any basis and straighten it into perpendicular unit vectors. Orthonormal rulers make every later computation trivial — and give you the QR decomposition for free.',
+render(root){
+  head(root,0,cGramSchmidt);
+  root.append(p('Orthonormal vectors (perpendicular + length 1) are the dream basis: coordinates are just dot products, no messy solving. <span class="term">Gram–Schmidt</span> takes any independent set and straightens it into one — subtract off the parts that overlap with what you already have, then normalize.'));
+  const L=lab('Straighten a basis','Play');
+  const g=matrixGrid({rows:2,cols:2,values:[[3,1],[1,2]]});
+  const out=el('div');out.style.cssText='margin-top:10px';const nar=narrate('Columns are your starting vectors.');
+  const btn=el('button','btn','orthonormalize the columns');
+  btn.onclick=()=>{const A=g.get();const cols=[[A[0][0],A[1][0]],[A[0][1],A[1][1]]];const q=LA.gramSchmidt(cols);
+    out.innerHTML='orthonormal set: '+q.map(v=>`(${v.map(x=>x.toFixed(2)).join(', ')})`).join(' &nbsp; ');
+    const dot=q.length>1?(q[0][0]*q[1][0]+q[0][1]*q[1][1]):0;
+    nar.say(`These two are now perpendicular (their dot product = <span class="k">${dot.toFixed(2)}</span> ≈ 0) and unit length. <span class="g">Perfect rulers.</span>`);};
+  const ctr=el('div','controls');ctr.append(btn);L.append(g.el,ctr,out,nar);root.append(L);
+  root.append(box('aha-box','free bonus: QR','Doing Gram–Schmidt on a matrix\'s columns factors it as \\(A = QR\\) — \\(Q\\) orthonormal, \\(R\\) upper-triangular. QR is how computers actually solve least-squares and find eigenvalues, stably. You just met the idea behind industrial-strength numerical linear algebra.'));
+  root.append(summary(['Orthonormal = perpendicular + unit length = ideal rulers.','Gram–Schmidt straightens any basis into an orthonormal one.','Coordinates in an orthonormal basis = simple dot products.','It produces the QR decomposition, a workhorse of computation.']));
+}};
+
+/* ============================================================
+   PART XI — SVD & PCA
+   ============================================================ */
+
+const cPCA={id:'pca',part:'Part XI · SVD & PCA',title:'PCA — the directions your data actually uses',
+  sub:'Data clouds have a shape. PCA finds the few directions that capture most of the variation — the eigenvectors of the covariance — letting you compress high-D data to its essence.',
+render(root){
+  head(root,0,cPCA);
+  root.append(p('Most real data lives near a <em>low-dimensional</em> shape inside its high-dimensional space — a stretched cloud. <span class="term">Principal Component Analysis</span> finds the directions of greatest spread (the long axes of the cloud). Rotate and stretch the cloud; watch the main axis track it.'));
+  const L=lab('Find the principal direction','See','see');L.append(pcaCloud());root.append(L);
+  root.append(box('aha-box','PCA is eigenvectors of the covariance','The cloud\'s spread is captured by a <b>covariance matrix</b>. Its <em>eigenvectors</em> are the cloud\'s natural axes; the <em>eigenvalues</em> say how much variation lies along each. Keep the top few, drop the rest — you\'ve compressed the data while losing almost nothing. Eigenvectors (Part IX) come back as data science.'));
+  root.append(box('key','where PCA runs the world','Face recognition (“eigenfaces”), recommendation systems, gene-expression analysis, noise reduction, and the “embeddings” visualisations you\'ve seen — all use PCA to squeeze many dimensions down to the few that matter.'));
+  root.append(quiz({question:'What are the principal components of a dataset?',
+    options:[{t:'The eigenvectors of its covariance — the directions of greatest variation',ok:true,why:'Exactly. Top eigenvector = direction of most spread; its eigenvalue = how much.'},
+      {t:'The average of all the data points',ok:false,why:'That\'s just the center. PCA is about the directions of spread around the center.'}]}));
+  root.append(summary(['Data clouds have a shape; PCA finds their main axes.','Those axes = eigenvectors of the covariance matrix.','Keep the top few → compress high-D data with little loss.','Powers eigenfaces, recommendations, denoising.']));
+}};
+
+const cSVD={id:'svd',part:'Part XI · SVD & PCA',title:'The SVD — every matrix, decoded',
+  sub:'The crown jewel: ANY matrix, of any shape, is a rotation, then a stretch along axes, then another rotation. This single fact underlies compression, recommendations, and search.',
+render(root){
+  head(root,0,cSVD);
+  root.append(p('The <span class="term">Singular Value Decomposition</span> says every matrix \\(A\\) — square or not — factors as \\(A = U\\Sigma V^{T}\\): a rotation \\(V^{T}\\), then a pure stretch \\(\\Sigma\\) along perpendicular axes, then another rotation \\(U\\). No matter how tangled the matrix looks, it\'s only ever “rotate, stretch, rotate.”'));
+  root.append(math('A = U\\,\\Sigma\\,V^{T} \\quad(\\text{rotate} \\to \\text{stretch} \\to \\text{rotate})'));
+  root.append(box('aha-box','why the SVD is the deepest theorem','It works for <em>every</em> matrix (unlike eigen-decomposition, which needs square + diagonalizable). The <b>singular values</b> in \\(\\Sigma\\) rank the directions by importance. Keep the biggest few and you get the best possible low-rank approximation — that\'s <b>image compression</b>, <b>recommendation systems</b> (the Netflix prize), and <b>latent semantic search</b>, all at once.'));
+  root.append(box('key','SVD in one sentence per field','<b>Compression:</b> drop small singular values → tiny file, looks the same. <b>Recommendations:</b> the top singular directions are “taste factors” linking users and movies. <b>Search / NLP:</b> singular directions are latent topics. <b>Noise:</b> small singular values are usually noise — drop them.'));
+  root.append(worked({title:'low-rank = compression',
+    prompt:'A 1000×1000 image matrix has 1,000,000 numbers. Its SVD keeps only the top 50 singular values. How many numbers now?',
+    steps:['Rank-50 approximation stores \\(U_{50}\\) (1000×50), \\(\\Sigma_{50}\\) (50), \\(V_{50}\\) (1000×50).',
+      'Total ≈ \\(1000\\cdot50 + 50 + 1000\\cdot50 = 100{,}050\\) numbers.',
+      'That\'s about 10% of the original — a 10× compression.'],
+    result:'Keeping the strongest directions throws away detail you can barely see. That\'s lossy compression, in one theorem.'}));
+  root.append(quiz({question:'What makes the SVD more general than eigen-decomposition?',
+    options:[{t:'It works for ANY matrix — any shape, always real — not just square diagonalizable ones',ok:true,why:'Exactly. Every matrix has an SVD; that universality is why it\'s everywhere.'},
+      {t:'It\'s faster to compute by hand',ok:false,why:'It\'s not about speed — it\'s that the SVD always exists, for every matrix.'}]}));
+  root.append(summary(['Every matrix = rotate (Vᵀ) → stretch (Σ) → rotate (U).','Singular values rank directions by importance.','Keep the top few → best low-rank approximation.','This is compression, recommendations, and latent search.']));
+}};
+
+/* ============================================================
+   PART XII — APPLICATIONS
+   ============================================================ */
+
+const cMarkov={id:'markov',part:'Part XII · Applications',title:'Markov chains & PageRank',
+  sub:'Random processes that hop between states settle into a steady distribution — and that distribution is an eigenvector. This is literally how Google ranked the web.',
+render(root){
+  head(root,0,cMarkov);
+  root.append(p('Imagine a random surfer clicking links, or weather flipping sunny↔rainy with fixed probabilities. Each step multiplies the current state-distribution by a <b>transition matrix</b>. Do it forever and — for almost any start — you converge to a <span class="term">steady state</span>: the distribution that no longer changes.'));
+  root.append(math('\\pi = M\\pi \\quad(\\text{steady state = eigenvector of } M \\text{ with eigenvalue } 1)'));
+  const L=lab('Walk to the steady state','See','see');
+  const nar=narrate('');const M=[[0.9,0.5],[0.1,0.5]];let st=[1,0];
+  const bar=el('div');bar.style.cssText='margin-top:8px';
+  function draw(){bar.innerHTML=`<div style="display:flex;gap:8px;align-items:center"><span style="width:60px;font-size:.8rem;color:var(--muted)">sunny</span><div style="height:16px;background:var(--gold);width:${st[0]*220}px;border-radius:3px"></div><b>${(st[0]*100).toFixed(1)}%</b></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><span style="width:60px;font-size:.8rem;color:var(--muted)">rainy</span><div style="height:16px;background:var(--accentb);width:${st[1]*220}px;border-radius:3px"></div><b>${(st[1]*100).toFixed(1)}%</b></div>`;}
+  const step=el('button','btn','take one day');const run=el('button','btn ghost','run 30 days');
+  step.onclick=()=>{st=[M[0][0]*st[0]+M[0][1]*st[1], M[1][0]*st[0]+M[1][1]*st[1]];draw();
+    nar.say(`Multiplied by the transition matrix. Watch it settle toward the steady state — the eigenvector with eigenvalue 1.`);};
+  run.onclick=()=>{for(let i=0;i<30;i++)st=[M[0][0]*st[0]+M[0][1]*st[1], M[1][0]*st[0]+M[1][1]*st[1]];draw();
+    nar.say(`<span class="g">Converged.</span> Steady state ≈ (${(st[0]*100).toFixed(0)}% sunny, ${(st[1]*100).toFixed(0)}% rainy). It no longer changes: π = Mπ. That\'s the dominant eigenvector.`);};
+  const ctr=el('div','controls');ctr.append(step,run);L.append(bar,ctr,nar);draw();root.append(L);
+  root.append(box('aha-box','this is PageRank','Google modeled the web as a giant Markov chain: pages are states, links are transitions. The steady-state distribution — the dominant eigenvector of that billion-by-billion matrix — is exactly how important each page is. <b>PageRank is one eigenvector.</b> A whole company was built on Part IX.'));
+  root.append(quiz({question:'The steady state of a Markov chain is…',
+    options:[{t:'An eigenvector of the transition matrix with eigenvalue 1',ok:true,why:'Yes — π = Mπ means applying the process doesn\'t change it. That\'s exactly an eigenvector for λ=1.'},
+      {t:'The state you started in',ok:false,why:'The steady state is independent of the start — you converge to it from almost anywhere.'}]}));
+  root.append(summary(['A step = multiply the state by a transition matrix.','Repeat → converge to a steady state π = Mπ.','Steady state = dominant eigenvector (λ=1).','PageRank is literally this eigenvector on the web graph.']));
+}};
+
+const cGraphics={id:'graphics',part:'Part XII · Applications',title:'Graphics, robotics & 3D',
+  sub:'Every time a game rotates a character or a robot arm reaches, it\'s multiplying vectors by matrices. The whole 3D world is linear algebra at 60 fps.',
+render(root){
+  head(root,0,cGraphics);
+  root.append(p('A 3D point is a vector. Moving it — rotate, scale, translate, or view through a camera — is multiplying by a matrix. Chaining those matrices (Part VII) composes a whole camera pipeline into one. Drag to rotate a real 3D object:'));
+  const L=lab('A rotating 3D vector','See','see');
+  const bd=board3d({vec:{x:2,y:1.5,z:1.5}});L.append(stageOf(bd,[]));root.append(L);
+  root.append(box('aha-box','why games use 4×4 matrices','Rotation and scaling are matrices, but <em>translation</em> (sliding) isn\'t linear — so graphics uses a clever trick (homogeneous coordinates): add a 4th coordinate so translation becomes a matrix too. Then the entire transform — model, view, projection — is one 4×4 matrix multiply per vertex, done millions of times per second on your GPU.'));
+  root.append(box('key','the same math, everywhere in 3D','Robot arm kinematics, drone orientation, CT-scan reconstruction, physics engines, camera calibration — all are matrix–vector products. The 3D world runs on the operations you\'ve been dragging around this whole course.'));
+  root.append(summary(['3D points are vectors; moving them is matrix multiplication.','Rotations/scales compose into one matrix (Part VII).','Homogeneous 4×4 matrices fold in translation too.','Games, robotics, and 3D vision are all this, at scale.']));
+}};
+
+const cFinale={id:'finale',part:'Part XII · Applications',title:'The whole map, and where to go',
+  sub:'You\'ve crossed the entire landscape of linear algebra. Here it is on one page — every big idea and how they connect.',
+render(root){
+  head(root,0,cFinale);
+  root.append(el('div','pull','From “a vector is a list of numbers” to the SVD and PageRank — it was all one idea, growing. You didn\'t memorize linear algebra. You built it.'));
+  root.append(box('key','the entire subject, connected',`
+    <b>Vectors</b> = lists of numbers = points in a space of possibilities.<br>
+    <b>Two moves</b> (add, scale) → <b>linear combinations</b> → <b>span</b>, <b>independence</b>, <b>basis</b>, <b>dimension</b>.<br>
+    <b>Geometry</b>: length, dot product, angle, <b>projection</b>, orthogonality.<br>
+    <b>Matrices</b> = transforms (verbs); multiply = compose; <b>inverse</b> = undo.<br>
+    <b>Systems</b>: elimination → rank → how many solutions.<br>
+    <b>Determinant</b> = area/volume factor; 0 = collapsed = singular.<br>
+    <b>Eigenvectors</b> = un-rotated directions → <b>diagonalization</b>, powers, <b>PageRank</b>, <b>PCA</b>.<br>
+    <b>SVD</b> = rotate–stretch–rotate for <em>any</em> matrix → compression, recommendations, search.`));
+  root.append(h3('The threads that tie it together'));
+  root.append(el('ul',null,`
+    <li><b>Independence</b> shows up as: span not collapsing, det ≠ 0, full rank, invertible, unique solutions — all the <em>same</em> fact wearing different clothes.</li>
+    <li><b>Projection</b> shows up as: shadows, least squares, regression, Gram–Schmidt, PCA — always “closest point, perpendicular error.”</li>
+    <li><b>Eigenvectors</b> show up as: stable directions, long-run behaviour, PageRank, PCA axes, SVD — “where the transform is just scaling.”</li>`));
+  root.append(box('aha-box','where to go from here','You\'re now equipped for: <b>machine learning</b> (it\'s matrices + gradients), <b>quantum mechanics</b> (vectors in complex spaces), <b>signal processing</b> (Fourier = a change of basis), <b>optimization</b>, <b>graphics</b>, and <b>data science</b>. Every one of them is this toolkit, specialized. You have the foundation the whole technical world is built on.'));
+  root.append(el('div','pull','space = possibilities · point = one possibility · vector = a change · matrix = a transform · eigenvector = a direction it leaves alone. Carry these, and nothing in linear algebra can surprise you again.'));
+}};
+
 return [c0,cRep,cBox,cPoint,cDiff,cWebspace,c1d,c2d,c3d,cAdd,cScale,cCombo,cSpan,cIndep,cBasis,
         cLength,cDot,cProj,cOrtho,cLeap,cLadder,cWeird,cInfinite,cMatrix,
         cSysGeo,cElim,cRank,cInverse,
         cMatmul,cTranspose,cDet,cEigen,cDiag,
-        cUsed,cAxioms,cReview];
+        cProjDeep,cLSQ,cGramSchmidt,cPCA,cSVD,
+        cMarkov,cGraphics,
+        cUsed,cAxioms,cReview,cFinale];
 })();
