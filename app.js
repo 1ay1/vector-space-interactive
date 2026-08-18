@@ -182,31 +182,18 @@
     go(idx);
   };
 
-  /* ---- theme (dark mode) ---- */
+  /* ---- theme ---- */
   const THEME_KEY='vs-theme';
-  function currentTheme(){ return document.documentElement.getAttribute('data-theme')||'light'; }
-  function paintThemeButtons(){
-    const t=currentTheme(); const icon = t==='dark' ? '☀️' : '🌙';
-    ['themeToggle','themeToggleLanding'].forEach(id=>{const b=document.getElementById(id);if(b)b.textContent=icon;});
-  }
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme')==='light'?'light':'dark'; }
   function setTheme(t){
     document.documentElement.setAttribute('data-theme',t);
     try{ localStorage.setItem(THEME_KEY,t); }catch(e){}
-    paintThemeButtons();
     // pull the new CSS colours into the canvas palette, then repaint
     if(window.VS && VS.refreshPalette) VS.refreshPalette();
     if(!landing || landing.classList.contains('hidden')) go(idx,{noScroll:true});
   }
   function toggleTheme(){ setTheme(currentTheme()==='dark'?'light':'dark'); }
   ['themeToggle','themeToggleLanding'].forEach(id=>{const b=document.getElementById(id);if(b)b.onclick=toggleTheme;});
-  paintThemeButtons();
-  // follow the OS if the user never chose explicitly
-  try{
-    const mq=window.matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener&&mq.addEventListener('change',e=>{
-      if(!localStorage.getItem(THEME_KEY)) setTheme(e.matches?'dark':'light');
-    });
-  }catch(e){}
 
   /* ---- boot ---- */
   buildNav(); buildDots();
@@ -216,4 +203,82 @@
   if(found>=0){ idx=found; landing.classList.add('hidden'); go(found); }
   else { go(0); /* pre-render chapter 1 behind landing */ }
   refreshChrome();
+})();
+
+/* ============================================================
+   Landing hero: a live vector field. A grid of little arrows
+   whose directions swirl through a slowly-evolving flow, with
+   a soft parallax toward the cursor. On-brand and calm, not busy.
+   ============================================================ */
+(function(){
+  const cv=document.getElementById('heroField'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const landing=document.getElementById('landing');
+  let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2),t=0,raf=0;
+  const mouse={x:.5,y:.4,tx:.5,ty:.4};
+  function css(v,f){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||f;}catch(e){return f;}}
+  function resize(){
+    W=window.innerWidth; H=window.innerHeight;
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  // flow angle at a point — layered sines make a smooth, non-repeating swirl
+  function field(x,y,time){
+    return Math.sin(x*0.9+time*0.6)*1.1
+         + Math.cos(y*0.8-time*0.5)*1.1
+         + Math.sin((x+y)*0.5+time*0.3)*0.8;
+  }
+  function hex2rgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255];}
+  function draw(){
+    const acc=css('--accent','#5EEAD4'), acc2=css('--accent2','#8B7CFF');
+    const c1=hex2rgb(acc), c2=hex2rgb(acc2);
+    ctx.clearRect(0,0,W,H);
+    mouse.x+=(mouse.tx-mouse.x)*0.05; mouse.y+=(mouse.ty-mouse.y)*0.05;
+    const step=Math.max(46, Math.min(72, W/22));
+    const len=step*0.42;
+    const mx=mouse.x*W, my=mouse.y*H;
+    for(let gy=step*0.6; gy<H; gy+=step){
+      for(let gx=step*0.6; gx<W; gx+=step){
+        const nx=gx/W*6, ny=gy/H*6;
+        // parallax pull toward cursor
+        const dxm=(mx-gx), dym=(my-gy), dist=Math.hypot(dxm,dym);
+        const pull=Math.max(0,1-dist/(W*0.5));
+        const a=field(nx,ny,t)+Math.atan2(dym,dxm)*pull*0.9;
+        const ex=gx+Math.cos(a)*len, ey=gy+Math.sin(a)*len;
+        // colour + opacity blend across the field
+        const mix=(Math.sin(nx+ny+t*0.4)+1)/2;
+        const r=Math.round(c1[0]+(c2[0]-c1[0])*mix),
+              g=Math.round(c1[1]+(c2[1]-c1[1])*mix),
+              b=Math.round(c1[2]+(c2[2]-c1[2])*mix);
+        const op=0.10+0.22*mix+0.35*pull;
+        ctx.strokeStyle=`rgba(${r},${g},${b},${op})`;
+        ctx.lineWidth=1.1+pull*1.2;
+        ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(ex,ey); ctx.stroke();
+        // arrowhead
+        const hl=3.4+pull*2;
+        ctx.beginPath();
+        ctx.moveTo(ex,ey);
+        ctx.lineTo(ex-Math.cos(a-0.5)*hl, ey-Math.sin(a-0.5)*hl);
+        ctx.moveTo(ex,ey);
+        ctx.lineTo(ex-Math.cos(a+0.5)*hl, ey-Math.sin(a+0.5)*hl);
+        ctx.stroke();
+        // node dot
+        ctx.fillStyle=`rgba(${r},${g},${b},${op*0.9})`;
+        ctx.beginPath(); ctx.arc(gx,gy,1.1+pull*1.4,0,7); ctx.fill();
+      }
+    }
+    t+=0.006;
+    raf=requestAnimationFrame(draw);
+  }
+  function stop(){ if(raf) cancelAnimationFrame(raf); raf=0; }
+  function start(){ if(!raf && !landing.classList.contains('hidden')) draw(); }
+  window.addEventListener('resize',resize);
+  window.addEventListener('pointermove',e=>{ mouse.tx=e.clientX/window.innerWidth; mouse.ty=e.clientY/window.innerHeight; });
+  // pause when the landing is dismissed to save cycles; resume if it returns
+  const obs=new MutationObserver(()=>{ landing.classList.contains('hidden')?stop():start(); });
+  obs.observe(landing,{attributes:true,attributeFilter:['class']});
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    resize(); // draw one static frame
+    const one=requestAnimationFrame(()=>{ draw(); stop(); });
+  } else { resize(); start(); }
 })();

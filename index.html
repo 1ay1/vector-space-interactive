@@ -10,9 +10,9 @@
   (function(){
     try{
       var t=localStorage.getItem('vs-theme');
-      if(!t) t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      if(t!=='light'&&t!=='dark') t='dark';   /* dark is the default look */
       document.documentElement.setAttribute('data-theme',t);
-    }catch(e){}
+    }catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
   })();
 </script>
 <script>
@@ -30,14 +30,14 @@
 <!-- ===================== SIDEBAR ===================== -->
 <aside id="sidebar">
   <div class="brand">
-    <div class="logo">▚</div>
+    <div class="logo"><svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 28 L16 4 L28 28"/><path d="M4 28 L28 12" opacity=".55"/></svg></div>
     <div>
       <div class="brand-title">Vector<span>Space</span></div>
-      <div class="brand-sub">learn it by touching it</div>
+      <div class="brand-sub">linear algebra, by hand</div>
     </div>
-    <button class="theme-toggle" id="themeToggle" aria-label="toggle dark mode" title="Toggle dark mode">🌙</button>
+    <button class="theme-toggle" id="themeToggle" aria-label="toggle theme" title="Toggle theme"></button>
   </div>
-  <input id="chapSearch" type="search" placeholder="🔍 search chapters…" autocomplete="off" />
+  <input id="chapSearch" type="search" placeholder="Search chapters…" autocomplete="off" />
   <nav id="chapnav"><!-- filled by JS --></nav>
   <div class="progress-wrap">
     <div class="progress-bar"><div id="progressFill"></div></div>
@@ -46,7 +46,7 @@
   <button class="reset-progress" id="resetProgress">reset progress</button>
 </aside>
 
-<button id="menuToggle" aria-label="menu">☰</button>
+<button id="menuToggle" aria-label="menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 
 <!-- ===================== MAIN ===================== -->
 <main id="main">
@@ -61,18 +61,19 @@
 
 <!-- landing overlay -->
 <div id="landing">
-  <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle dark mode" title="Toggle dark mode">🌙</button>
+  <canvas id="heroField" aria-hidden="true"></canvas>
+  <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle theme" title="Toggle theme"></button>
   <div class="landing-inner">
-    <div class="landing-badge">interactive course · 65 chapters · all of linear algebra · graded practice · no signup</div>
-    <h1>Master <em>all</em> of linear algebra,<br>by <em>feeling</em> and <em>doing</em> it.</h1>
-    <p class="landing-lead">65 interactive chapters from “a vector is a list of numbers” to the
-      <b>SVD</b>, the <b>spectral theorem</b>, and <b>Fourier</b> — with the one theorem that
-      ties it all together, <b>graded practice checkpoints</b>, and a final <b>mastery exam</b>.
-      You drag, predict, solve, and check until it’s genuinely yours.</p>
+    <div class="landing-badge"><span class="dot"></span>65 chapters · vectors → SVD · graded practice · no signup</div>
+    <h1>Linear algebra,<br>built <em>by hand</em>.</h1>
+    <p class="landing-lead">Sixty-five interactive chapters from “a vector is a list of numbers” to the
+      <b>SVD</b>, the <b>spectral theorem</b>, and <b>Fourier</b> — the one theorem that ties it
+      together, graded checkpoints, and a final mastery exam. You drag, predict, solve, and
+      verify until it’s genuinely yours.</p>
     <div class="landing-cta">
-      <button id="startBtn" class="big-cta">Start the course →</button>
-      <button id="labBtn" class="ghost-cta">✦ Open the Matrix Lab</button>
-      <button id="jumpBtn" class="ghost-cta">browse the chapters</button>
+      <button id="startBtn" class="big-cta">Start the course <span class="arr">→</span></button>
+      <button id="labBtn" class="ghost-cta">Open the Matrix Lab</button>
+      <button id="jumpBtn" class="ghost-cta">Browse chapters</button>
     </div>
     <div class="landing-marquee" id="landingChips"></div>
   </div>
