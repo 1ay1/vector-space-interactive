@@ -130,8 +130,14 @@ render(root){head(root,0,cSimilar);
  root.append(p('Change the basis (Part II) and a transformation\'s <em>matrix</em> changes, but the transformation itself doesn\'t. Two matrices related by \\(B = P^{-1}AP\\) are <span class="term">similar</span> \u2014 the same map, different rulers. Diagonalization is just \u201cfind the rulers (eigenvectors) that make the matrix diagonal.\u201d'));
  root.append(math('B = P^{-1} A P \\quad(\\text{same transformation, new coordinate system } P)'));
  root.append(box('aha-box','what survives a change of basis','Similar matrices share their <b>eigenvalues</b>, <b>determinant</b>, <b>trace</b>, <b>rank</b>, and <b>characteristic polynomial</b> \u2014 because those describe the <em>transformation</em>, not the coordinates. They\'re the \u201ccoordinate-free\u201d truths. (The eigenvectors\' components change, but the eigen-<em>directions</em> are the same lines.)'));
- root.append(box('key','why diagonalization is a similarity','\\(A = PDP^{-1}\\) says \\(A\\) is <em>similar</em> to the diagonal matrix \\(D\\). In the eigenbasis the map is just scaling \u2014 same transformation, cleanest possible clothes. Jordan form (Part XVIII) is what you get when no basis makes it fully diagonal.'));
- root.append(quiz({question:'A = P\u207b\u00b9BP. Which quantity might DIFFER between A and B?',
+ root.append(box('key','why diagonalization is a similarity','\(A = PDP^{-1}\) says \(A\) is <em>similar</em> to the diagonal matrix \(D\). In the eigenbasis the map is just scaling — same transformation, cleanest possible clothes. Jordan form (Part XVIII) is what you get when no basis makes it fully diagonal.'));
+ root.append(worked({title:'similar matrices share their fingerprints',
+   prompt:'\(A=\begin{bmatrix}2&1\\0&3\end{bmatrix}\) and \(B=\begin{bmatrix}3&0\\1&2\end{bmatrix}\) turn out to be similar. Check that trace, det, and eigenvalues match without finding \(P\).',
+   steps:['Trace: \(A\) gives \(2+3=5\); \(B\) gives \(3+2=5\). ✓',
+     'Determinant: \(A\) gives \(2\cdot3-1\cdot0=6\); \(B\) gives \(3\cdot2-0\cdot1=6\). ✓',
+     'Eigenvalues: both are triangular-ish with the same trace 5 and det 6, so both solve \(\lambda^2-5\lambda+6=0\Rightarrow\lambda=2,3\). ✓'],
+   result:'All the coordinate-free invariants agree — strong evidence they\'re the same map in different clothes. (Matching trace+det+eigenvalues is exactly how you spot similarity without hunting for the change-of-basis \(P\).)'}));
+ root.append(quiz({question:'A = P⁻¹BP. Which quantity might DIFFER between A and B?',
    options:[{t:'The individual matrix entries',ok:true,why:'Right \u2014 entries are coordinate-dependent. Eigenvalues, trace, det, rank all stay the same; the entries themselves can look totally different.'},
      {t:'The eigenvalues',ok:false,why:'Eigenvalues are invariant under similarity \u2014 they describe the map, not the basis.'}]}));
  root.append(summary(['Similar: B = P\u207b\u00b9AP = same map, different basis.','Shared invariants: eigenvalues, det, trace, rank, char. poly.','Diagonalization = the similarity that makes A diagonal.','\u201cCoordinate-free\u201d quantities are the ones that survive.']));
@@ -145,8 +151,14 @@ render(root){head(root,0,cOrthComp);
  root.append(p('Given a subspace \\(V\\) (say, a plane through the origin), its <span class="term">orthogonal complement</span> \\(V^{\\perp}\\) is everything perpendicular to all of it (the normal line). Together they fill the whole space with no overlap: \\(\\mathbb R^n = V \\oplus V^{\\perp}\\).'));
  root.append(math('\\mathbb R^n = V \\oplus V^{\\perp}, \\qquad \\dim V + \\dim V^{\\perp} = n'));
  root.append(box('aha-box','every vector splits, uniquely','Any vector \\(\\mathbf b\\) breaks into exactly one piece <em>in</em> \\(V\\) plus one piece <em>perpendicular</em> to \\(V\\). The in-\\(V\\) piece is the <b>projection</b> (Part X); the perpendicular piece is the <b>error</b> in least squares. \u201cClosest point + perpendicular leftover\u201d is this decomposition in action.'));
- root.append(box('key','it ties the four subspaces together','The fundamental theorem (Part XIV) is exactly this: <b>row space</b> and <b>null space</b> are orthogonal complements in \\(\\mathbb R^n\\); <b>column space</b> and <b>left null space</b> are complements in \\(\\mathbb R^m\\). Orthogonal complements ARE the geometry behind the four subspaces.'));
- root.append(quiz({question:'V is a 2D plane through the origin in 3D. What is V\u22a5?',
+ root.append(box('key','it ties the four subspaces together','The fundamental theorem (Part XIV) is exactly this: <b>row space</b> and <b>null space</b> are orthogonal complements in \(\mathbb R^n\); <b>column space</b> and <b>left null space</b> are complements in \(\mathbb R^m\). Orthogonal complements ARE the geometry behind the four subspaces.'));
+ root.append(worked({title:'split a vector into V + V⊥',
+   prompt:'Let \(V\) be the x-axis (the line spanned by \((1,0)\)). Decompose \(\mathbf b=(4,3)\) into a part in \(V\) plus a part in \(V^{\perp}\).',
+   steps:['Project onto \(V\): the shadow of \((4,3)\) on the x-axis is \((4,0)\) (just the x-component).',
+     'The perpendicular part is the leftover: \(\mathbf b-(4,0)=(0,3)\).',
+     'Check: \((0,3)\) is along the y-axis = \(V^{\perp}\), and \((4,0)+(0,3)=(4,3)=\mathbf b\). ✓'],
+   result:'\\(\\mathbf b = \\underbrace{(4,0)}_{\\in V} + \\underbrace{(0,3)}_{\\in V^{\\perp}}\\) — a unique split. This is the projection (in \\(V\\)) plus the residual (perpendicular). Every least-squares fit is doing exactly this decomposition.'}));
+ root.append(quiz({question:'V is a 2D plane through the origin in 3D. What is V⊥?',
    options:[{t:'The 1D line through the origin perpendicular to the plane',ok:true,why:'Yes \u2014 dim V + dim V\u22a5 = 3, so the complement is a 1D normal line. Every 3D vector = (in-plane part) + (along-normal part).'},
      {t:'Another 2D plane',ok:false,why:'Dimensions must add to 3: a 2D plane\'s complement is a 1D line.'}]}));
  root.append(summary(['Every subspace V has a perpendicular partner V\u22a5.','V \u2295 V\u22a5 fills all of space; dims add to n.','Every vector = projection onto V + perpendicular error.','This is the geometry behind the four fundamental subspaces.']));
@@ -159,8 +171,14 @@ const cAffine={id:'affine',part:'Part VII \u00b7 Matrices deep',title:'Lines tha
 render(root){head(root,0,cAffine);
  root.append(p('A <b>linear</b> map must send \\(\\mathbf 0 \\to \\mathbf 0\\) and respect add & scale. So \\(y = mx + b\\) with \\(b \\neq 0\\) is <em>not</em> linear \u2014 it\'s <span class="term">affine</span> (a linear map plus a shift). Rotations and scalings are linear; <b>translations</b> (sliding) are only affine.'));
  root.append(box('aha-box','the graphics trick: one extra coordinate','Translation isn\'t linear \u2014 but add a dummy coordinate (set to 1) and it <em>becomes</em> a matrix. These <b>homogeneous coordinates</b> let a single \\((n{+}1)\\times(n{+}1)\\) matrix do rotate + scale + translate at once. That\'s why 3D graphics uses 4\u00d74 matrices (Part XII): to fold translation into the linear machinery.'));
- root.append(box('key','block matrices','You can slice a big matrix into <b>blocks</b> and multiply block-by-block as if the blocks were numbers (when sizes match). Homogeneous transforms are block matrices: a rotation block, a translation column, and a row of \\((0\\dots0\\,1)\\). Blocking is how huge structured matrices get handled efficiently.'));
- root.append(quiz({question:'Why is the map \u201cslide everything 3 units right\u201d not linear?',
+ root.append(box('key','block matrices','You can slice a big matrix into <b>blocks</b> and multiply block-by-block as if the blocks were numbers (when sizes match). Homogeneous transforms are block matrices: a rotation block, a translation column, and a row of \((0\dots0\,1)\). Blocking is how huge structured matrices get handled efficiently.'));
+ root.append(worked({title:'make translation a matrix (homogeneous coords)',
+   prompt:'Slide the point \((2,3)\) by \((+5,+1)\) using a 3×3 matrix.',
+   steps:['Append a 1 to the point: \((2,3)\to(2,3,1)\).',
+     'Build \(T=\begin{bmatrix}1&0&5\\0&1&1\\0&0&1\end{bmatrix}\) — identity, with the shift in the last column.',
+     'Multiply: \(T\,(2,3,1)^{T}=(2+5,\;3+1,\;1)=(7,4,1)\).'],
+   result:'Drop the appended 1: the result is \((7,4)\) — the point slid by \((5,1)\), done as a single matrix multiply. That extra coordinate is the trick that lets a GPU do rotate+scale+translate in one \(4\times4\) product per vertex.'}));
+ root.append(quiz({question:'Why is the map “slide everything 3 units right” not linear?',
    options:[{t:'It moves the origin (0 \u2192 3), and linear maps must fix the origin',ok:true,why:'Exactly \u2014 translation sends 0 somewhere else, breaking linearity. It\'s affine; homogeneous coordinates make it a matrix.'},
      {t:'Because 3 is odd',ok:false,why:'The value doesn\'t matter \u2014 any nonzero shift moves the origin, which is what breaks linearity.'}]}));
  root.append(summary(['Linear maps must fix the origin (respect +/\u00d7).','y = mx + b is affine = linear + shift.','Translation is affine, not linear.','Homogeneous coordinates (an extra 1) make it a matrix \u2192 graphics.']));
