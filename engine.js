@@ -455,16 +455,16 @@ function fourRep(opts){
   const state={x:opts.x??3,y:opts.y??2};
   let ready=false;
   const wrap=el('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px';
-  const listCard=el('div');listCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px';
+  const listCard=el('div');listCard.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:10px;padding:12px';
   const board=vboard({width:200,height:200,unit:26,arrows:[{x:state.x,y:state.y,color:C.accent,label:'v'}],snap:true,onChange:a=>{if(!ready)return;state.x=a[0].x;state.y=a[0].y;sync('arrow');}});
-  const boardCard=el('div');boardCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';boardCard.append(board);
-  const knobCard=el('div');knobCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px;display:grid;place-items:center';
+  const boardCard=el('div');boardCard.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';boardCard.append(board);
+  const knobCard=el('div');knobCard.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:10px;padding:12px;display:grid;place-items:center';
   const knobs=el('div','knobs');
   const kx=knob({label:'x',color:C.accentb,min:-6,max:6,value:state.x,onInput:v=>{if(!ready)return;state.x=v;sync('knob');}});
   const ky=knob({label:'y',color:C.accentc,min:-6,max:6,value:state.y,onInput:v=>{if(!ready)return;state.y=v;sync('knob');}});
   knobs.append(kx,ky);knobCard.append(knobs);
   const ptCanvas=el('canvas');ptCanvas.width=200;ptCanvas.height=200;const pctx=hidpi(ptCanvas);
-  const ptCard=el('div');ptCard.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';ptCard.append(ptCanvas);
+  const ptCard=el('div');ptCard.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:10px;padding:8px;display:grid;place-items:center';ptCard.append(ptCanvas);
   function drawPoint(){const W=200,H=200,o=W/2,u=26;pctx.clearRect(0,0,W,H);
     pctx.strokeStyle=C.soft;for(let g=o%u;g<W;g+=u){pctx.beginPath();pctx.moveTo(g,0);pctx.lineTo(g,H);pctx.stroke();pctx.beginPath();pctx.moveTo(0,g);pctx.lineTo(W,g);pctx.stroke();}
     pctx.strokeStyle=C.softline;pctx.beginPath();pctx.moveTo(0,o);pctx.lineTo(W,o);pctx.moveTo(o,0);pctx.lineTo(o,H);pctx.stroke();
@@ -552,7 +552,7 @@ function ladder(){
    line at a time. opts:{title, steps:[html,...], result}
    ========================================================= */
 function worked(opts){
-  const wrap=el('div');wrap.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:16px 0';
+  const wrap=el('div');wrap.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:16px 0';
   if(opts.title)wrap.append(el('div',null,`<b style="color:var(--accentb)">Worked example · ${opts.title}</b>`));
   if(opts.prompt)wrap.insertAdjacentHTML('beforeend',`<p style="margin:.4em 0">${opts.prompt}</p>`);
   const stepsBox=el('div');stepsBox.style.cssText='margin-top:8px';wrap.append(stepsBox);
@@ -562,7 +562,7 @@ function worked(opts){
   function showNext(){
     if(shown<opts.steps.length){
       const s=el('div');s.style.cssText='padding:8px 0;border-top:1px dashed var(--softline);animation:fade .3s';
-      s.innerHTML=`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accentc);color:#fff;font-size:.75rem;font-weight:700;text-align:center;line-height:22px;margin-right:8px">${shown+1}</span>${opts.steps[shown]}`;
+      s.innerHTML=`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--bg);font-size:.75rem;font-weight:700;text-align:center;line-height:22px;margin-right:8px">${shown+1}</span>${opts.steps[shown]}`;
       stepsBox.append(s);shown++;
       if(window.MathJax&&window.MathJax.typesetPromise)window.MathJax.typesetPromise([s]).catch(()=>{});
     }
@@ -585,18 +585,19 @@ function worked(opts){
 function gallery(items){
   const wrap=el('div');wrap.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0';
   items.forEach(it=>{
-    const card=el('div');card.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:14px;cursor:pointer;transition:transform .15s,border-color .15s';
+    const card=el('div');card.style.cssText='background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:transform .15s,border-color .15s,background .15s';
     card.innerHTML=`<div style="font-size:1.7rem">${it.icon}</div>
-      <div style="font-weight:700;margin-top:4px">${it.name}</div>
-      <div style="font-size:.78rem;color:var(--accentd);font-weight:700">${it.dims}</div>
+      <div style="font-weight:650;margin-top:4px;color:var(--ink-strong)">${it.name}</div>
+      <div style="font-size:.72rem;color:var(--accent2);font-weight:600;font-family:var(--mono);letter-spacing:.02em">${it.dims}</div>
       <div class="reveal" style="max-height:0;overflow:hidden;transition:max-height .25s">
-        <div style="font-family:var(--mono);font-size:.82rem;margin-top:8px;color:var(--ink)">${it.vec}</div>
+        <div style="font-family:var(--mono);font-size:.82rem;margin-top:8px;color:var(--accent)">${it.vec}</div>
         <div style="font-size:.78rem;color:var(--muted);margin-top:4px">${it.note}</div></div>
-      <div class="hintline" style="font-size:.72rem;color:var(--muted);margin-top:6px">tap to see its vector</div>`;
+      <div class="hintline" style="font-size:.68rem;color:var(--faint);margin-top:6px;font-family:var(--mono)">tap to see its vector</div>`;
     let open=false;
     card.onclick=()=>{open=!open;const rv=card.querySelector('.reveal');const hl=card.querySelector('.hintline');
       rv.style.maxHeight=open?'140px':'0';hl.textContent=open?'— it’s a list of numbers':'tap to see its vector';
-      card.style.borderColor=open?'var(--accentc)':'var(--softline)';};
+      card.style.borderColor=open?'var(--accent)':'var(--border)';
+      card.style.background=open?'var(--surface-3)':'var(--surface-2)';};
     wrap.append(card);
   });
   return wrap;
@@ -829,7 +830,7 @@ function matrixGrid(opts){
 /* render a static matrix as a small bracketed table (for steps) */
 function matrixHTML(M, highlightCol){
   const cols=M[0].length;
-  let inner=M.map(row=>'<tr>'+row.map((x,j)=>`<td style="padding:2px 9px;text-align:right;font-family:var(--mono);${j===highlightCol?'background:#FFF3C4;border-radius:4px':''}">${LA.fmtNum(x)}</td>`).join('')+'</tr>').join('');
+  let inner=M.map(row=>'<tr>'+row.map((x,j)=>`<td style="padding:2px 9px;text-align:right;font-family:var(--mono);${j===highlightCol?'background:color-mix(in srgb,var(--gold) 28%,transparent);border-radius:4px':''}">${LA.fmtNum(x)}</td>`).join('')+'</tr>').join('');
   return `<span style="display:inline-flex;align-items:stretch;gap:4px;vertical-align:middle">
     <span style="width:7px;border:2px solid var(--ink);border-right:none;border-radius:3px 0 0 3px"></span>
     <table style="border-collapse:collapse">${inner}</table>
@@ -1364,7 +1365,7 @@ function practiceSet(kinds, n){
   for(let i=0;i<n;i++){
     const kind=kinds[_ri(0,kinds.length-1)];
     const prob=PROBLEMS[kind]();
-    const card=el('div');card.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:10px;padding:12px 14px;margin:8px 0';
+    const card=el('div');card.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:10px;padding:12px 14px;margin:8px 0';
     const q=el('div');q.style.cssText='font-family:var(--mono);font-size:.95rem;margin-bottom:8px';q.textContent=`${i+1}. ${prob.prompt}`;
     const rowc=el('div');rowc.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
     const inp=el('input');inp.type='text';inp.placeholder='your answer';inp.style.cssText='flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--softline);border-radius:7px;font-family:var(--mono)';
@@ -1505,7 +1506,7 @@ function matrixLab(opts){
   const panel=el('div');panel.style.cssText='flex:1;min-width:250px;display:flex;flex-direction:column;gap:7px';
   function fnum(x){return LA.fmtNum(Math.abs(x)<1e-9?0:x);}
   function stat(label,val,color,note){
-    return `<div style="display:flex;justify-content:space-between;gap:8px;background:#fff;border:1px solid var(--softline);border-left:3px solid ${color};border-radius:8px;padding:7px 11px">
+    return `<div style="display:flex;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--softline);border-left:3px solid ${color};border-radius:8px;padding:7px 11px">
       <span style="font-size:.82rem;color:var(--muted)">${label}</span>
       <span style="font-family:var(--mono);font-weight:700;text-align:right">${val}${note?`<br><span style="font-size:.7rem;color:var(--muted);font-weight:400">${note}</span>`:''}</span></div>`;
   }
@@ -1714,7 +1715,7 @@ function fourSubspaces(){
 
 function proofBuilder(opts){
   const wrap=el('div');
-  wrap.style.cssText='background:#fff;border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:14px 0';
+  wrap.style.cssText='background:var(--surface);border:1px solid var(--softline);border-radius:12px;padding:16px 18px;margin:14px 0';
   wrap.append(el('div',null,`<div style="font-size:.72rem;font-weight:800;letter-spacing:.5px;color:var(--accentd);text-transform:uppercase">Guided proof</div>
     <div style="font-weight:700;margin:4px 0 10px">Claim: ${opts.claim}</div>`));
   const nSteps=opts.steps.length;
