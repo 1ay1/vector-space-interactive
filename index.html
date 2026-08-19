@@ -10,9 +10,9 @@
   (function(){
     try{
       var t=localStorage.getItem('vs-theme');
-      if(t!=='light'&&t!=='dark') t='dark';   /* dark is the default look */
+      if(t!=='light'&&t!=='dark') t='light';   /* light “axo paper” is the default */
       document.documentElement.setAttribute('data-theme',t);
-    }catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
+    }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
   })();
 </script>
 <script>
@@ -30,11 +30,12 @@
 <!-- ===================== SIDEBAR ===================== -->
 <aside id="sidebar">
   <div class="brand">
-    <div class="brand-title">vectorspace<span class="cursor">_</span></div>
-    <button class="theme-toggle" id="themeToggle" aria-label="toggle theme" title="Toggle theme">[*]</button>
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 34 34" width="26" height="26" fill="none" stroke-width="2" stroke-linecap="round"><path d="M17 17 L17 5" stroke="var(--accent)"/><path d="M17 17 L28 23" stroke="var(--accent2)"/><path d="M17 17 L6 23" stroke="var(--accentb)"/></svg></div>
+    <div class="brand-title">Vector<span>Space</span></div>
+    <button class="theme-toggle" id="themeToggle" aria-label="toggle theme" title="Toggle theme"></button>
   </div>
-  <div class="brand-sub">~/linear-algebra $ ls chapters/</div>
-  <input id="chapSearch" type="search" placeholder="grep chapters…" autocomplete="off" />
+  <div class="brand-sub">interactive linear algebra</div>
+  <input id="chapSearch" type="search" placeholder="search chapters…" autocomplete="off" />
   <nav id="chapnav"><!-- filled by JS --></nav>
   <div class="progress-wrap">
     <div class="progress-bar"><div id="progressFill"></div></div>
@@ -57,20 +58,22 @@
 </main>
 
 <!-- landing overlay -->
-<!-- landing: a terminal session -->
+<!-- landing: isometric hero -->
 <div id="landing">
-  <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle theme" title="Toggle theme">[*]</button>
-  <div class="term">
-    <div class="term-bar"><span class="tb-dot"></span><span class="tb-dot"></span><span class="tb-dot"></span><span class="tb-name">vectorspace — -bash — 96×28</span></div>
-    <div class="term-body">
-      <pre class="term-out" id="termOut"></pre>
-      <div class="landing-cta">
-        <button id="startBtn" class="big-cta">./start</button>
-        <button id="labBtn" class="ghost-cta">./matrixlab</button>
-        <button id="jumpBtn" class="ghost-cta">ls chapters/</button>
-      </div>
-      <div class="landing-marquee" id="landingChips"></div>
+  <canvas id="isoField" aria-hidden="true"></canvas>
+  <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle theme" title="Toggle theme"></button>
+  <div class="hero">
+    <div class="hero-eyebrow">interactive course · 68 chapters</div>
+    <h1 class="hero-title">Linear algebra,<br>seen from <span class="grad">every angle</span>.</h1>
+    <p class="hero-lead">From “a vector is a list of numbers” to the <b>SVD</b>, the
+      <b>spectral theorem</b>, and <b>Fourier</b> — built by dragging, predicting,
+      and proving until <em>n</em> dimensions feel as ordinary as three.</p>
+    <div class="landing-cta">
+      <button id="startBtn" class="big-cta">Start the course</button>
+      <button id="labBtn" class="ghost-cta">Matrix Lab</button>
+      <button id="jumpBtn" class="ghost-cta">Browse</button>
     </div>
+    <div class="landing-marquee" id="landingChips"></div>
   </div>
 </div>
 

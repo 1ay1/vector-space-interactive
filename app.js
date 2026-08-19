@@ -206,73 +206,77 @@
 })();
 
 /* ============================================================
-   Landing: a terminal boot sequence typed into #termOut.
-   No canvas, no animation loop — just text.
+   Landing hero: an ISOMETRIC coordinate frame.
+   A 3-D unit cube + the i/j/k basis arrows, drawn in axonometric
+   projection and slowly rotating — the theme's grid made literal.
+   Calm, light, on-brand. Pauses when the landing is dismissed.
    ============================================================ */
 (function(){
-  const out=document.getElementById('termOut'); if(!out) return;
-
-  // ok/hi tokens rendered as coloured spans mid-line
-  const OK='  \u0001g[ ok ]\u0002', DEF='\u0001g def\u0002';
-  // ASCII banner (kept narrow so it survives small screens; hidden < 34ch via CSS)
-  const banner=[
-    {t:'\u250c\u2500\u2500\u2510  vectorspace',cls:'a',art:1},
-    {t:'\u2502 \u2197\u2502  linear algebra runtime  v1.0',cls:'a',art:1},
-    {t:'\u2514\u2500\u2500\u2518  \u211d\u207f \u2192 span \u2192 eig \u2192 SVD',cls:'d',art:1},
-  ];
-  const lines=[
-    ...banner,
-    {t:'',cls:'d'},
-    {t:'$ ./configure --field=\u211d --dims=n && make',cls:'c'},
-    {t:'probing scalar field ................ \u211d (\u2102 available)'+OK,cls:'d'},
-    {t:'allocating basis {e\u2081 \u2026 e\u2099} ......... rank n'+OK,cls:'d'},
-    {t:'checking 8 vector-space axioms ...... 8/8 pass'+OK,cls:'d'},
-    {t:'  \u2022 closure, assoc, \u21920, \u2192\u2212v, 1\u00b7v, distributivity',cls:'d'},
-    {t:'mounting inner-product \u27e8u,v\u27e9 ........ \u2016\u00b7\u2016, \u2220 online'+OK,cls:'d'},
-    {t:'linking solvers: LU / QR / Gram\u2013Schmidt'+OK,cls:'d'},
-    {t:'diagonalizing A = P\u039bP\u207b\u00b9 ........... \u03bb spectrum ok'+OK,cls:'d'},
-    {t:'factoring A = U\u03a3V\u1d40 (SVD) ......... \u03c3\u2081\u2265\u2026\u2265\u03c3\u1d63'+OK,cls:'d'},
-    {t:'verifying rank + nullity = n ........ \u2713 conserved'+OK,cls:'d'},
-    {t:'loaded 68 chapters \u00b7 vectors \u2192 spectral \u2192 Fourier'+OK,cls:'d'},
-    {t:'',cls:'d'},
-    {t:'// theorem of the day',cls:'g'},
-    {t:'  vector := ordered list of numbers you can adjust'+DEF,cls:'w'},
-    {t:'  dim(V) := how many numbers. that is the whole idea.'+DEF,cls:'w'},
-    {t:'',cls:'d'},
-    {t:'>> drag \u00b7 predict \u00b7 solve \u00b7 prove \u2014 until n-D feels like 3-D',cls:'g'},
-    {t:'',cls:'d'},
-    {t:'system ready. type ./start to boot the course_',cls:'a'},
-  ];
-
-  const esc=ch=> ch==='<'?'&lt;': ch==='>'?'&gt;': ch==='&'?'&amp;': ch;
-  const clsSpan=c=>c==='c'?'<span class="tc">':c==='a'?'<span class="ta">':c==='g'?'<span class="tg">':c==='w'?'<span class="tw">':'<span class="td">';
-  // render a line's text with inline \u0001g..\u0002 = green, \u0001k..\u0002 = amber tokens
-  function render(txt){
-    let html='', mode=null;
-    for(const ch of txt){
-      if(ch==='\u0001'){ mode='open'; continue; }
-      if(mode==='open'){ html+= ch==='g'?'<span class="to">':'<span class="tk">'; mode=null; continue; }
-      if(ch==='\u0002'){ html+='</span>'; continue; }
-      html+=esc(ch);
-    }
-    return html;
+  const cv=document.getElementById('isoField'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const landing=document.getElementById('landing');
+  let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2),t=0,raf=0;
+  function css(v,f){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||f;}catch(e){return f;}}
+  function resize(){
+    W=window.innerWidth; H=window.innerHeight;
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-
-  let li=0, buf='';
-  function typeLine(){
-    if(li>=lines.length){ out.innerHTML=buf+'<span class="tcur">\u2588</span>'; return; }
-    const L=lines[li];
-    // reveal char-by-char but on the RENDERED string so tokens colour correctly
-    let i=0; const chars=[...L.t];
-    (function step(){
-      out.innerHTML = buf + clsSpan(L.cls) + render(L.t.slice(0,i)) + '</span><span class="tcur">\u2588</span>';
-      if(i<chars.length){ i+=L.t.length>46?2:1; setTimeout(step, L.art?10:(L.t.length>46?5:14)); }
-      else { buf += clsSpan(L.cls)+render(L.t)+'</span>\n'; li++; setTimeout(typeLine, L.art?60:(L.t===''?40:105)); }
-    })();
+  // unit cube corners + edges
+  const V=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+  const E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  function rotY(p,a){const c=Math.cos(a),s=Math.sin(a);return [c*p[0]+s*p[2],p[1],-s*p[0]+c*p[2]];}
+  function rotX(p,a){const c=Math.cos(a),s=Math.sin(a);return [p[0],c*p[1]-s*p[2],s*p[1]+c*p[2]];}
+  // isometric projection
+  function iso(p,cx,cy,s){
+    const x=p[0]-0.5,y=p[1]-0.5,z=p[2]-0.5;
+    const sx=(x-z)*Math.cos(0.5236);
+    const sy=(x+z)*Math.sin(0.5236)-y;
+    return [cx+sx*s, cy - sy*s];
   }
-  function dumpAll(){
-    out.innerHTML=lines.map(L=>clsSpan(L.cls)+render(L.t)+'</span>').join('\n')+'<span class="tcur">\u2588</span>';
+  function arrow(a,b,col,w){
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w;
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    const ang=Math.atan2(b[1]-a[1],b[0]-a[0]), hl=10;
+    ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+    ctx.lineTo(b[0]-Math.cos(ang-0.4)*hl,b[1]-Math.sin(ang-0.4)*hl);
+    ctx.lineTo(b[0]-Math.cos(ang+0.4)*hl,b[1]-Math.sin(ang+0.4)*hl);
+    ctx.closePath(); ctx.fill();
   }
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ dumpAll(); }
-  else { setTimeout(typeLine,220); }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const cx = W>760 ? W*0.72 : W*0.5;
+    const cy = H*0.42;
+    const s  = Math.min(W,H)*0.16 + 40;
+    const ay=t*0.28, ax=0.15*Math.sin(t*0.4);
+    const line=css('--iso-strong','rgba(79,70,229,.10)');
+    const I=css('--accent','#4F46E5'), J=css('--accent2','#E5484D'), K=css('--accentb','#0EA5A5');
+    const P=V.map(p=>iso(rotX(rotY(p,ay),ax),cx,cy,s));
+    // faint cube wireframe
+    ctx.strokeStyle=line; ctx.lineWidth=1.4;
+    for(const [a,b] of E){ctx.beginPath();ctx.moveTo(P[a][0],P[a][1]);ctx.lineTo(P[b][0],P[b][1]);ctx.stroke();}
+    // corner dots
+    ctx.fillStyle=line;
+    for(const p of P){ctx.beginPath();ctx.arc(p[0],p[1],2.2,0,7);ctx.fill();}
+    // i / j / k basis arrows from the origin corner
+    const O=iso(rotX(rotY([0,0,0],ay),ax),cx,cy,s);
+    const ei=iso(rotX(rotY([1,0,0],ay),ax),cx,cy,s);
+    const ej=iso(rotX(rotY([0,1,0],ay),ax),cx,cy,s);
+    const ek=iso(rotX(rotY([0,0,1],ay),ax),cx,cy,s);
+    arrow(O,ei,I,2.6); arrow(O,ej,J,2.6); arrow(O,ek,K,2.6);
+    ctx.font='600 15px "Inter",system-ui,sans-serif';
+    ctx.fillStyle=I; ctx.fillText('i',ei[0]+7,ei[1]+4);
+    ctx.fillStyle=J; ctx.fillText('j',ej[0]+7,ej[1]+4);
+    ctx.fillStyle=K; ctx.fillText('k',ek[0]+7,ek[1]+4);
+    t+=0.006;
+    raf=requestAnimationFrame(draw);
+  }
+  function stop(){ if(raf) cancelAnimationFrame(raf); raf=0; }
+  function start(){ if(!raf && !landing.classList.contains('hidden')) draw(); }
+  window.addEventListener('resize',resize);
+  const obs=new MutationObserver(()=>{ landing.classList.contains('hidden')?stop():start(); });
+  obs.observe(landing,{attributes:true,attributeFilter:['class']});
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    resize(); requestAnimationFrame(()=>{ draw(); stop(); });
+  } else { resize(); start(); }
 })();
