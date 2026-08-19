@@ -55,10 +55,17 @@ render(root){
       {t:'4 — one number per rated quality',ok:true,why:'Exactly. Four independent knobs → a 4-dimensional vector. No arrow required, and you didn\'t even flinch.'},
       {t:'∞ — music is infinite, man',ok:false,why:'Poetic, but we only listed four numbers. Dimension = how many numbers are actually in the list.'}]}));
   root.append(Q);
+  root.append(h3('So why is it called “linear” algebra?'));
+  root.append(p('Fair question, because there\'s not an obvious <em>line</em> in sight. Here\'s the honest answer, and it\'s the deepest idea in the whole subject hiding in plain sight: out of everything you could possibly do to a list of numbers, we deliberately restrict ourselves to just <b>two moves</b> — and then we obsess over what you can build from only those two.'));
+  root.append(box('key','the entire subject runs on exactly two moves','<b>1. Add two vectors</b> — line up their lists and add entry by entry. <span class="vec">(2,1)+(1,3)=(3,4)</span>.<br><b>2. Scale a vector</b> — multiply the whole list by one number. <span class="vec">3·(2,1)=(6,3)</span>.<br><br>That\'s the entire toolkit. Every headline word coming your way — <em>span, basis, linear independence, rank, eigenvector, the SVD</em> — is just a question about what these two moves can and can\'t reach. You already know the moves. The rest of the course is consequences.'));
+  root.append(p('“Linear” is the promise that these two moves <b>never surprise you</b>: scaling then adding gives the same answer as adding then scaling, always, in every dimension. No hidden fees, no fine print. That boringness is a <em>superpower</em> — it\'s exactly why a 900-dimensional problem is no scarier than a 2-dimensional one. The rules don\'t change; only the length of the list does.'));
+  root.append(el('p','pull','Almost everything in the universe is <em>non</em>-linear and genuinely horrifying. Linear algebra is the study of the one beautiful corner where combining things is fair, predictable, and adds up — which is precisely why we can actually solve it, and why it quietly runs your search engine, your camera, and every neural network on Earth.'));
   root.append(summary([
     'A vector = a list of numbers you can adjust.',
     'Dimension = how many numbers.',
     'You already reason this way (coffee, coins, colour).',
+    'The whole subject runs on <b>two moves</b>: add vectors, and scale a vector.',
+    '“Linear” = combining those moves never surprises you — which is why n-D is no harder than 2-D.',
     'The goal of this course: make that reasoning automatic for <em>any</em> number of dimensions.']));
 }};
 
