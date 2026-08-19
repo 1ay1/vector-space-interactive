@@ -206,19 +206,25 @@
 })();
 
 /* ============================================================
-   Landing hero: a LIVE LINEAR TRANSFORMATION.
-   A 3-D lattice of points is continuously deformed by an
-   animated 3x3 matrix (rotation + slow shear + breathing),
-   perspective-projected, drawn as a depth-fogged wireframe
-   with glowing i/j/k basis arrows. The mouse tilts the camera.
-   This literally shows space bending — the whole course in a loop.
+   Landing hero: a LIVE 2×2 EIGEN-ENGINE.
+   An animated matrix A(t) is applied to the plane. We render:
+     • the unit grid warped by A (space bending),
+     • a swarm of particles flowing along x → A·x (the field),
+     • the eigenvectors, COMPUTED LIVE, drawn as glowing
+       invariant lines — or a rotating swirl when they go complex,
+     • a HUD that prints A, det, tr, and λ₁,λ₂ every frame.
+   The whole course — transforms, determinants, eigenvectors,
+   even complex spectra — running as the background.
    ============================================================ */
 (function(){
   const cv=document.getElementById('heroField'); if(!cv) return;
   const ctx=cv.getContext('2d');
   const landing=document.getElementById('landing');
-  let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2),t=0,raf=0;
-  const cam={rx:-0.5,ry:0.6,trx:-0.5,try_:0.6};
+  const hud={m00:g('m00'),m01:g('m01'),m10:g('m10'),m11:g('m11'),
+             det:g('hDet'),tr:g('hTr'),l1:g('hL1'),l2:g('hL2'),eig:g('hEig')};
+  function g(id){return document.getElementById(id);}
+  let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2),t=0,raf=0,frame=0;
+  const mouse={x:.72,y:.5};
   function css(v,f){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||f;}catch(e){return f;}}
   function hex(h,f){h=(h||f).replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255];}
   function resize(){
@@ -227,115 +233,156 @@
     cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  // ---- build a lattice of points on an N×N×N grid, plus its edges ----
-  const N=4, R=1.6, verts=[], edges=[];
-  const idx=(i,j,k)=>((i*N)+j)*N+k;
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
-    const x=(i/(N-1)-0.5)*2*R, y=(j/(N-1)-0.5)*2*R, z=(k/(N-1)-0.5)*2*R;
-    verts.push([x,y,z]);
-  }
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
-    if(i<N-1)edges.push([idx(i,j,k),idx(i+1,j,k)]);
-    if(j<N-1)edges.push([idx(i,j,k),idx(i,j+1,k)]);
-    if(k<N-1)edges.push([idx(i,j,k),idx(i,j,k+1)]);
-  }
+  // world<->screen. The plane is centred on the right third, one unit = `u` px.
+  function origin(){ return [ W>900?W*0.70:W*0.5, H>620?H*0.47:H*0.42 ]; }
+  function unit(){ return Math.min(W,H)*0.115+26; }
 
-  function matmul(M,v){return [
-    M[0]*v[0]+M[1]*v[1]+M[2]*v[2],
-    M[3]*v[0]+M[4]*v[1]+M[5]*v[2],
-    M[6]*v[0]+M[7]*v[1]+M[8]*v[2]];}
-  // camera rotation (yaw then pitch)
-  function view(v,rx,ry){
-    let [x,y,z]=v;
-    let x1=x*Math.cos(ry)+z*Math.sin(ry), z1=-x*Math.sin(ry)+z*Math.cos(ry);
-    let y2=y*Math.cos(rx)-z1*Math.sin(rx), z2=y*Math.sin(rx)+z1*Math.cos(rx);
-    return [x1,y2,z2];
-  }
-  function project(v,cx,cy,scale){
-    const d=5.2, f=d/(d - v[2]);           // perspective
-    return [cx+v[0]*scale*f, cy - v[1]*scale*f, f];
+  // particle swarm seeded in a disc
+  const NP=170, part=[];
+  function seed(p){const r=Math.sqrt(Math.random())*2.6,a=Math.random()*6.283;
+    p.x=Math.cos(a)*r; p.y=Math.sin(a)*r; p.life=20+Math.random()*90;}
+  for(let i=0;i<NP;i++){const p={};seed(p);p.life=Math.random()*100;part.push(p);}
+
+  function matrix(time){
+    // a smooth tour that visits BOTH regimes: real-eigenbasis stretches
+    // and complex-pair rotations, roughly half the cycle in each.
+    const s=0.75*Math.sin(time*0.31);              // shear
+    const rot=0.42*Math.sin(time*0.13);            // bounded rotation (not monotonic)
+    const sc=1+0.45*Math.sin(time*0.23);           // anisotropic scale
+    const c=Math.cos(rot), sn=Math.sin(rot);
+    const b00=sc, b01=s, b10=s*0.5, b11=1+0.4*Math.cos(time*0.19);
+    return [ c*b00 - sn*b10, c*b01 - sn*b11,
+             sn*b00 + c*b10, sn*b01 + c*b11 ];
   }
 
   function draw(){
-    const c1=hex(css('--accent','#5EEAD4')), c2=hex(css('--accent2','#8B7CFF'));
-    const bg=hex(css('--bg','#0A0B0F'));
+    const A1=hex(css('--accent','#5EEAD4')), A2=hex(css('--accent2','#8B7CFF')),
+          AB=hex(css('--accentb','#5AA0FF')), MU=hex(css('--muted','#8B909C'));
     ctx.clearRect(0,0,W,H);
-    cam.rx+=(cam.trx-cam.rx)*0.04; cam.ry+=(cam.try_-cam.ry)*0.04;
+    const [ox,oy]=origin(), u=unit();
+    const [a,b,c,d]=matrix(t);
+    const W2S=(x,y)=>[ox+x*u, oy-y*u];
+    const apply=(x,y)=>[a*x+b*y, c*x+d*y];
 
-    // hero art is anchored to the right third on wide screens
-    const cx = W>900 ? W*0.72 : W*0.5;
-    const cy = H>620 ? H*0.46 : H*0.4;
-    const scale = Math.min(W,H)*0.17 + 40;
-
-    // ---- the animated transformation matrix M(t) ----
-    const a=t*0.5, breathe=1+0.12*Math.sin(t*0.7);
-    const shear=0.5*Math.sin(t*0.33), shear2=0.35*Math.cos(t*0.24);
-    // base spin about the vertical axis, folded into the lattice itself
-    const cs=Math.cos(a*0.35), sn=Math.sin(a*0.35);
-    const M=[ breathe*cs, shear, breathe*sn,
-              shear2, breathe, shear,
-             -breathe*sn, shear2, breathe*cs ];
-
-    // transform + view + project every vertex
-    const P=new Array(verts.length);
-    for(let n=0;n<verts.length;n++){
-      const tv=matmul(M,verts[n]);
-      const vv=view(tv,cam.rx,cam.ry);
-      P[n]=project(vv,cx,cy,scale);
-      P[n].z=vv[2];
+    // ---- warped grid: image of the integer grid under A ----
+    const G=5;
+    ctx.lineWidth=1;
+    for(let gx=-G;gx<=G;gx++){
+      ctx.beginPath();
+      for(let gy=-G;gy<=G;gy+=0.5){
+        const [tx,ty]=apply(gx,gy); const [sx,sy]=W2S(tx,ty);
+        gy===-G?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
+      }
+      const near=gx===0;
+      ctx.strokeStyle=`rgba(${MU[0]},${MU[1]},${MU[2]},${near?0.28:0.10})`;
+      ctx.stroke();
+    }
+    for(let gy=-G;gy<=G;gy++){
+      ctx.beginPath();
+      for(let gx=-G;gx<=G;gx+=0.5){
+        const [tx,ty]=apply(gx,gy); const [sx,sy]=W2S(tx,ty);
+        gx===-G?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
+      }
+      const near=gy===0;
+      ctx.strokeStyle=`rgba(${MU[0]},${MU[1]},${MU[2]},${near?0.28:0.10})`;
+      ctx.stroke();
     }
 
-    // depth sort edges (painter's algorithm) for correct fog layering
-    const order=edges.map((e,i)=>i).sort((A,B)=>
-      (P[edges[B][0]].z+P[edges[B][1]].z) - (P[edges[A][0]].z+P[edges[A][1]].z));
-
-    for(const ei of order){
-      const [a0,b0]=edges[ei], p=P[a0], q=P[b0];
-      const zc=(p.z+q.z)/2;
-      const depth=Math.max(0,Math.min(1,(zc-2.6)/3.2));   // 0 far .. 1 near
-      const mix=Math.max(0,Math.min(1,(p[0]+q[0])/(W)+.5));
-      const r=Math.round(c1[0]+(c2[0]-c1[0])*mix),
-            g=Math.round(c1[1]+(c2[1]-c1[1])*mix),
-            b=Math.round(c1[2]+(c2[2]-c1[2])*mix);
-      const op=0.05+depth*0.5;
-      ctx.strokeStyle=`rgba(${r},${g},${b},${op})`;
-      ctx.lineWidth=0.5+depth*1.6;
-      ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke();
-    }
-    // glowing lattice nodes (near ones brighter)
-    for(let n=0;n<P.length;n++){
-      const depth=Math.max(0,Math.min(1,(P[n].z-2.6)/3.2));
-      if(depth<0.15)continue;
-      ctx.fillStyle=`rgba(${c1[0]},${c1[1]},${c1[2]},${depth*0.7})`;
-      ctx.beginPath(); ctx.arc(P[n][0],P[n][1],depth*1.8,0,7); ctx.fill();
+    // ---- particle field: each particle drifts along x -> A·x ----
+    for(const p of part){
+      const [vx,vy]=apply(p.x,p.y);
+      const dx=(vx-p.x), dy=(vy-p.y);
+      const [sx,sy]=W2S(p.x,p.y);
+      const sp=Math.min(1,Math.hypot(dx,dy)*0.5);
+      const col=sp<0.5?A1:A2;
+      ctx.strokeStyle=`rgba(${col[0]},${col[1]},${col[2]},${0.15+sp*0.5})`;
+      ctx.lineWidth=0.6+sp*1.4;
+      const [ex,ey]=W2S(p.x+dx*0.06, p.y+dy*0.06);
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+      p.x+=dx*0.014; p.y+=dy*0.014; p.life--;
+      if(p.life<=0 || Math.hypot(p.x,p.y)>4.5) seed(p);
     }
 
-    // ---- glowing basis vectors i, j, k transformed by M ----
-    const axes=[[R*1.15,0,0,c1],[0,R*1.15,0,c2],[0,0,R*1.15,hex(css('--accentb','#5AA0FF'))]];
-    const O=project(view(matmul(M,[0,0,0]),cam.rx,cam.ry),cx,cy,scale);
-    for(const [x,y,z,col] of axes){
-      const e=project(view(matmul(M,[x,y,z]),cam.rx,cam.ry),cx,cy,scale);
+    // ---- eigenvalues of [[a,b],[c,d]] ----
+    const tr=a+d, det=a*d-b*c, disc=tr*tr-4*det;
+    let complex=disc<0, l1,l2, e1=null,e2=null;
+    if(!complex){
+      const s=Math.sqrt(disc); l1=(tr+s)/2; l2=(tr-s)/2;
+      // eigenvector for eigenvalue L: solve (a-L)x + b y = 0
+      const evec=(L)=>{ let vx,vy;
+        if(Math.abs(b)>1e-6){ vx=b; vy=L-a; }
+        else if(Math.abs(c)>1e-6){ vx=L-d; vy=c; }
+        else { vx=1; vy=0; }
+        const n=Math.hypot(vx,vy)||1; return [vx/n,vy/n]; };
+      e1=evec(l1); e2=evec(l2);
+    } else {
+      const re=tr/2, im=Math.sqrt(-disc)/2; l1=[re,im]; l2=[re,-im];
+    }
+
+    // ---- draw eigenlines (real) or a rotation swirl (complex) ----
+    if(!complex){
+      for(const [ev,L,col] of [[e1,l1,A1],[e2,l2,A2]]){
+        const [ex,ey]=ev, len=6.5;
+        const [x0,y0]=W2S(-ex*len,-ey*len), [x1,y1]=W2S(ex*len,ey*len);
+        ctx.strokeStyle=`rgba(${col[0]},${col[1]},${col[2]},0.9)`;
+        ctx.lineWidth=2; ctx.shadowColor=`rgba(${col[0]},${col[1]},${col[2]},0.85)`; ctx.shadowBlur=16;
+        ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+        // stretch markers at ±λ along the invariant line (how much it scales)
+        const sgn=L<0?-1:1;
+        const [mx,my]=W2S(ex*Math.min(Math.abs(L),3.2)*sgn, ey*Math.min(Math.abs(L),3.2)*sgn);
+        ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.95)`;
+        ctx.beginPath(); ctx.arc(mx,my,4.5,0,7); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+    } else {
+      // complex spectrum: no real invariant line — draw the rotation it encodes
+      const re=l1[0], im=l1[1], ang=Math.atan2(im,re), rad=Math.hypot(re,im);
+      ctx.strokeStyle=`rgba(${A2[0]},${A2[1]},${A2[2]},0.8)`; ctx.lineWidth=2;
+      ctx.shadowColor=`rgba(${A2[0]},${A2[1]},${A2[2]},0.8)`; ctx.shadowBlur=16;
+      ctx.beginPath(); ctx.arc(ox,oy,rad*u*0.9,-Math.PI/2,-Math.PI/2+ang*3,ang<0); ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+
+    // ---- basis images i'=A e1col, j'=A e2col drawn as arrows ----
+    const bases=[[1,0,AB],[0,1,A1]];
+    for(const [x,y,col] of bases){
+      const [tx,ty]=apply(x,y); const [sx,sy]=W2S(tx,ty);
       ctx.strokeStyle=`rgba(${col[0]},${col[1]},${col[2]},0.95)`;
-      ctx.lineWidth=2.4; ctx.shadowColor=`rgba(${col[0]},${col[1]},${col[2]},0.8)`; ctx.shadowBlur=14;
-      ctx.beginPath(); ctx.moveTo(O[0],O[1]); ctx.lineTo(e[0],e[1]); ctx.stroke();
-      const ang=Math.atan2(e[1]-O[1],e[0]-O[0]), hl=9;
-      ctx.beginPath(); ctx.moveTo(e[0],e[1]);
-      ctx.lineTo(e[0]-Math.cos(ang-0.4)*hl,e[1]-Math.sin(ang-0.4)*hl);
-      ctx.lineTo(e[0]-Math.cos(ang+0.4)*hl,e[1]-Math.sin(ang+0.4)*hl);
+      ctx.lineWidth=2.6; ctx.shadowColor=`rgba(${col[0]},${col[1]},${col[2]},0.9)`; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(sx,sy); ctx.stroke();
+      const ang=Math.atan2(sy-oy,sx-ox), hl=9;
+      ctx.beginPath(); ctx.moveTo(sx,sy);
+      ctx.lineTo(sx-Math.cos(ang-0.4)*hl, sy-Math.sin(ang-0.4)*hl);
+      ctx.lineTo(sx-Math.cos(ang+0.4)*hl, sy-Math.sin(ang+0.4)*hl);
       ctx.closePath(); ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.95)`; ctx.fill();
       ctx.shadowBlur=0;
     }
 
-    t+=0.010;
+    // ---- update the HUD (throttled to every 3rd frame) ----
+    if(hud.m00 && (frame%3===0)){
+      const f=x=>(x>=0?' ':'')+x.toFixed(2);
+      hud.m00.textContent=f(a); hud.m01.textContent=f(b);
+      hud.m10.textContent=f(c); hud.m11.textContent=f(d);
+      hud.det.textContent=f(det); hud.det.className=det<0?'neg':'pos';
+      hud.tr.textContent=f(tr);
+      if(!complex){
+        hud.l1.textContent=f(l1); hud.l2.textContent=f(l2);
+        hud.l1.className=l1<0?'neg':'pos'; hud.l2.className=l2<0?'neg':'pos';
+        hud.eig.textContent='real eigenbasis · space stretches'; hud.eig.className='hud-eig';
+      } else {
+        hud.l1.textContent=f(l1[0])+'+'+Math.abs(l1[1]).toFixed(2)+'i';
+        hud.l2.textContent=f(l2[0])+'−'+Math.abs(l2[1]).toFixed(2)+'i';
+        hud.l1.className=''; hud.l2.className='';
+        hud.eig.textContent='complex pair · space rotates'; hud.eig.className='hud-eig complex';
+      }
+    }
+
+    t+=0.010; frame++;
     raf=requestAnimationFrame(draw);
   }
   function stop(){ if(raf) cancelAnimationFrame(raf); raf=0; }
   function start(){ if(!raf && !landing.classList.contains('hidden')) draw(); }
   window.addEventListener('resize',resize);
-  window.addEventListener('pointermove',e=>{
-    const nx=e.clientX/window.innerWidth-0.5, ny=e.clientY/window.innerHeight-0.5;
-    cam.try_=0.6+nx*0.9; cam.trx=-0.5-ny*0.7;
-  });
   const obs=new MutationObserver(()=>{ landing.classList.contains('hidden')?stop():start(); });
   obs.observe(landing,{attributes:true,attributeFilter:['class']});
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){

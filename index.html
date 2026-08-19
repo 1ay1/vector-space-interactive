@@ -91,6 +91,25 @@
     <div class="landing-marquee" id="landingChips"></div>
   </div>
 
+  <!-- live math HUD: the matrix actually being applied, with its
+       eigenvalues / det / trace computed every frame -->
+  <div class="hero-hud" id="heroHud" aria-hidden="true">
+    <div class="hud-label">LIVE // A·x — eigenbasis</div>
+    <div class="hud-matrix">
+      <span class="brk">[</span>
+      <div class="hud-grid">
+        <span id="m00">1.00</span><span id="m01">0.00</span>
+        <span id="m10">0.00</span><span id="m11">1.00</span>
+      </div>
+      <span class="brk">]</span>
+    </div>
+    <div class="hud-row"><span>det</span><b id="hDet">1.00</b></div>
+    <div class="hud-row"><span>tr</span><b id="hTr">2.00</b></div>
+    <div class="hud-row"><span>λ₁</span><b id="hL1">1.00</b></div>
+    <div class="hud-row"><span>λ₂</span><b id="hL2">1.00</b></div>
+    <div class="hud-eig" id="hEig">real eigenbasis</div>
+  </div>
+
   <div class="hero-rail" aria-hidden="true">
     <span>01 — ORIENTATION</span><span>·</span><span>STRUCTURE</span><span>·</span>
     <span>GEOMETRY</span><span>·</span><span>TRANSFORMS</span><span>·</span>
