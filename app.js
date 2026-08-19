@@ -211,36 +211,68 @@
    ============================================================ */
 (function(){
   const out=document.getElementById('termOut'); if(!out) return;
-  const lines=[
-    {t:'$ ./vectorspace --start',cls:'c'},
-    {t:'booting linear-algebra course ................ ok',cls:'d'},
-    {t:'loaded 68 chapters  ·  vectors → SVD · spectral · Fourier',cls:'d'},
-    {t:'',cls:'d'},
-    {t:'  A vector is a list of numbers you can adjust.',cls:'w'},
-    {t:'  Dimension = how many numbers. That is the whole idea.',cls:'w'},
-    {t:'',cls:'d'},
-    {t:'  drag · predict · solve · prove — until n-D feels like 3-D.',cls:'g'},
-    {t:'',cls:'d'},
-    {t:'ready.',cls:'a'},
+
+  // ok/hi tokens rendered as coloured spans mid-line
+  const OK='  \u0001g[ ok ]\u0002', DEF='\u0001g def\u0002';
+  // ASCII banner (kept narrow so it survives small screens; hidden < 34ch via CSS)
+  const banner=[
+    {t:'\u250c\u2500\u2500\u2510  vectorspace',cls:'a',art:1},
+    {t:'\u2502 \u2197\u2502  linear algebra runtime  v1.0',cls:'a',art:1},
+    {t:'\u2514\u2500\u2500\u2518  \u211d\u207f \u2192 span \u2192 eig \u2192 SVD',cls:'d',art:1},
   ];
-  let li=0, ci=0, buf='';
-  const prefix=c=>c==='c'?'<span class="tc">':c==='a'?'<span class="ta">':c==='g'?'<span class="tg">':c==='w'?'<span class="tw">':'<span class="td">';
-  function type(){
-    if(li>=lines.length){ out.innerHTML=buf+'<span class="tcur">█</span>'; return; }
-    const L=lines[li];
-    if(ci===0) buf+=prefix(L.cls);
-    if(ci<L.t.length){
-      const ch=L.t[ci]; buf+= ch==='<'?'&lt;':ch==='>'?'&gt;':ch;
-      ci++;
-      out.innerHTML=buf+'</span><span class="tcur">█</span>';
-      setTimeout(type, L.t.length>40?7:16);
-    } else {
-      buf+='</span>\n'; li++; ci=0;
-      setTimeout(type, 140);
+  const lines=[
+    ...banner,
+    {t:'',cls:'d'},
+    {t:'$ ./configure --field=\u211d --dims=n && make',cls:'c'},
+    {t:'probing scalar field ................ \u211d (\u2102 available)'+OK,cls:'d'},
+    {t:'allocating basis {e\u2081 \u2026 e\u2099} ......... rank n'+OK,cls:'d'},
+    {t:'checking 8 vector-space axioms ...... 8/8 pass'+OK,cls:'d'},
+    {t:'  \u2022 closure, assoc, \u21920, \u2192\u2212v, 1\u00b7v, distributivity',cls:'d'},
+    {t:'mounting inner-product \u27e8u,v\u27e9 ........ \u2016\u00b7\u2016, \u2220 online'+OK,cls:'d'},
+    {t:'linking solvers: LU / QR / Gram\u2013Schmidt'+OK,cls:'d'},
+    {t:'diagonalizing A = P\u039bP\u207b\u00b9 ........... \u03bb spectrum ok'+OK,cls:'d'},
+    {t:'factoring A = U\u03a3V\u1d40 (SVD) ......... \u03c3\u2081\u2265\u2026\u2265\u03c3\u1d63'+OK,cls:'d'},
+    {t:'verifying rank + nullity = n ........ \u2713 conserved'+OK,cls:'d'},
+    {t:'loaded 68 chapters \u00b7 vectors \u2192 spectral \u2192 Fourier'+OK,cls:'d'},
+    {t:'',cls:'d'},
+    {t:'// theorem of the day',cls:'g'},
+    {t:'  vector := ordered list of numbers you can adjust'+DEF,cls:'w'},
+    {t:'  dim(V) := how many numbers. that is the whole idea.'+DEF,cls:'w'},
+    {t:'',cls:'d'},
+    {t:'>> drag \u00b7 predict \u00b7 solve \u00b7 prove \u2014 until n-D feels like 3-D',cls:'g'},
+    {t:'',cls:'d'},
+    {t:'system ready. type ./start to boot the course_',cls:'a'},
+  ];
+
+  const esc=ch=> ch==='<'?'&lt;': ch==='>'?'&gt;': ch==='&'?'&amp;': ch;
+  const clsSpan=c=>c==='c'?'<span class="tc">':c==='a'?'<span class="ta">':c==='g'?'<span class="tg">':c==='w'?'<span class="tw">':'<span class="td">';
+  // render a line's text with inline \u0001g..\u0002 = green, \u0001k..\u0002 = amber tokens
+  function render(txt){
+    let html='', mode=null;
+    for(const ch of txt){
+      if(ch==='\u0001'){ mode='open'; continue; }
+      if(mode==='open'){ html+= ch==='g'?'<span class="to">':'<span class="tk">'; mode=null; continue; }
+      if(ch==='\u0002'){ html+='</span>'; continue; }
+      html+=esc(ch);
     }
+    return html;
   }
-  // respect reduced motion: dump it all at once
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    out.innerHTML=lines.map(L=>prefix(L.cls)+L.t.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span>').join('\n')+'<span class="tcur">█</span>';
-  } else { setTimeout(type,260); }
+
+  let li=0, buf='';
+  function typeLine(){
+    if(li>=lines.length){ out.innerHTML=buf+'<span class="tcur">\u2588</span>'; return; }
+    const L=lines[li];
+    // reveal char-by-char but on the RENDERED string so tokens colour correctly
+    let i=0; const chars=[...L.t];
+    (function step(){
+      out.innerHTML = buf + clsSpan(L.cls) + render(L.t.slice(0,i)) + '</span><span class="tcur">\u2588</span>';
+      if(i<chars.length){ i+=L.t.length>46?2:1; setTimeout(step, L.art?10:(L.t.length>46?5:14)); }
+      else { buf += clsSpan(L.cls)+render(L.t)+'</span>\n'; li++; setTimeout(typeLine, L.art?60:(L.t===''?40:105)); }
+    })();
+  }
+  function dumpAll(){
+    out.innerHTML=lines.map(L=>clsSpan(L.cls)+render(L.t)+'</span>').join('\n')+'<span class="tcur">\u2588</span>';
+  }
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ dumpAll(); }
+  else { setTimeout(typeLine,220); }
 })();
