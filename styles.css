@@ -192,7 +192,7 @@ code,.vec{font-family:var(--mono);background:var(--code-bg);color:var(--code-fg)
 .box.trap::before{background:var(--gold)}
 .box.connect::before{background:var(--accentb)}
 .box .box-tag{font-size:.64rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-  display:inline-block;margin-bottom:6px;font-family:var(--mono);color:var(--muted)}
+  display:block;margin-bottom:8px;font-family:var(--mono);color:var(--muted)}
 .box.key .box-tag{color:var(--accent)}
 .box.aha-box .box-tag{color:var(--accent)}
 .box.ask .box-tag{color:var(--accent2)}
