@@ -62,20 +62,39 @@
 <!-- landing overlay -->
 <div id="landing">
   <canvas id="heroField" aria-hidden="true"></canvas>
+  <div class="hero-grain" aria-hidden="true"></div>
   <button class="theme-toggle landing-theme" id="themeToggleLanding" aria-label="toggle theme" title="Toggle theme"></button>
+
+  <header class="hero-top">
+    <div class="hero-mark">
+      <svg viewBox="0 0 32 32" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 28 L16 4 L28 28"/><path d="M4 28 L28 12" opacity=".55"/></svg>
+      <span>VECTOR<b>SPACE</b></span>
+    </div>
+    <div class="hero-topmeta">v1.0 · 68 chapters</div>
+  </header>
+
   <div class="landing-inner">
-    <div class="landing-badge"><span class="dot"></span>65 chapters · vectors → SVD · graded practice · no signup</div>
-    <h1>Linear algebra,<br>built <em>by hand</em>.</h1>
-    <p class="landing-lead">Sixty-five interactive chapters from “a vector is a list of numbers” to the
-      <b>SVD</b>, the <b>spectral theorem</b>, and <b>Fourier</b> — the one theorem that ties it
-      together, graded checkpoints, and a final mastery exam. You drag, predict, solve, and
-      verify until it’s genuinely yours.</p>
+    <div class="hero-kicker"><span class="dot"></span>AN INTERACTIVE COURSE IN LINEAR ALGEBRA</div>
+    <h1 class="hero-title">
+      <span class="l1">See the</span>
+      <span class="l2">invisible</span>
+      <span class="l3">dimensions.</span>
+    </h1>
+    <p class="landing-lead">Sixty-eight hands-on chapters that take you from “a vector is a list of
+      numbers” all the way to the <b>SVD</b>, the <b>spectral theorem</b>, and <b>Fourier</b> —
+      dragging, predicting, and proving until <em>n</em> dimensions feel as ordinary as three.</p>
     <div class="landing-cta">
-      <button id="startBtn" class="big-cta">Start the course <span class="arr">→</span></button>
-      <button id="labBtn" class="ghost-cta">Open the Matrix Lab</button>
-      <button id="jumpBtn" class="ghost-cta">Browse chapters</button>
+      <button id="startBtn" class="big-cta">Begin <span class="arr">→</span></button>
+      <button id="labBtn" class="ghost-cta">Matrix Lab</button>
+      <button id="jumpBtn" class="ghost-cta">Browse</button>
     </div>
     <div class="landing-marquee" id="landingChips"></div>
+  </div>
+
+  <div class="hero-rail" aria-hidden="true">
+    <span>01 — ORIENTATION</span><span>·</span><span>STRUCTURE</span><span>·</span>
+    <span>GEOMETRY</span><span>·</span><span>TRANSFORMS</span><span>·</span>
+    <span>EIGEN</span><span>·</span><span>SVD</span><span>·</span><span>68 — PROOFS</span>
   </div>
 </div>
 
